@@ -186,6 +186,8 @@
 			PerformVolumeMaintenanceTasks = $true
 		}
 		
+		DisableSaLogin			   = $false  # probably want to flesh-this 'option' out a bit more - i.e., might be other options to specify here. 
+		
 		TraceFlags				   = @(
 			3226
 			7745
@@ -294,9 +296,15 @@
 		}
 	}
 	
-	DataCollectorSets = @{
-		IOPsDataCollector	   = "path to the details"
-		CpuAndSqlDataCollector = "path to info too"
-		AnyOtherSetHere	       = "path the the name here"
+	DataCollectorSets	  			= @{
+		Consolidated = @{
+			definition = "path to consolidated"
+			autostart  = $true
+			cleanup    = nDays
+		}
+		
+		AnyOtherSetHere	      		= @{
+			etc			= "path here"
+		}
 	}
 }

@@ -29,10 +29,10 @@
 	NetworkDefinitions = @{
 		
 		# allows N different adapters. 
-		# TODO: expand to allow multiple IPs per adapter? 
 		AdapterX = @{
 			ProvisioningPriority    = 1
 			
+			# TODO: figure out schema to enable/allow multiple addresses - i.e., I'll need the following 3-4 options... but up to N times... 
 			IpAddress  = "10.10.30.101/16"
 			Gateway    = "10.10.0.1"
 			PrimaryDns = "192.168.1.1"
@@ -51,20 +51,6 @@
 			PhysicalDiskIdentifiers = @{
 				RawSize = "40GB"
 			}
-			
-			ExpectedDirectories	    = @{
-				
-				# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-				VirtualSqlServerServiceAccessibleDirectories = @(
-					"D:\SQLData"
-					"D:\Traces"
-				)
-				
-				# Additional/Other Directories - but no perms granted to SQL Server service.
-				RawDirectories							     = @(
-					"D:\SampleDirectory"
-				)
-			}
 		}
 		
 		BackupsDisk = @{
@@ -76,32 +62,6 @@
 			PhysicalDiskIdentifiers = @{
 				RawSize = "60GB"
 			}
-			
-			ExpectedDirectories	    = @{
-				
-				# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-				VirtualSqlServerServiceAccessibleDirectories = @(
-					"E:\SQLBackups"
-				)
-				
-				# Additional/Other Directories - but no perms granted to SQL Server service.
-				RawDirectories							     = @(
-					"E:\Archived"
-				)
-			}
-			
-			SharedDirectories	    = @{
-				
-				SqlBackups = @{
-					SourceDirectory = "E:\SQLBackups"
-					ShareName	    = "SQLBackups"
-					ReadOnlyAccess  = @()
-					ReadWriteAccess = @(
-						"AWS\sqlservice"
-					)
-				}
-			}
-			
 		}
 		
 		TempdbDisk = @{
@@ -115,15 +75,35 @@
 				DiskNumber = "3"
 				DeviceId   = "xvdd"
 			}
-			
-			ExpectedDirectories	    = @{
-				VirtualSqlServerServiceAccessibleDirectories = @(
-					"F:\SQLTempDB"
-					"F:\Traces"
-				)
-			}
 		}
+	}
+	
+	ExpectedDirectories   = @{
+		# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
+		VirtualSqlServerServiceAccessibleDirectories = @(
+			"D:\SQLData"
+			"D:\Traces"
+			"E:\SQLBackups"
+			"F:\SQLTempDB"
+			"F:\Traces"
+		)
 		
+		# Additional/Other Directories - but no perms granted to SQL Server service.
+		RawDirectories							     = @(
+			"D:\SampleDirectory"
+			"E:\Archived"
+		)
+	}
+		
+	ExpectedShares	      = @{
+		SqlBackups = @{
+			SourceDirectory = "E:\SQLBackups"
+			ShareName	    = "SQLBackups"
+			ReadOnlyAccess  = @()
+			ReadWriteAccess = @(
+				"AWS\sqlservice"
+			)
+		}
 	}
 	
 	ClusterConfiguration = @{
@@ -294,6 +274,12 @@
 				)
 			}
 		}
+	}
+	
+	ResourceGovernor	  = @{
+		# enabled or not... 
+		# pools to create and so on... 
+		# and ... assignments per pool would probably be helpful too. 
 	}
 	
 	DataCollectorSets	  			= @{

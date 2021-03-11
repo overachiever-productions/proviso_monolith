@@ -13,14 +13,12 @@ function Initialize-DisksFromDefinitions {
 	
 	begin {
 		 # Verify Strict:
-				if ($Strict) {
-					$currentHostName = $env:COMPUTERNAME;
-					if ($currentHostName -ne $ServerDefinition.TargetServer) {
-						throw "HostName defined by -ServerDefinition [$($ServerDefinition.TargetServer)] does NOT match current server hostname [$currentHostName]. Processing Aborted."
-					}
-				}
-		
-
+		if ($Strict) {
+			$currentHostName = $env:COMPUTERNAME;
+			if ($currentHostName -ne $ServerDefinition.TargetServer) {
+				throw "HostName defined by -ServerDefinition [$($ServerDefinition.TargetServer)] does NOT match current server hostname [$currentHostName]. Processing Aborted."
+			}
+		}
 	};
 	
 	process {

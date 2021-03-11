@@ -1,207 +1,214 @@
-﻿$root = Split-Path -Parent $MyInvocation.MyCommand.Path.Replace("\tests", "\functions");
-$sut = Split-Path -Leaf $MyInvocation.MyCommand.Path.Replace(".Tests.", ".");
-$functionName = $sut.Replace(".ps1", "");
+﻿#. ..\functions\Merge-AvailableDisksWithExpectedDiskIdentifiers.ps1
 
-. "$root\$sut";
-
-function Read-FakedIdentifiers {
-	$faked = @{
-		TargetServer = "AWS-SQL-1B"
-		
-		HostName	 = @{
-			DomainName  = "aws.local"
-			MachineName = "AWS-SQL-1B"
-		}
-		
-		ExpectedDisks = @{
+BeforeAll {
+	
+	$root = Split-Path -Parent $PSCommandPath.Replace("\tests", "\functions");
+	$sut = Split-Path -Leaf $PSCommandPath.Replace(".Tests.", ".");
+	$functionName = $sut.Replace(".ps1", "");
+	
+	. "$root\$sut";
+	
+	function Read-FakedIdentifiers {
+		$faked = @{
+			TargetServer = "AWS-SQL-1B"
 			
-			DataDisk = @{
-				ProvisioningPriority    = 1
-				
-				VolumeName			    = "D:\"
-				VolumeLabel			    = "SQLData"
-				
-				PhysicalDiskIdentifiers = @{
-					RawSize = "40GB"
-				}
-				
-				ExpectedDirectories	    = @{
-					
-					# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-					VirtualSqlServerServiceAccessibleDirectories = @(
-						"D:\SQLData"
-						"D:\Traces"
-					)
-					
-					# Additional/Other Directories - but no perms granted to SQL Server service.
-					RawDirectories							     = @(
-						"D:\SampleDirectory"
-					)
-				}
+			HostName	 = @{
+				DomainName  = "aws.local"
+				MachineName = "AWS-SQL-1B"
 			}
 			
-			BackupsDisk = @{
-				ProvisioningPriority    = 3
+			ExpectedDisks = @{
 				
-				VolumeName			    = "E:\"
-				VolumeLabel			    = "SQLBackups"
-				
-				PhysicalDiskIdentifiers = @{
-					RawSize = "60GB"
+				DataDisk = @{
+					ProvisioningPriority    = 1
+					
+					VolumeName			    = "D:\"
+					VolumeLabel			    = "SQLData"
+					
+					PhysicalDiskIdentifiers = @{
+						RawSize = "40GB"
+					}
+					
+					ExpectedDirectories	    = @{
+						
+						# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
+						VirtualSqlServerServiceAccessibleDirectories = @(
+							"D:\SQLData"
+							"D:\Traces"
+						)
+						
+						# Additional/Other Directories - but no perms granted to SQL Server service.
+						RawDirectories							     = @(
+							"D:\SampleDirectory"
+						)
+					}
 				}
 				
-				ExpectedDirectories	    = @{
+				BackupsDisk = @{
+					ProvisioningPriority    = 3
 					
-					# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-					VirtualSqlServerServiceAccessibleDirectories = @(
-						"E:\SQLBackups"
-					)
+					VolumeName			    = "E:\"
+					VolumeLabel			    = "SQLBackups"
 					
-					# Additional/Other Directories - but no perms granted to SQL Server service.
-					RawDirectories							     = @(
-						"E:\Archived"
-					)
+					PhysicalDiskIdentifiers = @{
+						RawSize = "60GB"
+					}
+					
+					ExpectedDirectories	    = @{
+						
+						# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
+						VirtualSqlServerServiceAccessibleDirectories = @(
+							"E:\SQLBackups"
+						)
+						
+						# Additional/Other Directories - but no perms granted to SQL Server service.
+						RawDirectories							     = @(
+							"E:\Archived"
+						)
+					}
+					
+					SharedDirectories	    = @{
+						
+						SqlBackups = @{
+							SourceDirectory = "E:\SQLBackups"
+							ShareName	    = "SQLBackups"
+							ReadOnlyAccess  = @()
+							ReadWriteAccess = @(
+								"aws\sqlservice"
+							)
+						}
+					}
 				}
 				
-				SharedDirectories	    = @{
+				TempdbDisk = @{
 					
-					SqlBackups = @{
-						SourceDirectory = "E:\SQLBackups"
-						ShareName	    = "SQLBackups"
-						ReadOnlyAccess  = @()
-						ReadWriteAccess = @(
-							"aws\sqlservice"
+					VolumeName			    = "F:\"
+					VolumeLabel			    = "SQLTempDB"
+					
+					PhysicalDiskIdentifiers = @{
+						RawSize = "30GB"
+					}
+					
+					ExpectedDirectories	    = @{
+						VirtualSqlServerServiceAccessibleDirectories = @(
+							"F:\SQLTempDB"
+							"F:\Traces"
 						)
 					}
 				}
 			}
-			
-			TempdbDisk = @{
-				
-				VolumeName			    = "F:\"
-				VolumeLabel			    = "SQLTempDB"
-				
-				PhysicalDiskIdentifiers = @{
-					RawSize    = "30GB"
-				}
-				
-				ExpectedDirectories	    = @{
-					VirtualSqlServerServiceAccessibleDirectories = @(
-						"F:\SQLTempDB"
-						"F:\Traces"
-					)
-				}
-			}
+		}
+		
+		return $faked;
+	}
+	
+	function Read-FakedServerDisks {
+		$fakeDisk1 = New-Object PSObject -Property @{
+			DiskNumber  = 1;
+			Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}";
+			Size	    = "44 GB";
+			Partitions  = 2;
+			DriveLetter = "D";
+			VolumeId    = "6000c2903aa7073c851d4eab74af1d22";
+			DeviceId    = "xvdk";
+			VolumeName  = "Data";
+			ScsiMapping = "0:2:10:0";
+		};
+		
+		$fakeDisk2 = New-Object PSObject -Property @{
+			DiskNumber  = 2;
+			Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-8890-11d0-94f2-00a0c91efb8b}";
+			Size	    = "30 GB";
+			Partitions  = 2
+			DriveLetter = "E";
+			VolumeId    = "6000c2903aa8003c851d4eab74af1dbe";
+			DeviceId    = "xvdv";
+			VolumeName  = "Media";
+			ScsiMapping = "0:4:8:0";
+		};
+		
+		$fakeDisk3 = New-Object PSObject -Property @{
+			DiskNumber  = 3;
+			Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-2234-11d0-94f2-00a0c91efb8b}";
+			Size	    = "30 GB";
+			Partitions  = 0;
+			DriveLetter = "N/A";
+			VolumeId    = "6000c2903aa2003c851d4eab74af1dbe";
+			DeviceId    = "xvii";
+			VolumeName  = "N/A";
+			ScsiMapping = "0:1:2:2";
+		};
+		
+		$fakeDisk4 = New-Object PSObject -Property @{
+			DiskNumber  = 5;
+			Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-aacc-11d0-94f2-00a0c91efb8b}";
+			Size	    = "60 GB";
+			Partitions  = 0;
+			DriveLetter = "N/A";
+			VolumeId    = "6000c2903aaaac3c851d4eab74af1dbe";
+			DeviceId    = "xvnii";
+			VolumeName  = "N/A";
+			ScsiMapping = "0:1:2:6";
+		};
+		
+		return @($fakeDisk1, $fakeDisk2, $fakeDisk3, $fakeDisk4);
+	}
+	
+	function Read-FakedMatchFrom_FindInitializableDiskByIdentifiers {
+		$match = @{
+			DiskNumber    = 3
+			DeviceId	  = "xvii"
+			ScsiMapping   = "0:1:2:2"
+			VolumeId	  = "6000c2903aa2003c851d4eab74af1dbe"
+			RawSize	      = "30GB"
+			MatchCount    = 0
+			SizeMatchOnly = $true
+		};
+		
+		return $match;
+	}
+	
+	function Read-FakedMatch2From_FindInitializableDiskByIdentifiers {
+		$match = @{
+			DiskNumber    = 5
+			DeviceId	  = "xvnii"
+			ScsiMapping   = "0:1:2:6"
+			VolumeId	  = "6000c2903aaaac3c851d4eab74af1dbe"
+			RawSize	      = "60GB"
+			MatchCount    = 0
+			SizeMatchOnly = $true
+		};
+		
+		return $match;
+	}
+	
+	#region Fakes
+	function Find-NonInitializedDisks {
+		return Read-FakedServerDisks | Where-Object {
+			$_.DriveLetter -eq "N/A"
+		};
+	}
+	
+	$global:maxInt = [int]::MaxValue;
+	
+	function Find-InitializableDiskByIdentifiers {
+		param (
+			[Parameter(Mandatory = $true)]
+			[string]$ExpectedDiskName,
+			[Parameter(Mandatory = $true)]
+			[PSCustomObject]$PhysicalDiskIdentifiers,
+			[Parameter(Mandatory = $true)]
+			[PSCustomObject]$AvailableDisksForInit
+		)
+		
+		if ($ExpectedDiskName -eq "TempdbDisk") {
+			return Read-FakedMatchFrom_FindInitializableDiskByIdentifiers;
 		}
 	}
+	#endregion
 	
-	return $faked;
 }
 
-function Read-FakedServerDisks {
-	$fakeDisk1 = New-Object PSObject -Property @{
-		DiskNumber  = 1;
-		Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}";
-		Size	    = "44 GB";
-		Partitions  = 2;
-		DriveLetter = "D";
-		VolumeId    = "6000c2903aa7073c851d4eab74af1d22";
-		DeviceId    = "xvdk";
-		VolumeName  = "Data";
-		ScsiMapping = "0:2:10:0";
-	};
-	
-	$fakeDisk2 = New-Object PSObject -Property @{
-		DiskNumber  = 2;
-		Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-8890-11d0-94f2-00a0c91efb8b}";
-		Size	    = "30 GB";
-		Partitions  = 2
-		DriveLetter = "E";
-		VolumeId    = "6000c2903aa8003c851d4eab74af1dbe";
-		DeviceId    = "xvdv";
-		VolumeName  = "Media";
-		ScsiMapping = "0:4:8:0";
-	};
-	
-	$fakeDisk3 = New-Object PSObject -Property @{
-		DiskNumber  = 3;
-		Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-2234-11d0-94f2-00a0c91efb8b}";
-		Size	    = "30 GB";
-		Partitions  = 0;
-		DriveLetter = "N/A";
-		VolumeId    = "6000c2903aa2003c851d4eab74af1dbe";
-		DeviceId    = "xvii";
-		VolumeName  = "N/A";
-		ScsiMapping = "0:1:2:2";
-	};
-	
-	$fakeDisk4 = New-Object PSObject -Property @{
-		DiskNumber  = 5;
-		Path	    = "\\?\scsi#disk&ven_vmware&prod_virtual_disk#5&3862831b&0&000a00#{53f56307-aacc-11d0-94f2-00a0c91efb8b}";
-		Size	    = "60 GB";
-		Partitions  = 0;
-		DriveLetter = "N/A";
-		VolumeId    = "6000c2903aaaac3c851d4eab74af1dbe";
-		DeviceId    = "xvnii";
-		VolumeName  = "N/A";
-		ScsiMapping = "0:1:2:6";
-	};
-	
-	return @($fakeDisk1, $fakeDisk2, $fakeDisk3, $fakeDisk4);
-}
-
-function Read-FakedMatchFrom_FindInitializableDiskByIdentifiers {
-	$match = @{
-		DiskNumber 	= 3
-		DeviceId   	= "xvii"
-		ScsiMapping = "0:1:2:2"
-		VolumeId    = "6000c2903aa2003c851d4eab74af1dbe"
-		RawSize	    = "30GB"
-		MatchCount  = 0
-		SizeMatchOnly = $true
-	};
-	
-	return $match;
-}
-
-function Read-FakedMatch2From_FindInitializableDiskByIdentifiers {
-	$match = @{
-		DiskNumber    = 5
-		DeviceId	  = "xvnii"
-		ScsiMapping   = "0:1:2:6"
-		VolumeId	  = "6000c2903aaaac3c851d4eab74af1dbe"
-		RawSize	      = "60GB"
-		MatchCount    = 0
-		SizeMatchOnly = $true
-	};
-	
-	return $match;
-}
-
-#region Fakes
-function Find-NonInitializedDisks {
-	return Read-FakedServerDisks | Where-Object {
-		$_.DriveLetter -eq "N/A"
-	};
-}
-
-$global:maxInt = [int]::MaxValue;
-
-function Find-InitializableDiskByIdentifiers {
-	param (
-		[Parameter(Mandatory = $true)]
-		[string]$ExpectedDiskName,
-		[Parameter(Mandatory = $true)]
-		[PSCustomObject]$PhysicalDiskIdentifiers,
-		[Parameter(Mandatory = $true)]
-		[PSCustomObject]$AvailableDisksForInit
-	)
-	
-	if ($ExpectedDiskName -eq "TempdbDisk") {
-		return Read-FakedMatchFrom_FindInitializableDiskByIdentifiers;
-	}
-}
-#endregion
 
 Describe "Unit Tests for $functionName" -Tag "UnitTests" {
 	
@@ -243,7 +250,8 @@ Describe "Unit Tests for $functionName" -Tag "UnitTests" {
 			
 			Merge-AvailableDisksWithExpectedDiskIdentifiers -ServerDefinition $serverDefinition -CurrentlyMountedVolumeLetters $mountedVolumes;
 			
-			Assert-MockCalled Find-NonInitializedDisks -Times 1;
+			Should -Invoke Find-NonInitializedDisks -Times 1 -Exactly;
+			#Assert-MockCalled Find-NonInitializedDisks -Times 1;
 		}
 				
 		It "Should Call Find-InitializableDiskByIdentifiers for Matching Purposes" {
@@ -260,7 +268,8 @@ Describe "Unit Tests for $functionName" -Tag "UnitTests" {
 			
 			{ Merge-AvailableDisksWithExpectedDiskIdentifiers -ServerDefinition $serverDefinition -CurrentlyMountedVolumeLetters $mountedVolumes }
 			
-			Assert-MockCalled Find-InitializableDiskByIdentifiers -Times 1;
+			Should -Invoke Find-InitializableDiskByIdentifiers -Times 1 -Exactly;
+			#Assert-MockCalled Find-InitializableDiskByIdentifiers -Times 1;
 		}
 	}
 
@@ -286,7 +295,8 @@ Describe "Unit Tests for $functionName" -Tag "UnitTests" {
 			
 			$results = Merge-AvailableDisksWithExpectedDiskIdentifiers -ServerDefinition $serverDefinition -CurrentlyMountedVolumeLetters $mountedVolumes;
 			
-			Assert-MockCalled Find-InitializableDiskByIdentifiers -Times 0;
+			Should -Invoke Find-InitializableDiskByIdentifiers -Times 0;
+			#Assert-MockCalled Find-InitializableDiskByIdentifiers -Times 0;
 		}
 		
 		It "Should NOT Throw When NO Non-Initialized Disks Exist" {

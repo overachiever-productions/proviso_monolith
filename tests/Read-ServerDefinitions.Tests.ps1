@@ -1,33 +1,35 @@
-﻿
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path.Replace("\tests", "\functions");
-$sut = Split-Path -Leaf $MyInvocation.MyCommand.Path.Replace(".Tests.", ".");
-$functionName = $sut.Replace(".ps1", "");
+﻿#. "..\functions\Read-ServerDefinitions.ps1";
 
-. "$root\$sut";
-
-#. "..\functions\Read-ServerDefinitions.ps1";
-
-
-function Read-FakeData1 {
-	$data = @{
-		
-		TargetServer = "AWS-SQL-1B"
-		
-		HostName	 = @{
-			DomainName  = "aws.local"
-			MachineName = "AWS-SQL-1B"
-		}
-	};
+BeforeAll {
 	
-	return $data;
-}
-
-function Read-FakeDataWithCurrentHostName {
-	$data = @{
-		TargetServer = "$($env:COMPUTERNAME)"
-	};
+	$root = Split-Path -Parent $PSCommandPath.Replace("\tests", "\functions");
+	$sut = Split-Path -Leaf $PSCommandPath.Replace(".Tests.", ".");
+	$functionName = $sut.Replace(".ps1", "");
 	
-	return $data;
+	. "$root\$sut";
+	
+	function Read-FakeData1 {
+		$data = @{
+			
+			TargetServer = "AWS-SQL-1B"
+			
+			HostName	 = @{
+				DomainName  = "aws.local"
+				MachineName = "AWS-SQL-1B"
+			}
+		};
+		
+		return $data;
+	}
+	
+	function Read-FakeDataWithCurrentHostName {
+		$data = @{
+			TargetServer = "$($env:COMPUTERNAME)"
+		};
+		
+		return $data;
+	}
+	
 }
 
 Describe "Unit Tests for $functionName" -Tag "UnitTests" {

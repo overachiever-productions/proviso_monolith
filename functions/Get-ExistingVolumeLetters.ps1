@@ -3,5 +3,5 @@
 function Get-ExistingVolumeLetters {
 	Get-Volume | Where-Object {
 		$_.DriveLetter -ne $null
-	} | Select-Object -ExpandProperty DriveLetter;
+	} | Sort-Object -Property DriveLetter | Select-Object -ExpandProperty DriveLetter;
 }

@@ -15,9 +15,10 @@ function Read-ServerDefinitions {
 	$output = [PSCustomObject]$data;
 	
 	$currentHostName = $env:COMPUTERNAME;
+	
 	if ($Strict) {
 		if ($currentHostName -ne $output.TargetServer) {
-			throw "HostName defined by $ServerDefinitionsPath [$($output.TargetServer)] does NOT match current server hostname [$currentHostName]. Processing Aborted."
+			throw "HostName defined by $Path [$($output.TargetServer)] does NOT match current server hostname [$currentHostName]. Processing Aborted."
 		}
 	}
 	

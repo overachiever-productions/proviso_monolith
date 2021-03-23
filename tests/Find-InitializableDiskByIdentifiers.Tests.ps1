@@ -24,20 +24,6 @@ BeforeAll {
 					PhysicalDiskIdentifiers = @{
 						RawSize = "40GB"
 					}
-					
-					ExpectedDirectories	    = @{
-						
-						# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-						VirtualSqlServerServiceAccessibleDirectories = @(
-							"D:\SQLData"
-							"D:\Traces"
-						)
-						
-						# Additional/Other Directories - but no perms granted to SQL Server service.
-						RawDirectories							     = @(
-							"D:\SampleDirectory"
-						)
-					}
 				}
 				
 				BackupsDisk = @{
@@ -48,31 +34,6 @@ BeforeAll {
 					
 					PhysicalDiskIdentifiers = @{
 						RawSize = "60GB"
-					}
-					
-					ExpectedDirectories	    = @{
-						
-						# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
-						VirtualSqlServerServiceAccessibleDirectories = @(
-							"E:\SQLBackups"
-						)
-						
-						# Additional/Other Directories - but no perms granted to SQL Server service.
-						RawDirectories							     = @(
-							"E:\Archived"
-						)
-					}
-					
-					SharedDirectories	    = @{
-						
-						SqlBackups = @{
-							SourceDirectory = "E:\SQLBackups"
-							ShareName	    = "SQLBackups"
-							ReadOnlyAccess  = @()
-							ReadWriteAccess = @(
-								"aws\sqlservice"
-							)
-						}
 					}
 				}
 				
@@ -85,13 +46,6 @@ BeforeAll {
 						RawSize    = "30GB"
 						DiskNumber = "3"
 						DeviceId   = "xvdd"
-					}
-					
-					ExpectedDirectories	    = @{
-						VirtualSqlServerServiceAccessibleDirectories = @(
-							"F:\SQLTempDB"
-							"F:\Traces"
-						)
 					}
 				}
 			}
@@ -372,8 +326,5 @@ Describe "Unit Tests for $functionName" -Tag "UnitTests" {
 }
 
 Describe "Integration Tests for $functionName" -Tag "UnitTests" {
-	
-	
-	
 	
 }

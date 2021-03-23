@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# Refactor: Resolve-IdentifiableDisks
+
 function Find-InitializableDiskByIdentifiers {
 	
 	param (

@@ -79,6 +79,9 @@
 	}
 	
 	ExpectedDirectories   = @{
+		
+		SqlServerInstanceName = "MSSQLSERVER" # scripts ALWAYS assume MSSQLSERVER ... but this directive exists to enable non-default-instance names via config
+		
 		# Directories that NT SERVICE\MSSQLSERVER can access (full perms)
 		VirtualSqlServerServiceAccessibleDirectories = @(
 			"D:\SQLData"

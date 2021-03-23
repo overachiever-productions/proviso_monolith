@@ -1,0 +1,17 @@
+So... 
+
+I've got various modules in the root of the folder 'above' this one... 
+But, those are just Cmdlets and the likes. 
+
+meaning, that I'll have modules for things like: 
+- S3 Backups and stuff. 
+- S4.Core (maybe? but, yeah, probably - things like: email alerts, Prompt-ForWhatever, and other 'View'-level related details...)
+- Proviso
+- Capacity Planning, etc. 
+
+And, here is where I'll create the .ps1 'scripts' or 'automation' that creates, effectively, 'controllers' 
+for those 'models' - i.e., orchestration and the likes. 
+
+With the idea that the scripts in here - i.e., the workflows won't be HARD-CODED 100% 'exact'. 
+Instead, they're samples/examples/real-world-implementations that showcase (by means of really doing stuff)
+WHAT can be done via the modules (functionality) listed above... 

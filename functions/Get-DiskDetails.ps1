@@ -9,14 +9,14 @@ function Get-DiskDetails {
 		$Size = $DiskDrive.Size;
 		$Size = [math]::Round($DiskDrive.Size/1GB, 2);
 		
-		$Disk = $_.Number;
+		$DiskNumber = $_.Number;
 		$Partitions = $_.NumberOfPartitions;
 		$VolumeID = $_.SerialNumber -replace "_[^ ]*$" -replace "vol", "vol-";
 		
 		[string]$DriveLetter = "N/A";
 		$VolumeName = $null;
 		
-		Get-Partition -DiskNumber 0 | ForEach-Object {
+		Get-Partition -DiskNumber $DiskNumber -ErrorAction SilentlyContinue | ForEach-Object {
 			if ([byte][Char]$_.DriveLetter -ne 0) {
 				$DriveLetter = $_.DriveLetter;
 				$VolumeName = (Get-PSDrive | Where-Object {
@@ -27,14 +27,14 @@ function Get-DiskDetails {
 		
 		# SCSI Addressing Format: Adapter, Bus/Channel, Target(Id), Lun -> or in Win32_Disk values: Port(Port=Adapter#), Bus, TargetId, LogicalUnit
 		$scsiDetails = Get-CimInstance Win32_DiskDrive | Where-Object {
-			$_.Index -eq $Disk
+			$_.Index -eq $DiskNumber
 		};
 		$scsiString = "$($scsiDetails.SCSIBus):$($scsiDetails.SCSIPort):$($scsiDetails.SCSITargetId):$($scsiDetails.SCSILogicalUnit)";
 		
 		$BlockDeviceName = Convert-SCSITargetIdToDeviceName -SCSITargetId $scsiDetails.SCSITargetId;
 		
 		New-Object PSObject -Property @{
-			DiskNumber  = $Disk;
+			DiskNumber  = $DiskNumber;
 			Path	    = $DrivePath;
 			Size	    = "$Size GB";
 			Partitions  = $Partitions;

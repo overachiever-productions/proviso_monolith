@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-# NOTE: Near-Duplicate functionality also exists in Confirm-DefinedDisks
+# NOTE: Near-Duplicate functionality also exists in Confirm-DefinedDisks (via OCP-adapter.)
 
 function Initialize-DefinedDisks {
 	[CmdletBinding()]
@@ -35,23 +35,22 @@ function Initialize-DefinedDisks {
 		
 		foreach ($key in $expectedDisks.Keys) {
 			$disk = $expectedDisks[$key];
-				
+			$definedDisk = $ServerDefinition.ExpectedDisks[$disk.NameOfExpectedDisk];
+			
 			if ($disk.MatchFound) {
 				
 				$diskNumber = $disk.MatchedPhysicalDisk.DiskNumber;
-				$definedDisk = $ServerDefinition.ExpectedDisks[$disk.NameOfExpectedDisk];
 				
 				try {
 					Initialize-TargetedDisk -DiskNumber $diskNumber -VolumeName $definedDisk.VolumeName -VolumeLabel $definedDisk.VolumeLabel;
 				}
 				catch {
-					throw "Exception attempting to Initialize Disk $($disk.MatchedPhsycialDisk.DiskNumber) as $($definedDisk.VolumeName).";
+					throw "Exception attempting to Initialize Disk $($disk.MatchedPhsycialDisk.DiskNumber) as $($definedDisk.VolumeName).`n`n`tException: $($_).";
 				}
-				
 			}
 			else {
 				if ($Strict) {
-					throw "Expected Disk for $($definedDisk.VolumeName) not found - no matches available. Disk cannot be provisioned.";
+					throw "Fatal Exception: Expected Disk for $($definedDisk.VolumeName) not found - no matches available. Disk cannot be provisioned.";
 				}
 			}
 		};

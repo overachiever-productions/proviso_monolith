@@ -6,10 +6,11 @@ function Install-NetFx35ForPre2016Instances {
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]
 		[ValidateSet("Windows2012R2", "Windows2016", "Windows2019")]
-		[string]$WindowsServerVersion
+		[string]$WindowsServerVersion,
+		[string]$NetFxSxsRootPath = "\\storage\Lab\resources\binaries\net3.5_sxs"
 	);
 	
-	$binariesPath = "\\storage.overachiever.net\Lab\binaries\Net3.5_sxs\$WindowsServerVersion";
+	$binariesPath = Join-Path -Path $NetFxSxsRootPath -ChildPath $WindowsServerVersion;
 	
 	$installed = (Get-WindowsFeature Net-Framework-Core).InstallState;
 	if ($installed -ne "Installed") {

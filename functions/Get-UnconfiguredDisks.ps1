@@ -41,7 +41,8 @@ function Get-UnconfiguredDisks {
 			$diskName = $prioritizedKey.Value;
 			$disk = $ServerDefinition.ExpectedDisks.$diskName;
 			
-			$availableDisks = Find-NonInitializedDisks;
+			$availableDisks = @( Find-NonInitializedDisks );
+			
 			$targetableDisks = Find-InitializableDiskByIdentifiers -ExpectedDiskName $diskName -PhysicalDiskIdentifiers $disk.PhysicalDiskIdentifiers -AvailableDisksForInit $availableDisks;
 			
 			# get the best match - based on number of matching specifiers (descending):

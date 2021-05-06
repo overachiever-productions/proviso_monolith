@@ -2,14 +2,14 @@
 
 function Deploy-AdminDb {
 	param (
-		[string]$AdminDbLatestSqlFilePath
+		[string]$Source = "https://api.github.com/repos/overachiever-productions/S4/releases/latest"
 	);
 	
 	# default to pulling the file down from online repo - i.e., latest release - UNLESS an explicit file/path has been specified. 
-	if (-not [string]::IsNullOrEmpty($AdminDbLatestSqlFilePath)) {
+	if (-not [string]::IsNullOrEmpty($Source)) {
 		# $AdminDbLatestSqlFilePath must end in a .sql extension - i.e., FILE PATH - not directory to the folder.
-		if (-not ($AdminDbLatestSqlFilePath -like "*.sql")) {
-			throw "-AdminDbLatestSqlFilePath must be the path to a valid .sql file (not a directory).";
+		if (-not ($Source -like "*.sql")) {
+			throw "-Source must be the path to a valid .sql file (not a directory).";
 		}
 	}
 	else {

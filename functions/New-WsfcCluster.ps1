@@ -22,9 +22,9 @@ function New-WsfcCluster {
 				$_ -match [IPAddress]$_
 			})]
 		[string]$ClusterIP2,
+		[Parameter(Mandatory = $true)]
+		[ValidateNotNullOrEmpty()]
 		[string]$WitnessPath
-		#		[Parameter(Mandatory = $true)]
-		#		[bool]$TestCluster
 	)
 	
 	$clusterIPs = @($ClusterIP1);
@@ -35,10 +35,6 @@ function New-WsfcCluster {
 	New-Cluster -Name $ClusterName -Node $PrimaryNode, $SecondaryNode -StaticAddress $clusterIPs -NoStorage;
 	
 	Set-ClusterQuorum -FileShareWitness $WitnessPath;
-	
-	#	if ($TestCluster) {
-	#		Test-Cluster -Ignore "Storage";
-	#	}
 	
 	Get-Cluster;
 }

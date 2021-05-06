@@ -30,7 +30,6 @@ BeforeAll {
 		return $config;
 	}
 	
-	
 	#region Fakes 
 	function Get-InstalledSqlServerInstanceNames {
 		return @();

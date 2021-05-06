@@ -1,43 +1,53 @@
-﻿<#
-	Notes and such here... 
-
-#>
-
-@{
+﻿@{
 	
-	TargetServer = "AWS-SQL-1A"
-	LimitHostTls1dot2Only = $true
+	TargetServer	    = "AWS-SQL-1A"
+	TargetDomain		= ""
 	
-	HostName	 = @{
-		DomainName  = "aws.local"
-		MachineName = "AWS-SQL-1A"
+	NetworkDefinitions = @{
+		
+		# allows multiple adapters. 
+		VMNetwork = @{
+			ProvisioningPriority = 1
+			
+			AssumableIfNames	 = @(
+				"Ethernet0"
+				"Ethernet1"
+			) 
+			InterfaceAlias 	 = "VM Network"
+			
+			IpAddress		     = "10.10.30.101/16"
+			Gateway			     = "10.10.0.1"
+			PrimaryDns		     = "10.0.0.1"
+			SecondaryDns		 = "208.67.222.222"
+		}
 	}
-	
-	Preferences = @{
+
+	WindowsPreferences = @{
 		DvdDriveToZ				     = $true
 		OptimizeExplorer			 = $true
 		DisableServerManagerOnLaunch = $true
 		SetPowerConfigHigh		     = $true
+		DisableMonitorTimeout        = $true
 		EnableDiskPerfCounters	     = $true
 	}
 	
 	RequiredPackages = @{
+		WsfcComponents = $true
+		
 		NetFxForPre2016InstancesRequired = $false
 		AdManagementFeaturesforPowershell6PlusRequired = $false
+		
+		NetFx35SxsRootPath = "\\storage\Lab\resources\binaries\net3.5_sxs"
 	}
 	
-	NetworkDefinitions = @{
+	LimitHostTls1dot2Only = $true
+	
+	FirewallRules	   = @{
+		EnableFirewallForSqlServer		    = $true
+		EnableFirewallForSqlServerDAC	    = $true
+		EnableFirewallForSqlServerMirroring = $true
 		
-		# allows N different adapters. 
-		AdapterX = @{
-			ProvisioningPriority    = 1
-			
-			# TODO: figure out schema to enable/allow multiple addresses - i.e., I'll need the following 3-4 options... but up to N times... 
-			IpAddress  = "10.10.30.101/16"
-			Gateway    = "10.10.0.1"
-			PrimaryDns = "192.168.1.1"
-			SecondaryDns = "208.67.222.222"
-		}
+		EnableICMP						    = $true
 	}
 	
 	ExpectedDisks = @{
@@ -109,36 +119,17 @@
 		}
 	}
 	
-	ClusterConfiguration = @{
-		ClusterAction		  = "NONE" # Options: NONE, PRE-NEW, PRE-JOIN, POST-NEW, POST-JOIN (where PRE = before SQL install, and POST = after SQL install.)
-		ClusterName		      = "AWS-CLUSTER-1"
-		ClusterNodes		  = @(
-			"AWS-SQL-1A"
-			"AWS-SQL-1B"
-		)
-		
-		ClusterIPs		      = @(
-			"10.10.30.102"
-			"10.20.30.102"
-		)
-		
-		FileShareWitness = "\\aws-dc\"
-	}
-	
-	FirewallRules = @{
-		EnableFirewallForSqlServer = $true;
-		EnableFirewallForSqlServerDAC = $true;
-		EnableFirewallForSqlServerMirroring = $true;
-	}
-	
 	SqlServerInstallation = @{
 		
-		SqlExePath		     = "\\storage\Lab\binaries\SqlServer\sqlserver_2019_dev\setup.exe"
-		SqlInstallConfigPath = "//storage.overachiever.net/lab/scripts/definitions/2019_xxx.ini"
+		SqlExePath		     = "\\storage\lab\resources\binaries\SqlServer\sqlserver_2019_dev\setup.exe"
+		SqlInstallConfigPath = "\\storage\lab\resources\scripts\definitions\2019_xxx.ini"
+		StrictInstallOnly    = $true  
 		
-		ServiceAccount	     = @{
-			ServiceAccountName	   = "xyz or group managed service account here"
-			ServiceAccountPassword = "probably safe-ish to store this here... but, better off to have an option to run lookups and some nomenclature/specification on how to grab that"
+		ServiceAccounts	     = @{
+			SqlServiceAccountName	   = "xyz or group managed service account here"
+			SqlServiceAccountPassword = "probably safe-ish to store this here... but, better off to have an option to run lookups and some nomenclature/specification on how to grab that"
+			AgentServiceAccountName = "optional. if not present, defaults to ServiceAccountName"
+			AgentServiceAccountPassword = "OPTIONAL. as with ServiceAccountPassword, can be empty if/when service-accounts are NT SERVICE\xxx accounts... "
 		}
 		
 		SecuritySetup	     = @{
@@ -163,13 +154,15 @@
 	SqlServerConfiguration = @{
 		
 		LimitSqlServerTls1dot2Only = $true
+		DisableSaLogin		       = $false # probably want to flesh-this 'option' out a bit more - i.e., might be other options to specify here. 
+		DeployContingencySpace	   = $true # automatically targets disks with SQL Server resources on them... 
+		
 		
 		EnabledUserRights		   = @{
+			UserRightsPsm1Path 			  = "\\storage\Lab\resources\modules\UserRights.psm1" #vNext - or ... there needs to be a Repo option ... 
 			LockPagesInMemory			  = $true
 			PerformVolumeMaintenanceTasks = $true
 		}
-		
-		DisableSaLogin			   = $false  # probably want to flesh-this 'option' out a bit more - i.e., might be other options to specify here. 
 		
 		TraceFlags				   = @(
 			3226
@@ -181,7 +174,7 @@
 	AdminDb = @{
 		
 		Deploy					   = $true
-		SourcePath				   = "uri here - and if it's web... try to download, otherwise, just grab the file from local path or UNC"
+		SourcePath				   = "https://api.github.com/repos/overachiever-productions/S4/releases/latest"  # CAN be a local path or a \\unc\share\as-well
 		
 		EnableAdvancedCapabilities = $true
 		
@@ -244,48 +237,21 @@
 			MaxNumberOfFailedDrops    = 3
 			OverWriteExistingJobs	  = $true
 		}
-		
-		AvailabilityGroups		   = @{
-			AGAction		  = "CREATE" # options: NONE, CREATE, JOIN
-			AGName		      = "xxxx"
-			
-			Replicas		  = @(
-				"AWS-SQL-1A"
-				"AWS-SQL-1B" # though... need to figure out how this all works out if/when/once we're installed and such - i.e., what if SQL-1B is still being configured? 
-			)
-			
-			MirroringEndpoint = @{
-				Enabled						    = $true
-				PortNumber					    = 5022
-				Name						    = "Mirroring Endpoint or whatever"
-				AllowedOwnersConnectingAccounts = @(
-					"xyzAdmin"
-					"SQL-SomethingAccount-FromOtherBox"
-				)
-			}
-			
-			AGListener	      = @{
-				AGListenerName	   = "xxxx"
-				ListenerPortNumber = 1433
-				ListenerIPs	       = @(
-					"10.10.30.105"
-					"10.20.30.105"
-				)
-				
-				ReadOnlyRounting   = @(
-					"Todo"
-				)
-			}
-		}
 	}
 	
-	ResourceGovernor	  = @{
+	SqlServerManagementStudio = @{
+		InstallSms		   = $true
+		ExePath		       = "ccccc"
+		IncludeAzureStudio = $false
+	}
+	
+	_ResourceGovernor	  = @{
 		# enabled or not... 
 		# pools to create and so on... 
 		# and ... assignments per pool would probably be helpful too. 
 	}
 	
-	DataCollectorSets	  			= @{
+	_DataCollectorSets	  			= @{
 		Consolidated = @{
 			definition = "path to consolidated"
 			autostart  = $true
@@ -294,6 +260,55 @@
 		
 		AnyOtherSetHere	      		= @{
 			etc			= "path here"
+		}
+	}
+	
+	_ClusterConfiguration = @{
+		ClusterAction    = "NONE" # Options: NONE, PRE-NEW, PRE-JOIN, POST-NEW, POST-JOIN (where PRE = before SQL install, and POST = after SQL install.)
+		ClusterName	     = "AWS-CLUSTER-1"
+		ClusterNodes	 = @(
+			"AWS-SQL-1A"
+			"AWS-SQL-1B"
+		)
+		
+		ClusterIPs	     = @(
+			"10.10.30.102"
+			"10.20.30.102"
+		)
+		
+		FileShareWitness = "\\aws-dc\"
+	}
+	
+	_AvailabilityGroups = @{
+		AGAction		  = "CREATE" # options: NONE, CREATE, JOIN
+		AGName		      = "xxxx"
+		
+		Replicas		  = @(
+			"AWS-SQL-1A"
+			"AWS-SQL-1B" # though... need to figure out how this all works out if/when/once we're installed and such - i.e., what if SQL-1B is still being configured? 
+		)
+		
+		MirroringEndpoint = @{
+			Enabled						    = $true
+			PortNumber					    = 5022
+			Name						    = "Mirroring Endpoint or whatever"
+			AllowedOwnersConnectingAccounts = @(
+				"xyzAdmin"
+				"SQL-SomethingAccount-FromOtherBox"
+			)
+		}
+		
+		AGListener	      = @{
+			AGListenerName	   = "xxxx"
+			ListenerPortNumber = 1433
+			ListenerIPs	       = @(
+				"10.10.30.105"
+				"10.20.30.105"
+			)
+			
+			ReadOnlyRounting   = @(
+				"Todo"
+			)
 		}
 	}
 }

@@ -1,31 +1,54 @@
-﻿Set-StrictMode -Version 1.0;
+﻿Set-StrictMode -Version 3.0;
 
-# REQUIRES: UserRights.psm1 by Tony Pombo - https://gallery.technet.microsoft.com/Grant-Revoke-Query-user-26e259b0 
-# NOTE: UserRights.psm1 won't work in/against PowerShell 7 - likely won't work with Powershell either.
-# 		might be, legit, time to look at creating this functionality with ... C# 
 function Set-UserRightsForSqlServer {
 	
 	param (
-		[Parameter(Mandatory = $true)]
 		[string]$AccountName = "NT SERVICE\MSSQLSERVER",
-		[Parameter(Mandatory = $true)]
-		[string]$UserRightsPsm1Path,
 		[switch]$LockPagesInMemory,
 		[switch]$PerformVolumeMaintenanceTasks
 	);
 	
-	Import-Module "\\storage.overachiever.net\Lab\scripts\modules\UserRights.psm1" -Force;
+	Mount-Directory "C:\Scripts"; 
+	[string]$secpolFile = "C:\Scripts\secpol.inf";
+	SecEdit /export /cfg $secpolFile /areas USER_RIGHTS /quiet | Out-Null;
 	
-	$accountSID = ConvertTo-WindowsSecurityIdentifier -DomainUser $AccountName;
-	Write-Host $accountSID;
+	$policy = Get-Content -Path $secpolFile;
 	
-	return;
+	$pvmt = $policy | Select-String -Pattern "^SeManageVolumePrivilege\s*=\s*.+";
+	$lpim = $policy | Select-String -Pattern "^SeLockMemoryPrivilege\s*=\s*.+";
+	$nlr = $policy | Select-String -Pattern "^SeNetworkLogonRight\s*=\s*.+";
+	[bool]$modified = $false;
+	
+	$sid = ConvertTo-WindowsSecurityIdentifier -Name $AccountName;
 	
 	if ($LockPagesInMemory) {
-		Grant-UserRight -Account $accountSID -Right SeLockMemoryPrivilege;
+		if ([string]::IsNullOrEmpty($lpim)) {
+			$policy = $policy.Replace($nlr, "$nlr`nSeLockMemoryPrivilege = *$($sid)");
+		}
+		else {
+			if (-not ($lpim -like "*$sid*")) {
+				$policy = $policy.Replace($lpim, "$lpim,*$($sid)");
+			}
+		}
+		$modified = $true;
 	}
 	
 	if ($PerformVolumeMaintenanceTasks) {
-		Grant-UserRight -Account $accountSID -Right SeManageVolumePrivilege; # handled via .INI / Setup as of 2017+	
+		if ([string]::IsNullOrEmpty($pvmt)) {
+			$policy = $policy.Replace($nlr, "$nlr`nSeLockMemoryPrivilege = *$($sid)");
+		}
+		else {
+			if (-not ($pvmt -like "*$sid*")) {
+				$policy = $policy.Replace($pvmt, "$pvmt,*$($sid)");
+			}
+		}
+		$modified = $true;
 	}
+	
+	if($modified){
+		$policy | Out-File $secpolFile -Force -Confirm:$false;
+		SecEdit /configure /db secedit.sdb /cfg $secpolFile /areas USER_RIGHTS /overwrite /quiet | Out-Null;
+	}
+	
+	Remove-Item -Path $secpolFile;
 }

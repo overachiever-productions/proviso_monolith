@@ -1,5 +1,4 @@
 ﻿
-# needs a better name but... 
 # this'll be how to deploy consolidated + job to start it on server start AND job to do cleanup.
 
 # A make sure correct Perflogs/Admin directories exist. 

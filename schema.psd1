@@ -134,6 +134,7 @@
 		
 		SecuritySetup	     = @{
 			EnableSqlAuth			    = $true
+			AddCurrentUserAsAdmin	    = $true
 			SaPassword				    = "12345"
 			MembersOfSysAdmin		    = @(
 				"domain\techops"
@@ -155,11 +156,9 @@
 		
 		LimitSqlServerTls1dot2Only = $true
 		DisableSaLogin		       = $false # probably want to flesh-this 'option' out a bit more - i.e., might be other options to specify here. 
-		DeployContingencySpace	   = $true # automatically targets disks with SQL Server resources on them... 
-		
+		DeployContingencySpace	   = $true 
 		
 		EnabledUserRights		   = @{
-			UserRightsPsm1Path 			  = "\\storage\Lab\resources\modules\UserRights.psm1" #vNext - or ... there needs to be a Repo option ... 
 			LockPagesInMemory			  = $true
 			PerformVolumeMaintenanceTasks = $true
 		}
@@ -174,7 +173,6 @@
 	AdminDb = @{
 		
 		Deploy					   = $true
-		SourcePath				   = "https://api.github.com/repos/overachiever-productions/S4/releases/latest"  # CAN be a local path or a \\unc\share\as-well
 		
 		EnableAdvancedCapabilities = $true
 		
@@ -240,8 +238,8 @@
 	}
 	
 	SqlServerManagementStudio = @{
-		InstallSms		   = $true
-		ExePath		       = "ccccc"
+		InstallSsms	       = $true
+		BinaryPath		   = "\\storage\Lab\resources\binaries\SqlServer\SSMS-Setup-ENU_18.9.1.exe"
 		IncludeAzureStudio = $false
 	}
 	
@@ -263,20 +261,20 @@
 		}
 	}
 	
-	_ClusterConfiguration = @{
-		ClusterAction    = "NONE" # Options: NONE, PRE-NEW, PRE-JOIN, POST-NEW, POST-JOIN (where PRE = before SQL install, and POST = after SQL install.)
-		ClusterName	     = "AWS-CLUSTER-1"
+	ClusterConfiguration = @{
+		ClusterAction    = "NONE" # Options: NONE, NEW, JOIN, REMOVE (as in, remove-self... )
+		ClusterName	     = "AWS2-CLUSTER-SQLX"
 		ClusterNodes	 = @(
 			"AWS-SQL-1A"
 			"AWS-SQL-1B"
 		)
 		
 		ClusterIPs	     = @(
-			"10.10.30.102"
-			"10.20.30.102"
+			"10.10.31.120"
+			"10.20.31.120"
 		)
 		
-		FileShareWitness = "\\aws-dc\"
+		FileShareWitness = "\\aws2-dc\clusters\"
 	}
 	
 	_AvailabilityGroups = @{

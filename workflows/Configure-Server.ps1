@@ -2,16 +2,6 @@
 Set-StrictMode -Version 1.0;
 
 <# 
-
-	vNEXT: 
-		uh... why prompt me for a host-name IF the host-name is 'correct'?
-			e.g., initialize-server is what we use to get the host-name and network stuff in shape. 
-			from that point forward (i.e., once this script runs/starts... 
-			the expectation is that IF $env:ComputerName or whatever ... = $serverDefs.hostName and... maybe even domain-name/workgroup stuff... 
-				then...at that point... don't ASK me for the name of a server, right? 
-
-
-
 	SCOPE: 
 		Preps host server prior to configuration by addressing the following 2x tasks/needs: 
 			A. Windows / OS Preferences
@@ -39,11 +29,7 @@ Set-StrictMode -Version 1.0;
 
 #>
 
-# Globals:
-[string]$targetMachineName = $null;
-[string]$provisoRepo = $null;
-[string]$provisoFolder = $null;
-[string]$definitonsFolder = $null;
+#region Boostrap
 
 #region Helper Functions
 function Find-ProvisoFile {
@@ -92,11 +78,9 @@ function Request-Value {
 	
 	return $output;
 }
-#endregion RegionName
+#endregion
 
-#region Initialization Scaffolding
 try {
-	
 	$configFile = Find-ProvisoFile -TargetFileName "proviso.config.psd1";
 	
 	if ($configFile -ne $null) {
@@ -108,50 +92,46 @@ try {
 	}
 	
 	if ([string]::IsNullOrEmpty($provisoRepo) -and [string]::IsNullOrEmpty($provisoFolder)) {
-		# if not in default/convention path... request path. 	
 		$provisoFolder = Request-Value -Message "Please Specify Path to ROOT directory where proviso.psm1 file is located";
 	}
 	
 	if ([string]::IsNullOrEmpty($definitonsFolder)) {
-		# if not in default/convention path... request path. (NOTE: repo not 'allowed' at this point - assuming stand-alone install.)
 		$definitonsFolder = Request-Value -Message "Please Specify Path to ROOT directory where <machine-name>.psd1 files are kept";
 	}
 	
-	$machineNamePrompt = "Please specify name of Target VM to provision - e.g., `"SQL-97`".`n";
-	$targetMachineName = Request-Value -Message $machineNamePrompt;
-	$targetMachineConfig = "";
+	$targetMachineName = $env:COMPUTERNAME;
+	$targetMachineConfig = Join-Path -Path $definitonsFolder -ChildPath "$($targetMachineName).psd1";
 	
-	if (![string]::IsNullOrEmpty($definitonsFolder)) {
+	if (([string]::IsNullOrEmpty($targetMachineConfig)) -or (-not (Test-Path -Path $targetMachineConfig))) {
+		
+		$targetMachineName = Request-Value -Message "Please specify name of Target VM to provision - e.g., `"SQL-97`".`n";
 		$targetMachineConfig = Join-Path -Path $definitonsFolder -ChildPath "$($targetMachineName).psd1";
-	}
-	else {
-		$targetMachineConfig = Find-ProvisoFile -TargetFileName "$($targetMachineName).psd1";
-	}
-	
-	if (([string]::IsNullOrEmpty($targetMachineConfig)) -or (!(Test-Path -Path $targetMachineConfig))) {
-		throw "Invalid Target-Machine definition file-path specified: $targetMachineConfig - Processing cannot continue. Terminating... ";
+		
+		if (([string]::IsNullOrEmpty($targetMachineConfig)) -or (-not (Test-Path -Path $targetMachineConfig))) {
+			throw "Invalid Target-Machine definition file-path specified: $targetMachineConfig - Processing cannot continue. Terminating... ";
+		}
 	}
 	
 	Write-Host "Configuration file for host $targetMachineName located. Importing Proviso Module .... ";
 	
-	if (!([string]::IsNullOrEmpty($provisoRepo))) {
+	if (-not ([string]::IsNullOrEmpty($provisoRepo))) {
 		Install-Module -Name Proviso -Repository $provisoRepo -Force;
-		Import-Module -Name Proviso;
+		Import-Module -Name Proviso -Force;
 	}
 	else {
 		$provisoPsm1 = Join-Path -Path $provisoFolder -ChildPath "Proviso.psm1";
-		Import-Module $provisoPsm1;
+		Import-Module $provisoPsm1 -Force;
 	}
 }
 catch {
 	Write-Host "Unexpected Error: ";
-	Write-Host $_;
+	Write-Host $_.ScriptStackTrace;
 }
-#endregion RegionName
+#endregion
 
 #region Core Workflow 
 try {
-	[PSCustomObject]$serverDefinition = Read-ServerDefinitions -Path $targetMachineConfig -Strict:$false;
+	[PSCustomObject]$serverDefinition = Read-ServerDefinitions -Path $targetMachineConfig -Strict;
 	
 	# Tackle OS Preferences First: 
 	$dvdDrive = if ($serverDefinition.WindowsPreferences.DvdDriveToZ) {
@@ -176,8 +156,6 @@ try {
 		-DisableMonitorTimeout:$disableMonitorTimeout `
 		-Force;
 	
-	
-	# Host TLS-Only (pre-reboot):
 	if ($serverDefinition.LimitHostTls1dot2Only) {
 		Limit-HostTls12Only;
 	}
@@ -196,6 +174,8 @@ try {
 			Install-NetFx35ForPre2016Instances -WindowsServerVersion $windowsVersion -NetFxSxsRootPath $netFxPath;
 		}
 		
+		# vNEXT: This really doesn't need to be here - i.e., there's no need for this 'config' line in the .psd1 file. 
+		#    it MAY turn out that I end up needing this in ... order to manage Listeners and such... but, that'd be transparent to end-users and won't need a line in the psd1/config...  
 		if ($serverDefinition.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired) {
 			Install-ADManagementToolsForPowerShell6Plus;
 		}
@@ -209,9 +189,7 @@ try {
 		Unblock-FirewallForSqlServer -EnableDAC:$enableDAC -EnableMirroring:$enableMirroring -Silent;
 	}
 	
-	$enableICMP = $serverDefinition.FirewallRules.EnableICMP;
-	
-	if ($enableICMP){
+	if ($serverDefinition.FirewallRules.EnableICMP){
 		Enable-Icmp;
 	}
 	
@@ -223,7 +201,7 @@ try {
 	$dataDirectory = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.SqlDataPath;
 	$backupDirectory = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.SqlBackupsPath;
 	
-	$installSqlDataDir = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.InstallSqlDataDir;		# [OPTIONAL] within config; location of system dbs/etc. 
+	$installSqlDataDir = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.InstallSqlDataDir;		# [OPTIONAL] 
 	$logsDirectory = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.SqlLogsPath; 				# [OPTIONAL]
 	$tempdbDirectory = $serverDefinition.SqlServerInstallation.SqlServerDefaultDirectories.TempDbPath;				# [OPTIONAL]
 	
@@ -259,8 +237,10 @@ try {
 			throw "SQL Server has already been installed, and StrictInstallOnly is set to `$true. Cannot Continue. Terminating...";
 		}
 		
-		Write-Host "SQL Server has already been installed. Skipping SQL Server installtion.";
-		# vNEXT: Run high-level checks against version, service/account accounts, collation, SqlAuth, directories, features? and report/warn on any problems.
+		Write-Host "SQL Server has already been installed. Skipping SQL Server installtion."; # vNEXT: Run high-level checks against version, service/account accounts, collation, SqlAuth, directories, features? and report/warn on any problems.
+		
+		# vNEXT: if SqlServiceAccountName -eq $null/empty... then "NT SERVICE\MSSQLSERVER";
+		$sqlServiceName = $serverDefinition.SqlServerInstallation.ServiceAccounts.SqlServiceAccountName;
 	}
 	else {
 		
@@ -288,10 +268,21 @@ try {
 			$saPassword = $null;
 		}
 		
-		$addCurrentUserAsAdmin = $serverDefinition.SqlServerInstallation.SecuritySetup.AddCurrentUserAsAdmin;
 		$sysAdmins = @();
 		foreach ($entry in $serverDefinition.SqlServerInstallation.SecuritySetup.MembersOfSysAdmin) {
 			$sysAdmins += $entry;
+		}
+		if ($serverDefinition.SqlServerInstallation.SecuritySetup.AddCurrentUserAsAdmin) {
+			if ($env:USERNAME -eq "Administrator") {
+				$sysAdmins += "BuiltIn\Administrators"
+			}
+			else{
+				$sysAdmins += $env:USERNAME;
+			}
+		}
+		
+		if ($sysAdmins.Count -lt 1) {
+			throw "To continue, provide at least one WIndows account to provision as a SysAdmin. Terminating...";
 		}
 		
 		$licenseKey = $serverDefinition.SqlServerInstallation.LicenseKey;
@@ -317,14 +308,23 @@ try {
 	
 	Install-SqlServerPowerShellModule; # vNEXT: how's this work for network-isolated VMs? 
 	
-	return;
-	
-# no worky - because UserRights doesn't work in PS 7 (and likely not in 6 either).
 	$lockPages = $serverDefinition.SqlServerConfiguration.EnabledUserRights.LockPagesInMemory;
 	$fastInit = $serverDefinition.SqlServerConfiguration.EnabledUserRights.PerformVolumeMaintenanceTasks;
 	$userRightsPsm1Path = $serverDefinition.SqlServerConfiguration.EnabledUserRights.UserRightsPsm1Path;
+	Set-UserRightsForSqlServer -AccountName $sqlServiceName -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
 	
-	Set-UserRightsForSqlServer -AccountName "NT SERVICE\MSSSQLSERVER" -UserRightsPsm1Path $userRightsPsm1Path -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
+	if ($serverDefinition.SqlServerConfiguration.DeployContingencySpace) {
+		# vNEXT: get a list of each 'distinct' disk within the $sqlDirectories variable... 
+		
+		# MVP implementation: 
+		$drives = @("D");
+		Expand-ContingencySpace -TargetVolumes $drives -ZipSource "\\storage\Lab\resources\ContingencySpace.zip";
+	}
+	
+	if ($serverDefinition.SqlServerConfiguration.DisableSaLogin) {
+		# vNEXT: 
+		Write-Host "Skipping process of disabling SA login - not yet implemented... ";
+	}
 	
 	$flags = @();
 	foreach ($flag in $serverDefinition.SqlServerConfiguration.TraceFlags) {
@@ -332,7 +332,14 @@ try {
 	}
 	Add-TraceFlags $flags;
 	
-	Restart-SQLServerAndAgent | Wait-ForSQLAccess;
+	Restart-SQLServerAndAgent | Wait-ForSQLAccessAfterRestart;
+	
+	if ($serverDefinition.SqlServerManagementStudio.InstallSsms) {
+		$binaryPath = $serverDefinition.SqlServerManagementStudio.BinaryPath;
+		$installAzure = $serverDefinition.SqlServerManagementStudio.IncludeAzureStudio;
+		
+		Install-SqlServerManagementStudio -BinaryPath $binaryPath -IncludeAzureDataStudio:$installAzure;
+	}
 	
 	if ($serverDefinition.AdminDb.Deploy) {
 		$adminDbPath = $serverDefinition.AdminDb.SourcePath;
@@ -346,7 +353,7 @@ try {
 		# TODO: parse the output... and look for something that indicates if we need to restart or not... 
 		Invoke-SqlCmd -Query "EXEC admindb.dbo.update_server_name @PrintOnly = 0;";
 		
-		Restart-SQLServerAndAgent | Wait-ForSQLAccess;
+		Restart-SQLServerAndAgent | Wait-ForSQLAccessAfterRestart;
 		
 		[string]$maxDOP = $serverDefinition.AdminDb.ConfigureInstance.MAXDOP;
 		[string]$maxMEM = $serverDefinition.AdminDb.ConfigureInstance.MaxServerMemoryGBs;
@@ -365,8 +372,6 @@ try {
 	@OptimizeForAdhocWorkloads = $optForAdHoc ;";
 		
 	}
-	
-	
 }
 catch {
 	#vNext need some way of figuring out which command/operation we're IN currently - i.e., which function. 
@@ -378,6 +383,4 @@ catch {
 	Write-Host "Error: $_";
 	Write-Host $_.ScriptStackTrace;
 }
-
-
 #endregion

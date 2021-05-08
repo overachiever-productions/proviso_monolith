@@ -1,4 +1,4 @@
-﻿
+﻿Set-StrictMode -Version 3.0;
 
 $functionsPath = Join-Path -Path $PSScriptRoot -ChildPath 'functions/*.ps1';
 $internalFunctionsPath = Join-Path -Path $PSScriptRoot -ChildPath 'internal/*.ps1';
@@ -13,5 +13,7 @@ foreach ($file in @($public + $internal)) {
 		throw "Unable to dot source [$($file.FullName)]";
 	}
 }
+
+[string]$script:provisoRoot = $PSScriptRoot;
 
 Export-ModuleMember -Function $public.BaseName;

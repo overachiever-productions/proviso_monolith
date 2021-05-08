@@ -5,7 +5,7 @@
 	RootModule = 'Proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.3.2'
+	ModuleVersion = '0.4.4'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -17,13 +17,13 @@
 	CompanyName = 'OverAchiever Productions, LLC.'
 	
 	# Copyright statement for this module
-	Copyright = '(c) 2021. All rights reserved.'
+	Copyright = '(c) 2019+. All rights reserved.'
 	
 	# Description of the functionality provided by this module
 	Description = 'SQL Server Provisioning Tools'
 	
 	# Minimum version of the Windows PowerShell engine required by this module
-	PowerShellVersion = '3.0'
+	PowerShellVersion = '5.0'
 	
 	# Minimum version of the .NET Framework required by this module
 	DotNetFrameworkVersion = '2.0'

@@ -2,6 +2,9 @@
 
 function Wait-UntilServiceStatus {
 	
+	# vNEXT: this is a work in progress - idea is that it should be a) usable by multiple services, b) a best-practices implementation of restarting/waiting... 
+	
+	
 	# TODO: this SHOULD be capable of handling multiple services - i.e., 'chained' from command/line/inputs and such.
 	# FUN: https://stackoverflow.com/a/34355759/11191
 	

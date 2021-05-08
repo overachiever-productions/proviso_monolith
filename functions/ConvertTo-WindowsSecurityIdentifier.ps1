@@ -3,10 +3,10 @@
 function ConvertTo-WindowsSecurityIdentifier {
 	
 	param (
-		[string]$DomainUser
+		[string]$Name
 	);
 	
-	$translatedSid = (New-Object System.Security.Principal.NTAccount($DomainUser)).Translate([System.Security.Principal.SecurityIdentifier]).value;
+	$translatedSid = (New-Object System.Security.Principal.NTAccount($Name)).Translate([System.Security.Principal.SecurityIdentifier]).value;
 	
 	return $translatedSid;
 }

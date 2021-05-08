@@ -18,14 +18,14 @@ function Disable-TelemetryXEventsTrace {
 	# Disable CEIP options via registry:	
 	# TODO: MIGHT make sense to fetch these via [sys].[xp_instance_regread] - i.e., similar to how the paths for TraceFlags are retrieved in Add-TraceFlag (internal)
 	
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL$($MajorVersion).MSSQLSERVER\CPE\" -Name "CustomerFeedback" -Value 0;
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL$($MajorVersion).MSSQLSERVER\CPE\" -Name "EnableErrorReporting" -Value 0;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL$($MajorVersion).MSSQLSERVER\CPE\" -Name "CustomerFeedback" -Value 0 | Out-Null;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL$($MajorVersion).MSSQLSERVER\CPE\" -Name "EnableErrorReporting" -Value 0 | Out-Null;
 	
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "CustomerFeedback" -Value 0;
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "EnableErrorReporting" -Value 0;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "CustomerFeedback" -Value 0 | Out-Null;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "EnableErrorReporting" -Value 0 | Out-Null;
 	
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "CustomerFeedback" -Value 0;
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "EnableErrorReporting" -Value 0;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "CustomerFeedback" -Value 0 | Out-Null;
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server\$($MajorVersion)0" -Name "EnableErrorReporting" -Value 0 | Out-Null;
 	
 	# Disable Auto-Start on Service + Stop Service.
 	Set-Service -Name "SQLTELEMETRY" -StartupType $CEIPServiceStartup;

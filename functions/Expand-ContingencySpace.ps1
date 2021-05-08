@@ -6,7 +6,7 @@ function Expand-ContingencySpace {
 		[Parameter(Mandatory = $true)]
 		[string[]]$TargetVolumes,
 		[Parameter(Mandatory = $true)]
-		[string]$ZipSource = "C:\Scripts\resources\ContingencySpace.zip"
+		[string]$ZipSource = "\\storage\Lab\resources\ContingencySpace.zip"
 	);
 	
 	foreach ($volume in $TargetVolumes) {

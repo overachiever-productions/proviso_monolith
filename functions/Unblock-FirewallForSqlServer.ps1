@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 1.0;
+﻿Set-StrictMode -Version 3.0;
 
 function Unblock-FirewallForSqlServer {
 	[CmdletBinding()]
@@ -8,7 +8,7 @@ function Unblock-FirewallForSqlServer {
 		[switch]$Silent
 	);
 	
-	# TODO: this logic sucks... 
+	# TODO: this if/else logic sucks... 
 	if ($Silent) {
 		New-NetFirewallRule -DisplayName "SQL Server" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 1433 | Out-Null;
 		

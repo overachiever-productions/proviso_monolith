@@ -2,8 +2,6 @@
 
 function Grant-SqlServicePermissionsToDirectory {
 	
-	# DRY VIOLATION with DeployServer.psm1
-	
 	param (
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]

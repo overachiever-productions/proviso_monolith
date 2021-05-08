@@ -52,6 +52,7 @@ function Install-SqlServer {
 		New-SqlIniValue -IniData $iniData -Key "PID" -Value $LicenseKey;
 	}
 	New-SqlIniValue -IniData $iniData -Key "SQLSVCACCOUNT" -Value $SqlServiceAccountName;
+	
 	New-SqlIniValue -IniData $iniData -Key "SQLSYSADMINACCOUNTS" -Value $admins;
 	New-SqlIniValue -IniData $iniData -Key "AGTSVCACCOUNT" -Value $AgentServiceAccountName;
 	New-SqlIniValue -IniData $iniData -Key "INSTALLSQLDATADIR" -Value $SqlDirectories.InstallSqlDataDir;

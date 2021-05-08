@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-#REFACTOR: this name sucks... 
+# REFACTOR: Maybe just: Grant-AccessToShare - cuz this current name sucks... 
 function Grant-ShareAccessToServiceAccount {
 	
 	# Fodder - this stuff looks better than the SmbShare stuff: 

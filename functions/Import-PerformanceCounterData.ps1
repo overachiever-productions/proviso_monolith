@@ -24,3 +24,25 @@ function Import-PerformanceCounterData {
 	Import-DbaCsv -Path $files -SqlInstance DEV -SqlCredential (Get-Credential sa) -Database PerfCounters -Table $TargetTableName -AutoCreateTable;
 	
 }
+
+
+#
+#function Import-PerformanceCounters {
+#	param (
+#		[Parameter(Mandatory = $true)]
+#		[string]$ParentDirectory,
+#		[Parameter(Mandatory = $true)]
+#		[string]$HostFilter,
+#		[Parameter(Mandatory = $true)]
+#		[string]$TargetTableName
+#	);
+#	
+#	$files = (Get-ChildItem -Path $ParentDirectory -File -Recurse) | Where-Object {
+#		$_.PSParentPath -match $HostFilter
+#	} | Select-Object FullName;
+#	#Write-Host $files;
+#	
+#	Import-DbaCsv -Path $files -SqlInstance "dev.sqlserver.id" -SqlCredential (Get-Credential sa) -Database PerfCounters -Table $TargetTableName -AutoCreateTable;
+#}
+#
+#Import-PerformanceCounters -ParentDirectory "E:\import" -HostFilter "NA1SQL2" -TargetTableName "October2020_NA2";

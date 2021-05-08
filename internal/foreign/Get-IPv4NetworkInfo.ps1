@@ -2,7 +2,6 @@
 
 # source: www.ryandrane.com
 
-
 <#  
 .SYNOPSIS  
     Gets extended information about an IPv4 network.

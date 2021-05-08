@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 1.0;
+﻿Set-StrictMode -Version 3.0;
 
 # Note: this function arguably violates SRP - but... it's a facade - something to make all of the underlying operations easier/simpler.
 

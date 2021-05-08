@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 1.0;
+﻿Set-StrictMode -Version 3.0;
 
 function Add-NodeToWsfcCluster {
 	# Hmm... so, what's the proccess here for adding nodes within ADDITIONAL subnets? Or... with IPs in different subnets? 

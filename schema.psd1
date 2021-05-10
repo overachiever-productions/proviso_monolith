@@ -154,9 +154,10 @@
 	
 	SqlServerConfiguration = @{
 		
-		LimitSqlServerTls1dot2Only = $true
-		DisableSaLogin		       = $false # probably want to flesh-this 'option' out a bit more - i.e., might be other options to specify here. 
-		DeployContingencySpace	   = $true 
+		LimitSqlServerTls1dot2Only = $true0
+		GenerateSPN			       = $true # vNEXT - see PRO-43
+		DisableSaLogin			   = $false # vNEXT: Explicit option to disable sa login for PCI/HIPAA and other highly-secured environments.
+		DeployContingencySpace	   = $true;
 		
 		EnabledUserRights		   = @{
 			LockPagesInMemory			  = $true
@@ -174,12 +175,11 @@
 		
 		Deploy					   = $true
 		
-		EnableAdvancedCapabilities = $true
-		
 		ConfigureInstance		   = @{
-			MAXDOP					    = 2
-			MaxServerMemoryGBs		    = 502
-			CostThresholdForParallelism = 40
+			MAXDOP					    	= 2
+			MaxServerMemoryGBs		    	= 502
+			CostThresholdForParallelism 	= 40
+			OptimizeForAdHocQueries 		= $true   # Default is TRUE - i.e., only way this'll be false is if there's a config entry that explicitly sets to $false
 		}
 		
 		DatabaseMail			   = @{
@@ -190,28 +190,35 @@
 			SmtpServerName			    = "email-smtp.us-east-1.amazonaws.com"
 			SmtpPortNumber			    = 587
 			SmtpRequiresSSL			    = $true
+			SmtpAuthType				= "BASIC"				# OPTIONS: { BASIC | WINDOWS | ANONYMOUS } - defaults to BASIC
 			SmptUserName			    = "AKIAI2QUP43VN5VRF73Q"
 			SmtpPassword			    = "AkbYdzRcUiM1BqsqcCLbRi3fgE7pvRXxxxxxxxHAr6KKE"
 			SendTestEmailUponCompletion = $true
 		}
 		
-		ServerHistoryManagement    = @{
-			Enabled			      = $true
-			SqlServerLogsToKeep   = 12
-			EmailHistoryRetention = "6 months"
-			xyzHistoryRetention   = "2 months"
+		HistoryManagement    = @{
+			Enabled			      		= $true
+			SqlServerLogsToKeep  		= 18
+			AgentJobHistoryRetention 	= "6 weeks"
+			BackupHistoryRetention		= "6 weeks"
+			EmailHistoryRetention 		= "6 months"
+			xyzHistoryRetention   		= "2 months"
 		}
 		
-		EnableDiskMonitoring	   = @{
+		DiskMonitoring	   = @{
 			Enabled			       = $true
 			WarnWhenFreeGBsGoBelow = "32"
 		}
 		
-		SqlServerAlerts		       = @{
+		Alerts		       = @{
 			IOAlertsEnabled	       = $true
 			IOAlertsFiltered	   = $false # for example... 
 			SeverityAlertsEnabled  = $true
 			SeverityAlertsFiltered = $true
+		}
+		
+		IndexMaintenance  = @{
+			
 		}
 		
 		BackupJobs				   = @{

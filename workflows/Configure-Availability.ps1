@@ -32,7 +32,7 @@ function Find-ProvisoFile {
 
 function Get-ConfigData {
 	param (
-		[string]$ConfigFilePath
+		[string]$ConfigFile
 	);
 	
 	[PSCustomObject](Import-PowerShellDataFile $ConfigFilePath);
@@ -133,6 +133,42 @@ try {
 			Write-Host "Invalid or unexpected ClusterAction defined in ClusterConfiguration section.";
 		}
 	}
+	
+	
+<# 
+	
+$partnerNames = "PodNames=$($PodName)SQL1,$($PodName)SQL2";
+Invoke-SqlCmd -Query "EXEC admindb.dbo.[add_synchronization_partner]
+    @PartnerNames = N'`$(PodNames)',
+    @ExecuteSetupOnPartnerServer = 0; " -Variable $partnerNames -Credential $Credentials;
+
+# -------------------------------------------------------------------
+#        4.b - Configure/Set-up shell for Sync-Checks (Server, Jobs, Data)
+
+Invoke-SqlCmd -Query "EXEC admindb.dbo.[create_sync_check_jobs]
+    @Action = N'CREATE',
+    @IgnoreSynchronizedDatabaseOwnership = 0,
+    @IgnoredMasterDbObjects = N'',
+    @IgnoredLogins = N'%NA_SQLSA%',
+    @IgnoredAlerts = N'',
+    @IgnoredLinkedServers = N'',
+    @IgnorePrincipalNames = 0,
+    @IgnoredJobs = N'',
+    @IgnoredDatabases = N'',
+    @OverWriteExistingJobs = 1; " -Credential $Credentials;
+
+# -------------------------------------------------------------------
+#        4.c - Create Failover Handler
+
+Invoke-SqlCmd -Query "EXEC admindb.dbo.[add_failover_processing]
+    @ExecuteSetupOnPartnerServer = 0; " -Credential $Credentials;	
+	
+	
+#>
+	
+	
+	
+	
 }
 catch {
 	Write-Host "Error: $_";

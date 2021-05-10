@@ -308,23 +308,29 @@ try {
 	
 	Install-SqlServerPowerShellModule; # vNEXT: how's this work for network-isolated VMs? 
 	
-	$lockPages = $serverDefinition.SqlServerConfiguration.EnabledUserRights.LockPagesInMemory;
-	$fastInit = $serverDefinition.SqlServerConfiguration.EnabledUserRights.PerformVolumeMaintenanceTasks;
-	$userRightsPsm1Path = $serverDefinition.SqlServerConfiguration.EnabledUserRights.UserRightsPsm1Path;
-	Set-UserRightsForSqlServer -AccountName $sqlServiceName -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
+	if ($serverDefinition.SqlServerConfiguration.GenerateSPN) {
+		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
+		Write-Host "Skipping process of generating SPNs for target instance + service-account/ports/etc. - not yet implemented... ";
+	}
+	
+	if ($serverDefinition.SqlServerConfiguration.DisableSaLogin) {
+		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-46
+		Write-Host "Skipping process of disabling SA login - not yet implemented... ";
+	}
 	
 	if ($serverDefinition.SqlServerConfiguration.DeployContingencySpace) {
 		# vNEXT: get a list of each 'distinct' disk within the $sqlDirectories variable... 
 		
 		# MVP implementation: 
 		$drives = @("D");
+		# TODO: this is not currently idempotent - i.e., we expand 4x 1GB files even IF they're already in place... 
 		Expand-ContingencySpace -TargetVolumes $drives -ZipSource "\\storage\Lab\resources\ContingencySpace.zip";
 	}
 	
-	if ($serverDefinition.SqlServerConfiguration.DisableSaLogin) {
-		# vNEXT: 
-		Write-Host "Skipping process of disabling SA login - not yet implemented... ";
-	}
+	$lockPages = $serverDefinition.SqlServerConfiguration.EnabledUserRights.LockPagesInMemory;
+	$fastInit = $serverDefinition.SqlServerConfiguration.EnabledUserRights.PerformVolumeMaintenanceTasks;
+	$userRightsPsm1Path = $serverDefinition.SqlServerConfiguration.EnabledUserRights.UserRightsPsm1Path;
+	Set-UserRightsForSqlServer -AccountName $sqlServiceName -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
 	
 	$flags = @();
 	foreach ($flag in $serverDefinition.SqlServerConfiguration.TraceFlags) {
@@ -332,8 +338,157 @@ try {
 	}
 	Add-TraceFlags $flags;
 	
+	if ($serverDefinition.AdminDb.Deploy) {
+# there is no source path (explicit entry) anymore - this'll either be https://... or we'll have an alternate local path..
+		$adminDbPath = $serverDefinition.AdminDb.SourcePath;
+		Deploy-AdminDb -Source $adminDbPath;
+		
+		# Required for backups / restores - i.e., if people don't want this... they need to NOT deploy the admindb.
+		Invoke-SqlCmd -Query "EXEC admindb.dbo.[enable_advanced_capabilities];";
+		
+		# Configure Instance:	
+		[string]$maxDOP = $serverDefinition.AdminDb.ConfigureInstance.MAXDOP;
+		[string]$maxMEM = $serverDefinition.AdminDb.ConfigureInstance.MaxServerMemoryGBs;
+		[string]$cTFP = $serverDefinition.AdminDb.ConfigureInstance.CostThresholdForParallelism;
+		$optForAdHoc = "1"; # defaults to true and can only be explicitly 'unset'. 
+		if (-not ($serverDefinition.AdminDb.ConfigurateInstance.OptimizeForAdHocQueries)) {
+			$optForAdHoc = "0";
+		}
+		Invoke-SqlCmd -Query "EXEC admindb.dbo.[configure_instance] 
+			@MaxDOP = $maxDOP, 
+		    @CostThresholdForParallelism = $cTFP, 
+			@MaxServerMemoryGBs = $maxMEM,
+			@OptimizeForAdhocWorkloads = $optForAdHoc ;";
+		
+		# Database Mail: 
+		if ($serverDefinition.AdminDb.DatabaseMail.Enabled) {
+			
+			[string]$operatorEmail = $serverDefinition.AdminDb.DatabaseMail.OperatorEmail;
+			[string]$smtpAccountName = $serverDefinition.AdminDb.DatabaseMail.SmtpAccountName;
+			[string]$smtpOutAddy = $serverDefinition.AdminDb.DatabaseMail.SmtpOutgoingEmailAddress;
+			[string]$smtpServer = $serverDefinition.AdminDb.DatabaseMail.SmtpServerName;
+			[string]$portNumber = $serverDefinition.AdminDb.DatabaseMail.SmtpPortNumber;
+			[string]$requiresSsl = "1";
+			if (-not ($serverDefinition.AdminDb.DatabaseMail.SmtpRequiresSSL)) {
+				$requiresSsl = "0";
+			}
+			
+			[string]$authType = "BASIC";
+			if ($serverDefinition.AdminDb.DatabaseMail.SmtpAuthType -ne "BASIC") {
+				$authType = $serverDefinition.AdminDb.DatabaseMail.SmtpAuthType;
+			}
+			[string]$userName = $serverDefinition.AdminDb.DatabaseMail.SmptUserName;
+			[string]$password = $serverDefinition.AdminDb.DatabaseMail.SmtpPassword;
+			[string]$sendEmail = "1";
+			if (-not ($serverDefinition.AdminDb.DatabaseMail.SendTestEmailUponCompletion)){
+				$sendEmail = "0";
+			}
+			
+			Invoke-SqlCmd -Query "EXEC admindb.dbo.[configure_database_mail]
+				@OperatorEmail = N'$operatorEmail',
+				@SmtpAccountName = N'$smtpAccountName',
+				@SmtpOutgoingEmailAddress = N'$smtpOutAddy',
+				@SmtpServerName = N'$smtpServer',
+				@SmtpPortNumber = $portNumber, 
+				@SmtpRequiresSSL = $requiresSsl, 
+			    @SmptUserName = N'$userName',
+			    @SmtpPassword = N'$password', 
+				@SendTestEmailUponCompletion = $sendEmail ; ";
+		}
+		
+		# History Management: 
+		if ($serverDefinition.AdminDb.HistoryManagement.Enabled) {
+			
+			[string]$logCount = $serverDefinition.AdminDb.HistoryManagement.SqlServerLogsToKeep;
+			[string]$agentJobRetention = $serverDefinition.AdminDb.HistoryManagement.AgentJobHistoryRetention;
+			[string]$backupHistory = $serverDefinition.AdminDb.HistoryManagement.BackupHistoryRetention;
+			[string]$emailRetention = $serverDefinition.AdminDb.HistoryManagement.EmailHistoryRetention;
+			
+			Invoke-SqlCmd -Query "EXEC admindb.dbo.[manage_server_history]
+				@NumberOfServerLogsToKeep = $logCount,
+				@AgentJobHistoryRetention = N'$agentJobRetention',
+				@BackupHistoryRetention = N'$backupHistory',
+				@EmailHistoryRetention = N'$emailRetention'; ";
+		}
+		
+		# Disk Monitoring: 	
+		if ($serverDefinition.AdminDb.DiskMonitoring.Enabled) {
+			[string]$GBsThreshold = "18";
+			if ($serverDefinition.AdminDb.DiskMonitoring.WarnWhenFreeGBsGoBelow -ne "18") {
+				$GBsThreshold = $serverDefinition.AdminDb.DiskMonitoring.WarnWhenFreeGBsGoBelow;
+			}
+			
+			Invoke-SqlCmd -Query "EXEC [admindb].dbo.[enable_disk_monitoring]
+				@WarnWhenFreeGBsGoBelow = $GBsThreshold; ";
+		}
+		
+		# Alerts 
+		if (($serverDefinition.AdminDb.Alerts.IOAlertsEnabled) -or ($serverDefinition.AdminDb.Alerts.SeverityAlertsEnabled)) {
+			
+			$alertTypes = "";
+			if ($serverDefinition.AdminDb.Alerts.IOAlertsEnabled) {
+				$alertTypes = "IO";
+			}
+			if ($serverDefinition.AdminDb.Alerts.SeverityAlertsEnabled) {
+				$alertTypes = "SEVERITY";
+			}
+			if (($serverDefinition.AdminDb.Alerts.IOAlertsEnabled) -and ($serverDefinition.AdminDb.Alerts.SeverityAlertsEnabled)) {
+				$alertTypes = "SEVERITY_AND_IO";
+			}
+			
+			Invoke-SqlCmd -Query "EXEC [admindb].dbo.[enable_alerts] 
+				@AlertTypes = N'$alertTypes'; ";
+			
+			$filters = "";
+			if ($serverDefinition.AdminDb.Alerts.IOAlertsFiltered) {
+				$filters = "IO"
+			}
+			if ($serverDefinition.AdminDb.Alerts.SeverityAlertsFiltered) {
+				$filters = "SEVERITY"
+			}
+			if (($serverDefinition.AdminDb.Alerts.IOAlertsFiltered) -and ($serverDefinition.AdminDb.Alerts.SeverityAlertsFiltered)) {
+				$filters = "SEVERITY_AND_IO";
+			}
+			
+			Invoke-SqlCmd -Query "EXEC admindb.dbo.[enable_alert_filtering]
+				@TargetAlerts = N'$filters'; ";
+		}
+		
+		# Index Maintenance Jobs
+		#  this one requires ola's scripts... 
+#		Invoke-SqlCmd -Query "EXEC [admindb].dbo.[create_index_maintenance_jobs]
+#		    @DailyJobRunsOnDays = N'M,W,F',
+#		    @WeekendJobRunsOnDays = N'Sa',
+#		    @TimeZoneForUtcOffset = N'Central Standard Time',
+#		    @OverWriteExistingJobs = 1; ";
+#		
+#		
+#		# Backup Jobs 
+#		Invoke-SqlCmd -Query "EXEC [admindb].dbo.[create_backup_jobs]
+#			@UserDBTargets = N'{USER}',
+#			@FullUserBackupsStartTime = N'02:00:00',
+#		    @OverwriteExistingJobs = 1; ";
+#		
+#		# Restore Jobs
+#		Invoke-SqlCmd -Query "EXEC [admindb].dbo.[create_restore_test_job]
+#			@DatabasesToRestore = N'{USER}',
+#			@Priorities = N'x3',
+#			@RestoredDbNamePattern = N'{0}_s4test',
+#			@DropDatabasesAfterRestore = 1,
+#			@MaxNumberOfFailedDrops = 3,
+#			@OverWriteExistingJob = 1; ";
+		
+		# vNext: Monitoring Jobs (alerts on blocked-processes/killers), Metrics-Collection jobs, etc. 
+		
+		# vNext: Encryption Certificates...  Scripted Logins/etc. 
+		# or.. maybe create a Environment/Custom Scripts entry - i.e., just a folder-path + list of files? 
+	}
+	
+	# finally, kick off a restart:
 	Restart-SQLServerAndAgent | Wait-ForSQLAccessAfterRestart;
 	
+	# And ... kick-off install of SSMS if/as directed... 
+	# sigh... this is NOT idempotent yet... 
 	if ($serverDefinition.SqlServerManagementStudio.InstallSsms) {
 		$binaryPath = $serverDefinition.SqlServerManagementStudio.BinaryPath;
 		$installAzure = $serverDefinition.SqlServerManagementStudio.IncludeAzureStudio;
@@ -341,37 +496,6 @@ try {
 		Install-SqlServerManagementStudio -BinaryPath $binaryPath -IncludeAzureDataStudio:$installAzure;
 	}
 	
-	if ($serverDefinition.AdminDb.Deploy) {
-		$adminDbPath = $serverDefinition.AdminDb.SourcePath;
-		
-		Deploy-AdminDb -Source $adminDbPath;
-	}
-	
-	if ($serverDefinition.AdminDb.EnableAdvancedCapabilities) {
-		Invoke-SqlCmd -Query "EXEC admindb.dbo.[enable_advanced_capabilities];";
-		
-		# TODO: parse the output... and look for something that indicates if we need to restart or not... 
-		Invoke-SqlCmd -Query "EXEC admindb.dbo.update_server_name @PrintOnly = 0;";
-		
-		Restart-SQLServerAndAgent | Wait-ForSQLAccessAfterRestart;
-		
-		[string]$maxDOP = $serverDefinition.AdminDb.ConfigureInstance.MAXDOP;
-		[string]$maxMEM = $serverDefinition.AdminDb.ConfigureInstance.MaxServerMemoryGBs;
-		[string]$cTFP = $serverDefinition.AdminDb.ConfigureInstance.CostThresholdForParallelism;
-		$optForAdHoc = if (($serverDefinition.AdminDb.ConfigureInstance.OptimizeForAdHocQueries) -or ($serverDefinition.AdminDb.ConfigureInstance.OptimizeForAdHocQueries -eq "1")) {
-			"1"
-		}
-		ELSE {
-			"0"
-		};
-		
-		Invoke-SqlCmd -Query "EXEC admindb.dbo.[configure_instance] 
-	@MaxDOP = $maxDOP, 
-    @CostThresholdForParallelism = $cTFP, 
-	@MaxServerMemoryGBs = $maxMEM,
-	@OptimizeForAdhocWorkloads = $optForAdHoc ;";
-		
-	}
 }
 catch {
 	#vNext need some way of figuring out which command/operation we're IN currently - i.e., which function. 

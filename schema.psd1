@@ -33,11 +33,7 @@
 	
 	RequiredPackages = @{
 		WsfcComponents = $true
-		
 		NetFxForPre2016InstancesRequired = $false
-		AdManagementFeaturesforPowershell6PlusRequired = $false
-		
-		NetFx35SxsRootPath = "\\storage\Lab\resources\binaries\net3.5_sxs"
 	}
 	
 	LimitHostTls1dot2Only = $true
@@ -121,15 +117,15 @@
 	
 	SqlServerInstallation = @{
 		
-		SqlExePath		     = "\\storage\lab\resources\binaries\SqlServer\sqlserver_2019_dev\setup.exe"
-		SqlInstallConfigPath = "\\storage\lab\resources\scripts\definitions\2019_xxx.ini"
+		SqlExePath		     = "sqlserver_2019_dev"  
+		SqlIniFile			 = "2019_STANDARD_INSTALL"
 		StrictInstallOnly    = $true  
 		
 		ServiceAccounts	     = @{
-			SqlServiceAccountName	   = "xyz or group managed service account here"
-			SqlServiceAccountPassword = "probably safe-ish to store this here... but, better off to have an option to run lookups and some nomenclature/specification on how to grab that"
-			AgentServiceAccountName = "optional. if not present, defaults to ServiceAccountName"
-			AgentServiceAccountPassword = "OPTIONAL. as with ServiceAccountPassword, can be empty if/when service-accounts are NT SERVICE\xxx accounts... "
+			SqlServiceAccountName	   		= "xyz or group managed service account here"
+			SqlServiceAccountPassword 		= "probably safe-ish to store this here... but, better off to have an option to run lookups and some nomenclature/specification on how to grab that"
+			AgentServiceAccountName 		= "optional. if not present, defaults to ServiceAccountName"
+			AgentServiceAccountPassword 	= "OPTIONAL. as with ServiceAccountPassword, can be empty if/when service-accounts are NT SERVICE\xxx accounts... "
 		}
 		
 		SecuritySetup	     = @{
@@ -154,9 +150,9 @@
 	
 	SqlServerConfiguration = @{
 		
-		LimitSqlServerTls1dot2Only = $true0
+		LimitSqlServerTls1dot2Only = $true
 		GenerateSPN			       = $true # vNEXT - see PRO-43
-		DisableSaLogin			   = $false # vNEXT: Explicit option to disable sa login for PCI/HIPAA and other highly-secured environments.
+		DisableSaLogin			   = $false 
 		DeployContingencySpace	   = $true;
 		
 		EnabledUserRights		   = @{
@@ -173,7 +169,8 @@
 	
 	AdminDb = @{
 		
-		Deploy					   = $true
+		Deploy		      				= $true
+		OverrideSource 					= "assets/admindb_latest.sql"		
 		
 		ConfigureInstance		   = @{
 			MAXDOP					    	= 2
@@ -218,80 +215,154 @@
 		}
 		
 		IndexMaintenance  = @{
-			
+			Enabled 					= $true
+			DailyJobRunsOnDays			= "M,W,F"
+			WeekendJobRunsOnDays		= "Su"
+			StartTime		     		= "22:30:00"
+			TimeZoneForUtcOffset 		= "Central Standard Time"
+			JobsNamePrefix				= "Index Maintenance"
+			JobsCategoryName			= "Database Maintenance"
+			OperatorToAlertOnErrors     = "Alerts"
+		}
+		
+		ConsistencyChecks = @{
+			Enabled 						= $true 
+			ExecutionDays 					= "M, W, F, Su" 
+			StartTime   					= "04:10:00"
+			Targets							= "{USER}"
+			IncludeExtendedLogicalChecks	= $false
+			Exclusions 						= ""
+			Priorities						= ""
+			TimeZoneForUtcOffset 			= "Central Standard Time"
+			JobName		    				= "Database Consistency Checks"
+			JobCategoryName	    			= "Database Maintenance"
+			Operator			 			= "Alerts"
+			JobEmailPrefix					= "[Database Corruption Checks] "
+			Profile							= "General"
 		}
 		
 		BackupJobs				   = @{
-			Enabled					    = $true
-			DatabasesToBackup		    = "{USER}"
-			#Priorities = ""
-			FullUserBackupsStartingTime = "02:00:00"
-			# xyz and so on... 
-			XyzRetention			    = "x days"
-			CopyToPath				    = "etc"
-			OffSitePath				    = "etc"
-			OverwriteExistingJobs	    = $true
+			Enabled					   		= $true
+			UserDatabasesToBackup	   		= "{USER}"
+			UserDbsToExclude		   		= ""
+			CertificateName			   		= ""
+			BackupDirectory 				= "{DEFAULT}"
+			CopyToDirectory					= ""
+			SystemBackupRetention 			= "4 days"
+			CopyToSystemBackupRetention		= ""
+			UserBackupRetention 			= "3 days"
+			CopyToUserBackupRetention 		= ""
+			LogBackupRetention 				= "73 hours"
+			CopyToLogBackupRetention		= ""
+			AllowForSecondaries 			= $false
+			SystemBackupsStart 				= "18:50:00"
+			UserBackupsStart 				= "02:00:00"
+			LogBackupsStart 				= "00:02:00"
+			LogBackupsEvery 				= "10 minutes"
+			DiffBackupsStart 				= ""
+			DiffBackupsEvery		    	= ""
+			TimeZoneForUtcOffset			= ""
+			JobsNamePrefix					= "Database Backups - "
+			JobsCategoryName				= "Backups"
+			Operator 						= "Alerts"
+			Profile 						= "General"
 		}
 		
 		RestoreTestJobs		       = @{
-			Enabled				      = $true
-			DatabasesToRestore	      = "{USER}"
-			#Priorities = "x3"
-			RestoredDbNamePattern	  = "{0}_s4test"
-			DropDatabasesAfterRestore = $true
-			MaxNumberOfFailedDrops    = 3
-			OverWriteExistingJobs	  = $true
+			Enabled				      	= $true
+			JobName						= "Database Backups - Regular Restore Tests"
+			JobStartTime				= "22:30:00"
+			TimeZoneForUtcOffset 		= ""
+			JobCategoryName 			= "Backups"
+			AllowForSecondaries 		= $false 
+			DatabasesToRestore   		= "{READ_FROM_FILESYSTEM}"
+			DatabasesToExclude   		= ""
+			Priorities 					= ""
+			BackupsRootPath 			= "{DEFAULT}"
+			RestoreDataPath  			= "{DEFAULT}"
+			RestoreLogsPath  			= "{DEFAULT}"
+			RestoredDbNamePattern 		= "{0}_s4test"
+			AllowReplace 				= ""
+			RpoThreshold 				= "24 hours"
+			DropDbsAfterRestore 		= $true 
+			MaxFailedDrops 				= 3
+			Operator			  		= "Alerts"
+			Profile			      		= "General"
+			JobEmailPrefix 				= "[RESTORE TEST] "
+			
+		}
+		
+		SqlEncryptionKeys = @{
+			
+			CreateMasterEncryptionKey = $true
+			MasterEncryptionKeyPassword = "xxxxxxyyyyz"
+			
+			BackupSuchAndSuchCertificate = @{  # 0 - N certs go here - where each entry is the NAME of the cert to deploy... 
+				CertXyzPath = "so on"
+				XyzOtherDetail	= "blah"
+				BackupPathToShoveTheTHingIntoAfterCreation = "etc"
+			}
+			
+			TDECertificateOrAnotherCertificateHere = @{
+				InfoHereToCreateFromScratch = "or whatever"
+			}
 		}
 	}
 	
-	SqlServerManagementStudio = @{
-		InstallSsms	       = $true
-		BinaryPath		   = "\\storage\Lab\resources\binaries\SqlServer\SSMS-Setup-ENU_18.9.1.exe"
-		IncludeAzureStudio = $false
+	DataCollectorSets  = @{
+		Enabled	     = $true
+		
+		Consolidated = @{
+			XmlDefinition		  = "convention over config - i.e., assume that 'consolidated.xml' exists in assets directory - by default - otherwise, if something's here... we use that instead."
+			EnableStartWithOS	  = $true
+			DaysWorthOfLogsToKeep = "nDays" # if empty then ... keep them all (no cleanup)
+		}
+		
+		#		AnyOtherSetHere = @{
+		#			
+		#		}
 	}
 	
-	_ResourceGovernor	  = @{
+	ExtendedEvents	   = @{
+		DisableTelemetry = $true
+		
+	}
+	
+	SqlServerManagementStudio = @{
+		InstallSsms	       	= $true
+		Binary			   	= "SSMS-Setup-ENU_18.9.1"
+		InstallPath			= "D:\SSMS\NonDefaultPathHere"
+		IncludeAzureStudio 	= $false
+	}
+	
+	ResourceGovernor   = @{
+		SomeValue    = "here"
+		AnotherValue = 27
 		# enabled or not... 
 		# pools to create and so on... 
 		# and ... assignments per pool would probably be helpful too. 
 	}
 	
-	_DataCollectorSets	  			= @{
-		Consolidated = @{
-			definition = "path to consolidated"
-			autostart  = $true
-			cleanup    = nDays
-		}
-		
-		AnyOtherSetHere	      		= @{
-			etc			= "path here"
-		}
-	}
-	
 	ClusterConfiguration = @{
-		ClusterAction    = "NONE" # Options: NONE, NEW, JOIN, REMOVE (as in, remove-self... )
-		ClusterName	     = "AWS2-CLUSTER-SQLX"
-		ClusterNodes	 = @(
+		ClusterAction = "NONE" # Options: NONE, NEW, JOIN, REMOVE (as in, remove-self... )
+		ClusterName   = "AWS2-CLUSTER-SQLX"
+		ClusterNodes  = @(
 			"AWS-SQL-1A"
 			"AWS-SQL-1B"
 		)
 		
-		ClusterIPs	     = @(
+		ClusterIPs    = @(
 			"10.10.31.120"
 			"10.20.31.120"
 		)
 		
-		FileShareWitness = "\\aws2-dc\clusters\"
+		Witness	      = @{
+			FileShareWitness = "\\aws2-dc\clusters\"
+		}
+		
 	}
 	
-	_AvailabilityGroups = @{
-		AGAction		  = "CREATE" # options: NONE, CREATE, JOIN
-		AGName		      = "xxxx"
-		
-		Replicas		  = @(
-			"AWS-SQL-1A"
-			"AWS-SQL-1B" # though... need to figure out how this all works out if/when/once we're installed and such - i.e., what if SQL-1B is still being configured? 
-		)
+	AvailabilityGroups = @{
 		
 		MirroringEndpoint = @{
 			Enabled						    = $true
@@ -303,17 +374,47 @@
 			)
 		}
 		
-		AGListener	      = @{
-			AGListenerName	   = "xxxx"
-			ListenerPortNumber = 1433
-			ListenerIPs	       = @(
-				"10.10.30.105"
-				"10.20.30.105"
+		Synchronization   = @{
+			AdminDbStuffHere = @{
+				AddPartners = "names of partners here? though... that's odd cuz I've got replicas down below... "
+				SyncCheckJobs = "add those here too... but, that's a problem as well - cuz is it all 'Partners only'?"
+				
+				AddFailoverProcessing = "Same kind of problem - but not as bad."
+				
+				AddDisabledJobCategory = "yeah, probably..."
+			}
+		}
+		
+		AgNameHere = @{
+			Action = "CREATE"   # CREATE, JOIN, VERIFY?			
+			
+			Replicas = @(
+				"AWS-SQL-1A"
+				"AWS-SQL-1B" # though... need to figure out how this all works out if/when/once we're installed and such - i.e., what if SQL-1B is still being configured? 
 			)
 			
-			ReadOnlyRounting   = @(
-				"Todo"
+			Also = "NeedSomeSort of Mechanism that defines the AG db-sync-addition mechanism - log-ship/S4 'native' or ... auto-seed? or ? "
+			Databases = @(
+				"DbNameHere"
+				"AndAnotherDbNameHere"
+				"arguably, each database could be a @{} with name, seed-type, and some other details as well... "
 			)
+			
+			Listener  = @{
+				Name	   = "xxxx"
+				PortNumber = 1433
+				IPs	       = @(
+					"10.10.30.105"
+					"10.20.30.105"
+				)
+				
+				ReadOnlyRounting   = @(
+					"Todo"
+				)
+			}			
 		}
-	}
-}
+		
+		AnotherAgHere	  = @{
+			x = "More Values go here as needed"
+		}
+	}}

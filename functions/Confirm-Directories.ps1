@@ -45,7 +45,7 @@ function Confirm-Directories {
 			
 			Mount-Directory -Path $sqlAccessibleDirectory;
 			if ($sqlInstalled) {
-				Grant-SqlServicePermissionsToDirectory -TargetDirectory $sqlAccessibleDirectory -SqlServiceAccountName $sqlServiceName;
+				Grant-SqlServicePermissionsToDirectory -Target $sqlAccessibleDirectory -SqlServiceAccount $sqlServiceName;
 			}
 		}
 		

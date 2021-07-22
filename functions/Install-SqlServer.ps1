@@ -18,6 +18,11 @@
 
 	vNEXT: account for managed service accounts as part of installation.
 
+
+	NOTE: In my lab I can install SQL SErver with domain users as the Service Accounts - cuz NTLM lets me 'verify' their passwords/etc. 
+				In, say, AWS - where ... there might be different PASSWORDs per BOX for each VM and (more importantly) where the password for the DOMAIN ADMIN <> local-Administrator
+					SQL SErver throws a nasty "RPC Server Unavailable" when ATTEMPTING to validate installation/setup ... and just terminates with lame errors/messages. 
+
 #>
 
 function Install-SqlServer {
@@ -48,18 +53,18 @@ function Install-SqlServer {
 
 	$iniData = Read-SqlIniFile -FilePath $ConfigFilePath;
 	
-	if (!([string]::IsNullOrEmpty($LicenseKey))) {
-		New-SqlIniValue -IniData $iniData -Key "PID" -Value $LicenseKey;
+	if (-not([string]::IsNullOrEmpty($LicenseKey))) {
+		Add-SqlIniValue -IniData $iniData -Key "PID" -Value $LicenseKey;
 	}
-	New-SqlIniValue -IniData $iniData -Key "SQLSVCACCOUNT" -Value $SqlServiceAccountName;
+	Add-SqlIniValue -IniData $iniData -Key "SQLSVCACCOUNT" -Value $SqlServiceAccountName;
 	
-	New-SqlIniValue -IniData $iniData -Key "SQLSYSADMINACCOUNTS" -Value $admins;
-	New-SqlIniValue -IniData $iniData -Key "AGTSVCACCOUNT" -Value $AgentServiceAccountName;
-	New-SqlIniValue -IniData $iniData -Key "INSTALLSQLDATADIR" -Value $SqlDirectories.InstallSqlDataDir;
-	New-SqlIniValue -IniData $iniData -Key "SQLUSERDBDIR" -Value $SqlDirectories.SqlDataPath;
-	New-SqlIniValue -IniData $iniData -Key "SQLUSERDBLOGDIR" -Value $SqlDirectories.SqlLogsPath;
-	New-SqlIniValue -IniData $iniData -Key "SQLBACKUPDIR" -Value $SqlDirectories.SqlBackupsPath;
-	New-SqlIniValue -IniData $iniData -Key "SQLTEMPDBDIR" -Value $SqlDirectories.TempDbPath;
+	Add-SqlIniValue -IniData $iniData -Key "SQLSYSADMINACCOUNTS" -Value $admins;
+	Add-SqlIniValue -IniData $iniData -Key "AGTSVCACCOUNT" -Value $AgentServiceAccountName;
+	Add-SqlIniValue -IniData $iniData -Key "INSTALLSQLDATADIR" -Value $SqlDirectories.InstallSqlDataDir;
+	Add-SqlIniValue -IniData $iniData -Key "SQLUSERDBDIR" -Value $SqlDirectories.SqlDataPath;
+	Add-SqlIniValue -IniData $iniData -Key "SQLUSERDBLOGDIR" -Value $SqlDirectories.SqlLogsPath;
+	Add-SqlIniValue -IniData $iniData -Key "SQLBACKUPDIR" -Value $SqlDirectories.SqlBackupsPath;
+	Add-SqlIniValue -IniData $iniData -Key "SQLTEMPDBDIR" -Value $SqlDirectories.TempDbPath;
 	
 	$localIniFilePath = New-LocalSqlIniFilePath;
 	Write-SqlIniFile -IniData $iniData -OutputPath $localIniFilePath;
@@ -68,14 +73,14 @@ function Install-SqlServer {
 	
 	$arguments += "/ConfigurationFile='$localIniFilePath' ";
 	
-	if (!($SqlServiceAccountName -like "NT SERVICE\*")) {
+	if (-not($SqlServiceAccountName -like "NT SERVICE\*")) {
 		$arguments += "/SQLSVCPASSWORD='$SqlServiceAccountPassword' ";
 	}
-	if (!($AgentServiceAccountName -like "NT SERVICE\*")) {
+	if (-not($AgentServiceAccountName -like "NT SERVICE\*")) {
 		$arguments += "/AGTSVCPASSWORD='$AgentServiceAccountPassword' ";
 	}
 	
-	if (!([string]::IsNullOrEmpty($SaPassword))) {
+	if (-not([string]::IsNullOrEmpty($SaPassword))) {
 		$arguments += "/SAPWD='$SaPassword' ";
 		$arguments += "/SECURITYMODE='SQL' ";
 	}
@@ -85,6 +90,5 @@ function Install-SqlServer {
 		$installCommand += $arg;
 	}
 	
-	#Write-Host $installCommand;
 	Invoke-Expression $installCommand;
 }

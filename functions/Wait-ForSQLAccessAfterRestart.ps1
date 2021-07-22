@@ -2,9 +2,7 @@
 
 function Wait-ForSQLAccessAfterRestart {
 	# TODO: callers should be able to get a true or false for 'succeeded' or not (or 0 | 1 or whatever)... 
-	
 	# NOTE: need to 'force'/ensure that the PS SQLServer module is installed - i.e., it's a dependency here... 
-	
 	
 	param (
 		[int]$TimeoutSeconds = 120

@@ -2,16 +2,18 @@
 
 function Grant-SqlServerPermissionsToDirectories {
 	
+	# vNEXT: not even sure this is used anymore... (i.e., check ephemeral disks setup and ... Configure-SErver.ps1)
+	
 	param (
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]
 		[string[]]$TargetDirectories,
 		[Parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]
-		[string]$SqlServiceAccountName = "NT SERVICE\MSSQLSERVER"
+		[string]$SqlServiceAccount = "NT SERVICE\MSSQLSERVER"
 	);
 	
-	foreach ($targetDirectory in $TargetDirectories) {
-		Grant-SqlServicePermissionsToDirectory -TargetDirectory $targetDirectory -SqlServiceAccountName $SqlServiceAccountName;
+	foreach ($target in $TargetDirectories) {
+		Grant-SqlServicePermissionsToDirectory -Target $target -SqlServiceAccount $SqlServiceAccount;
 	}
 }

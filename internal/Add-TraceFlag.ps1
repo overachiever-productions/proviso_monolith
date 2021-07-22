@@ -2,7 +2,9 @@
 
 function Add-TraceFlag {
 	
-	param ([string]$flag)
+	param (
+		[string]$Flag
+	);
 	
 	$flagExistsQuery = "WITH translated AS (
 	    SELECT 
@@ -19,13 +21,13 @@ function Add-TraceFlag {
     FROM 
 	    [translated]
     WHERE 
-	    [translated].[value_data] = `$(FLAG_NAME);"
+	    [translated].[value_data] = `$(FLAG_NAME); ";
 	
-	$flagVariable = "FLAG_NAME=N'-T$flag'";
+	$flagVariable = "FLAG_NAME=N'-T$($Flag)'";
 	$exists = Invoke-SqlCmd -Query $flagExistsQuery -Variable $flagVariable;
 	
-	if ($exists.value_data) {
-		Write-Host "Flag -T$flag is already enabled for Startup...";
+	if ($exists -ne $null) {
+		Write-Host "Flag -T$($Flag) is already enabled for Startup...";
 	}
 	else {
 		
@@ -50,16 +52,16 @@ function Add-TraceFlag {
 		
 		$nextArg = Invoke-SqlCmd -Query $nextArgNameQuery;
 		
-		$registryKey = $nextArg.registry_key;
-		$registryName = $nextArg.next_arg_name;
-		$registryValue = "-T$flag";
+		$registryKey = $nextArg["registry_key"];
+		$registryName = $nextArg["next_arg_name"];
+		$registryValue = "-T$Flag";
 		
 		# add the key/value: 
 		New-ItemProperty -Path $registryKey -Name $registryName -Value $registryValue -PropertyType STRING -Force | Out-Null;
 		
 		# and, enable the TF within global scope (i.e., until next Server/Service Restart).
-		Invoke-SqlCmd -Query "DBCC TRACEON(`$(FLAG_VALUE), -1);" -Variable "FLAG_VALUE = $flag";
+		Invoke-SqlCmd -Query "DBCC TRACEON(`$(FLAG_VALUE), -1);" -Variable "FLAG_VALUE = $Flag";
 		
-		Write-Host "Trace Flag -T$flag added to Registry as Startup Parameter and added to running SQL instance via DBCC TRACEON().";
+		Write-Host "Trace Flag -T$Flag added to Registry as Startup Parameter and added to running SQL instance via DBCC TRACEON().";
 	}
 }

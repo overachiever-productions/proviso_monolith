@@ -1,6 +1,6 @@
-﻿Set-StrictMode -Version 3.0;
+﻿Set-StrictMode -Version 1.0;
 
-# Note: this function arguably violates SRP - but... it's a facade - something to make all of the underlying operations easier/simpler.
+# NOTE: This function arguably violates SRP... only, it's a Facade - designed to make 'complex stuff' easier.
 
 function Set-WindowsServerPreferences {
 	
@@ -40,6 +40,11 @@ function Set-WindowsServerPreferences {
 		
 		#Explorer Prefs
 		if ($SetWindowsExplorerPreferences) {
+			
+			$key = Get-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\";
+			$launchTo = $null;
+			$hideExt = $null;
+			$showHidden = $null;
 			
 			$launchTo = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "LaunchTo";
 			$hideExt = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "HideFileExt";

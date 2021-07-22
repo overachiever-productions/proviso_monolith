@@ -1,15 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
 function Resolve-SqlServerBuildVersionFromMdf {
-	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory = $true)]
 		[PSCustomObject]$FullFilePathAndNamePlusExtension
 	);
-	
-	begin {
-		
-	};
 	
 	process {
 		# Dope: http://rusanu.com/2011/04/04/how-to-determine-the-database-version-of-an-mdf-file/
@@ -20,9 +15,5 @@ function Resolve-SqlServerBuildVersionFromMdf {
 		
 		# https://sqlserverbuilds.blogspot.com/2014/01/sql-server-internal-database-versions.html
 		return $final;
-	};
-	
-	end {
-		
 	};
 }

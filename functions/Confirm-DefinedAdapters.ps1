@@ -98,7 +98,11 @@ function Confirm-DefinedAdapters {
 			
 			[string[]]$dnsServers = $targetIpConfig.DNSServer.ServerAddresses;
 			$dns1 = $dnsServers[0];
-			$dns2 = $dnsServers[1];
+			
+			$dns2 = $null;
+			if ($dnsServers.Count -gt 1) {
+				$dns2 = $dnsServers[1];
+			}
 			
 			# expected + comparisons/changes:
 			[string[]]$expectedIpParts = $definedAdapter.IpAddress -split "/";
@@ -113,8 +117,16 @@ function Confirm-DefinedAdapters {
 				New-NetIPAddress -InterfaceIndex $interfaceIndex -IPAddress $expectedIpParts[0] -PrefixLength $expectedIpParts[1] -DefaultGateway $definedAdapter.Gateway;
 			}
 			
-			if (($dns1 -ne $definedAdapter.PrimaryDns) -or ($dns2 -ne $definedAdapter.SecondaryDns)) {
-				[string[]]$dns = @($definedAdapter.PrimaryDns, $definedAdapter.SecondaryDns);
+			$definedDns2 = $null;
+			if ($definedAdapter["SecondaryDns"] -ne $null) {
+				$definedDns2 = $definedAdapter.SecondaryDns;
+			}
+			
+			if (($dns1 -ne $definedAdapter.PrimaryDns) -or ($dns2 -ne $definedDns2)) {
+				[string[]]$dns = @($definedAdapter.PrimaryDns);
+				if ($definedDns2 -ne $null) {  # vNEXT: this is all clunky/hacky... i.e., I create $definedDNs2 above... and then check it here... seems smelly. 
+					$dns += $definedDns2
+				}
 				
 				Write-Host "Changing DNS servers to $dns . ";
 				Set-DnsClientServerAddress -InterfaceIndex $interfaceIndex -ServerAddresses ($dns);

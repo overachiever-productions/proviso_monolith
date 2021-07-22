@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 3.0;
+﻿Set-StrictMode -Version 1.0;
 
 function Find-MachineDefinition {
 	param (
@@ -8,14 +8,21 @@ function Find-MachineDefinition {
 		[string]$MachineName		
 	);
 	
-	
+	$matches = @{};
 	[string[]]$extensions = ".psd1", ".config", ".config.psd1";
 	
-	# search $RootDirectory for $MachineName+$Extension
-	#  	 RECURSE ... 
-	#     create a LIST of all matches i.e., location, filename (name.ext), and create-date + file-size. 
+	$i = 0;
+	foreach ($ext in $extensions) {
+		foreach ($file in (Get-ChildItem -Path $RootDirectory -Filter "$MachineName$($ext)" -Recurse -ErrorAction SilentlyContinue)) {
+			$matches[$i] = @{
+				Name = $file.FullName;
+				Size = $file.Length / 1KB
+				Modified = $file.LastWriteTime;
+			};
+			
+			$i++;
+		}
+	}
 	
-	#    output as [string[]]
-	
-	
+	return $matches;
 }

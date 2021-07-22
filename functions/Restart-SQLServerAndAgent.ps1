@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 3.0;
+﻿Set-StrictMode -Version 1.0;
 
 function Restart-SQLServerAndAgent {
 	# TODO: account for named instances. 

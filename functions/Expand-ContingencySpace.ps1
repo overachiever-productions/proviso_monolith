@@ -6,13 +6,28 @@ function Expand-ContingencySpace {
 		[Parameter(Mandatory = $true)]
 		[string[]]$TargetVolumes,
 		[Parameter(Mandatory = $true)]
-		[string]$ZipSource = "\\storage\Lab\resources\ContingencySpace.zip"
+		[string]$ZipSource
 	);
 	
 	foreach ($volume in $TargetVolumes) {
-		$targetPath = "$($volume):\";
+		$deployed = $false;
+		if (Test-Path -Path "$($volume):\ContingencySpace\") {
+			$count = 0;
+			foreach ($child in (Get-ChildItem -Path "$($volume):\ContingencySpace" -Filter "PlaceHolder*.emptyspace")) {
+				if ($child.Length / 1GB -eq 1) {
+					$count++;
+				}
+			}
+			
+			if ($count -eq 4) {
+				$deployed = $true;
+			}
+		}
 		
-		Expand-Archive -Path $ZipSource -DestinationPath $targetPath -Force;
-		Copy-Item -Path $ZipSource -Destination "$($targetPath)ContingencySpace\" -Force;
+		if (-not ($deployed)) {
+			$targetPath = "$($volume):\";
+			Expand-Archive -Path $ZipSource -DestinationPath $targetPath -Force;
+			Copy-Item -Path $ZipSource -Destination "$($targetPath)ContingencySpace\" -Force;
+		}
 	}
 }

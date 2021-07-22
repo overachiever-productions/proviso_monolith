@@ -4,15 +4,15 @@ function Remove-OldDataCollectorFiles {
 	
 	param (
 		[Parameter(Mandatory = $true)]
-		[string]$DataCollectorName,
+		[string]$Name,
 		[Parameter(Mandatory = $false)]
-		[int]$DaysWorthOfLogsToKeep = 45,
+		[int]$RetentionDays = 45,
 		[Parameter(Mandatory = $false)]
-		[string]$RootFilePath = "C:\PerfLogs\Admin\"
+		[string]$RootPath = "C:\PerfLogs\"
 	);
 	
-	$threshold = (Get-Date).AddDays(0 - $DaysWorthOfLogsToKeep);
-	$directory = Join-Path -Path $RootFilePath -ChildPath $DataCollectorName;
+	$threshold = (Get-Date).AddDays(0 - $RetentionDays);
+	$directory = Join-Path -Path $RootPath -ChildPath $Name;
 	
 	Get-ChildItem $directory | Where-Object CreationTime -lt $threshold | Remove-Item -Force;
 }

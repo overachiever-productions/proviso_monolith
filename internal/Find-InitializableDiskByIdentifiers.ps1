@@ -22,19 +22,19 @@ function Find-InitializableDiskByIdentifiers {
 	$searchAttributes = @{
 	};
 	
-	if ($PhysicalDiskIdentifiers.DiskNumber -ne $null) {
+	if ($PhysicalDiskIdentifiers["DiskNumber"] -ne $null) {
 		$searchAttributes.Add("DiskNumber", $PhysicalDiskIdentifiers.DiskNumber);
 	}
-	if ($PhysicalDiskIdentifiers.DeviceID -ne $null) {
+	if ($PhysicalDiskIdentifiers["DeviceID"] -ne $null) {
 		$searchAttributes.Add("DeviceID", $PhysicalDiskIdentifiers.DeviceID);
 	}
-	if ($PhysicalDiskIdentifiers.ScsiMapping -ne $null) {
+	if ($PhysicalDiskIdentifiers["ScsiMapping"] -ne $null) {
 		$searchAttributes.Add("ScsiMapping", $PhysicalDiskIdentifiers.ScsiMapping);
 	}
-	if ($PhysicalDiskIdentifiers.VolumeId -ne $null) {
+	if ($PhysicalDiskIdentifiers["VolumeId"] -ne $null) {
 		$searchAttributes.Add("VolumeId", $PhysicalDiskIdentifiers.VolumeId);
 	}
-	if ($PhysicalDiskIdentifiers.RawSize -ne $null) {
+	if ($PhysicalDiskIdentifiers["RawSize"] -ne $null) {
 		$searchAttributes.Add("RawSize", $PhysicalDiskIdentifiers.RawSize.Replace(" ", ""));
 	}
 	

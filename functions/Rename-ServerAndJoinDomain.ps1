@@ -13,9 +13,6 @@ function Rename-ServerAndJoinDomain {
 		[switch]$AllowRestart = $true
 	);
 	
-	begin {
-		
-	};
 	
 	process {
 		Add-Computer -DomainName $TargetDomain -NewName $NewMachineName -Credential $credentials -Restart:$AllowRestart;

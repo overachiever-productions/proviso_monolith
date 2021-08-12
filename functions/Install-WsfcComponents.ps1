@@ -4,6 +4,8 @@ function Install-WsfcComponents {
 	
 	# Fodder: https://docs.microsoft.com/en-us/powershell/module/failoverclusters/?view=windowsserver2019-ps
 	
+	$rebootRequired = $false;
+	
 	$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 	switch ($installed) {
 		"Installed" {
@@ -14,6 +16,7 @@ function Install-WsfcComponents {
 		}
 		"Available" {
 			Install-WindowsFeature Failover-Clustering -IncludeManagementTools | Out-Null;
+			$rebootRequired = $true;
 		}
 		default {
 			throw "WindowsFeature 'Failover-Clustering' is in an unexpected state: $installed. Terminating Proviso Execution.";
@@ -23,5 +26,8 @@ function Install-WsfcComponents {
 	$powershellInstalled = (Get-WindowsFeature -Name RSAT-Clustering-PowerShell).InstallState;
 	if ($powershellInstalled -ne "Installed") {
 		Install-WindowsFeature RSAT-Clustering-PowerShell -IncludeAllSubFeature | Out-Null;
+		$rebootRequired = $true;
 	}
+	
+	return $rebootRequired;
 }

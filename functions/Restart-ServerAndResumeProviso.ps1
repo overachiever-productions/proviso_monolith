@@ -45,7 +45,10 @@ function Restart-ServerAndResumeProviso {
 		}
 		
 		if (-not (Test-Path -Path $WorkflowFile)) {
-			throw "Invalid Path / File Specified for Resumable Workflow Following Restart; Invalid Path for `$WorkflowFile. ";
+			$WorkflowFile = Join-Path $ProvisoRoot -ChildPath "workflows" -AdditionalChildPath $WorkflowFile;
+			if (-not (Test-Path -Path $WorkflowFile)) {
+				throw "Invalid Path / File Specified for Resumable Workflow Following Restart; Invalid Path for `$WorkflowFile. ";
+			}
 		}
 		
 		$child = Split-Path -Path $WorkflowFile -Leaf;

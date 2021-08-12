@@ -31,9 +31,8 @@ function Request-Value {
 }
 
 function Load-Proviso {
-	$exists = Get-PSRepository | Where-Object {
-		$_.Name -eq "ProvisoRepo"
-	};
+	$exists = Get-PSRepository | Where-Object { $_.Name -eq "ProvisoRepo" };
+	
 	if ($exists -eq $null) {
 		$path = Join-Path -Path $script:resourcesRoot -ChildPath "repository";
 		Register-PSRepository -Name ProvisoRepo -SourceLocation $path -InstallationPolicy Trusted;
@@ -54,6 +53,7 @@ function Verify-ProvosioRoot {
 		return $null;
 	}
 	
+	# vNEXT: override capabilities in .config can/will make this non-viable:
 	foreach ($dir in "assets", "binaries", "definitions", "repository") {
 		if (-not (Test-Path -Path (Join-Path -Path $Directory -ChildPath $dir))) {
 			return $null;

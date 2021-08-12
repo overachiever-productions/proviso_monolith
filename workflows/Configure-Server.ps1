@@ -1,4 +1,4 @@
-﻿#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator;
 param (
 	$targetMachine = $null
 );
@@ -7,11 +7,8 @@ Set-StrictMode -Version 1.0;
 
 #region boostrap
 function Find-Config {
-	[string[]]$locations = (Split-Path -Parent $PSCommandPath), "C:\Scripts";
-	[string[]]$extensions = ".psd1", ".config", ".config.psd1";
-	
-	foreach ($location in $locations) {
-		foreach ($ext in $extensions) {
+	foreach ($location in (Split-Path -Parent $PSCommandPath), "C:\Scripts") {
+		foreach ($ext in ".psd1", ".config", ".config.psd1") {
 			$path = Join-Path -Path $location -ChildPath "proviso$($ext)";
 			if (Test-Path -Path $path) {
 				return $path;
@@ -33,6 +30,22 @@ function Request-Value {
 	return $output;
 }
 
+function Load-Proviso {
+	$exists = Get-PSRepository | Where-Object {
+		$_.Name -eq "ProvisoRepo"
+	};
+	
+	if ($exists -eq $null) {
+		$path = Join-Path -Path $script:resourcesRoot -ChildPath "repository";
+		Register-PSRepository -Name ProvisoRepo -SourceLocation $path -InstallationPolicy Trusted;
+	}
+	
+	Install-Module -Name Proviso -Repository ProvisoRepo -Confirm:$false -Force;
+	Import-Module -Name Proviso -DisableNameChecking -Force;
+	
+	Write-Log "`rProviso Install Complete... ";
+}
+
 function Verify-ProvosioRoot {
 	param (
 		[string]$Directory
@@ -42,9 +55,8 @@ function Verify-ProvosioRoot {
 		return $null;
 	}
 	
-	[string[]]$subdirs = "assets", "binaries", "definitions", "repository";
-	
-	foreach ($dir in $subdirs) {
+	# vNEXT: override capabilities in .config can/will make this non-viable:
+	foreach ($dir in "assets", "binaries", "definitions", "repository") {
 		if (-not (Test-Path -Path (Join-Path -Path $Directory -ChildPath $dir))) {
 			return $null;
 		}
@@ -53,71 +65,13 @@ function Verify-ProvosioRoot {
 	return $Directory;
 }
 
-function Load-Proviso {
-	$exists = Get-PSRepository | Where-Object {
-		$_.Name -eq "ProvisoRepo"
-	};
-	if ($exists -eq $null) {
-		$path = Join-Path -Path $script:resourcesRoot -ChildPath "repository";
-		Register-PSRepository -Name ProvisoRepo -SourceLocation $path -InstallationPolicy Trusted;
-	}
-	
-	Write-Log "Proviso Exists: $exists ";
-	
-	$nuget = Get-PackageProvider -Name Nuget;
-	Write-Log "`rNuget: $nuget "
-	
-	return;
-	
-	Install-Module -Name Proviso -Repository ProvisoRepo -Confirm:$false -Force;
-	# Grrr... the ABOVE is throwing the following 'prompts' when run interactively... no idea why either ... i.e., interactive = running as ADMINISTRATOR, non-interactive = running as Administrator as well... there's NO DIFFERENCE.
-	#    	and... infuriatingly enough... i don't get ANY prompts when running in interactive mode... 
-	#    so... this HAS to be something to do with some sort of 'difference' in the various versions of NuGet providers stuff... 
-	
-	# InstallNuGetProviderShouldContinueCaption=NuGet provider is required to continue 
-	# InstallNuGetProviderShouldContinueQuery=PowerShellGet requires NuGet provider version '{0}' or newer to interact with NuGet-based repositories. The NuGet provider must be available in '{1}' or '{2}'. You can also install the NuGet provider by running 'Install-PackageProvider -Name NuGet -MinimumVersion {0} -Force'. Do you want PowerShellGet to install and import the NuGet provider now?
-	
-	
-	Import-Module -Name Proviso -Force;
-	
-	Write-Log "Proviso Install Complete... ";
-}
-
-function Verify-MachineConfig {
-	param (
-		[string]$ConfigPath
-	);
-	
-	if (-not (Test-Path -Path $ConfigPath)) {
-		return $null;
-	}
-	
-	$testConfig = Read-ServerDefinitions -Path $ConfigPath -Strict:$false;
-	
-	if ($testConfig.NetworkDefinitions -ne $null -or $testConfig.TargetServer -ne $null) {
-		return $ConfigPath;
-	}
-}
-
 function Write-Log {
 	param (
 		[Parameter(Mandatory = $true)]
 		[string]$Message
 	);
 	
-	# TODO: if proviso.config.psd1 says to log... then log, otherwise, don't. 
-	#  which also means... cache some of this info or whatever... 
-	#   also... MAYBE have a bootstrap_log.txt vs a workflow_log.tx as well? 
-	
-	
-	# TODO: also? maybe create a Write-Output function that ... 
-	#   a. determines if we're  in interactive or not... 
-	#   b. if we are... sends this stuff to WRite-Host and ... 
-	#   c. if we're not, sends this stuff OUT to a file IF it's been correctly configured in the  .config
-	
-	$script:log_initialized = $false;
-	
-	[string]$loggingPath = "C:\Scripts\workflowed.txt";
+	[string]$loggingPath = "C:\Scripts\proviso_bootstrap.txt";
 	
 	if (-not ($script:log_initialized)) {
 		if (Test-Path -Path $loggingPath) {
@@ -125,17 +79,17 @@ function Write-Log {
 		}
 		
 		New-Item $loggingPath -Value $Message -Force | Out-Null;
-		
 		$script:log_initialized = $true;
 	}
 	else {
-		Add-Content $loggingPath $Message;
+		Add-Content $loggingPath $Message | Out-Null;
 	}
 }
+$script:log_initialized = $false;
 
 try {
-	# silently disable any scheduled tasks PREVIOUSLY created by proviso: 
 	Disable-ScheduledTask -TaskName "Proviso - Workflow Restart" -ErrorAction SilentlyContinue | Out-Null;
+	Write-Log "Executing as $(whoami) ... ";
 	
 	$script:configPath = Find-Config;
 	$pRoot = $null;
@@ -160,21 +114,10 @@ try {
 		throw "Invalid Proviso Resources-Root Directory Specified. Please check proviso.config.psd1 and/or input of response to previous request. Terminating...";
 	}
 	
-	$who = $(whoami)
-	Write-Log "Executing as $who ";
-	Write-Log "Starting Process of Loading Proviso... ";
+	$script:resourcesRoot = $pRoot;
 	Load-Proviso;
 	
-	try {
-		Write-Log "MachineNameFromArgs: $targetMachine ";
-		Write-Log "ComputerNameFromEnv: $($env:COMPUTERNAME) ";
-		$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ($env:COMPUTERNAME);
-		
-	}
-	catch {
-		Write-Log "Exception: $_ ";
-	}
-	
+	$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ($env:COMPUTERNAME);
 	if ($matches.Count -eq 0) {
 		if (-not ($targetMachine -eq $null)) {
 			$machineName = $targetMachine;
@@ -186,13 +129,13 @@ try {
 		$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName $machineName;
 	}
 	
-	$mFile = $null;
+	$machineConfigFile = $null;
 	switch ($matches.Count) {
 		0 {
 			# nothing... $mFile stays $null... 
 		}
 		1 {
-			$mFile = $matches[0].Name;
+			$machineConfigFile = $matches[0].Name;
 		}
 		default {
 			Write-Host "Multiple Target-Machine files detected:";
@@ -207,22 +150,20 @@ try {
 			
 			if (([string]::IsNullOrEmpty($fileOption)) -or ($fileOption -eq "X")) {
 				Write-Host "Terminating...";
-				return;
+				exit;
 			}
 			$x = [int]$fileOption - 65;
-			$mFile = $matches[$x].Name;
+			$machineConfigFile = $matches[$x].Name;
 		}
 	}
 	
-	$mFile = Verify-MachineConfig -ConfigPath $mFile;
-	
-	if ($mFile -eq $null) {
+	$machineConfigFile = Test-ProvisoConfigurationFile -ConfigPath $machineConfigFile;
+	if ($machineConfigFile -eq $null) {
 		throw "Missing or Invalid Target-Machine-Name Specified. Please verify that a '<Machine-Name.psd1>' or '<Machine-Name>.config' file exists in the Resources-Root\definitions directory.";
 	}
+	$script:targetMachineFile = $machineConfigFile;
 	
-	Write-Log "Bootstrapping completed...";
-	
-	$script:targetMachineFile = $mFile;
+	Write-Log "`rBootstrapping complete.";
 }
 catch {
 	Write-Host "Exception: $_";
@@ -262,7 +203,10 @@ try {
 	# Required Packages
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "RequiredPackages" -Default $null) -ne $null) {
 		if ((Get-ConfigValue -Definition $serverDefinition -Key "RequiredPackages.WsfcComponents" -Default $false)) {
-			Install-WsfcComponents;
+			$rebootAfterWsfcIntall = Install-WsfcComponents;
+			if ($rebootAfterWsfcIntall) {
+				Restart-ServerAndResumeProviso -ProvisoRoot $script:resourcesRoot -ProvisoConfigPath $script:configPath -WorkflowFile "Configure-Server.ps1" -ServerName $targetMachine -Force;
+			}
 		}
 		
 		if ((Get-ConfigValue -Definition $serverDefinition -Key "RequiredPackages.NetFxForPre2016InstancesRequired" -Default $false)) {

@@ -28,7 +28,6 @@ function Install-SqlServerManagementStudio {
 	Write-Host "Starting (quiet) installation of SSMS.exe with the following args: $arguments ";
 	
 	try {
-		
 		& "$Binaries" $arguments | Out-Null;
 	}
 	catch {

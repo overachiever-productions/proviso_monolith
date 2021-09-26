@@ -6,7 +6,7 @@
 
 #>
 
-# [ValidateSet("Windows2012R2", "Windows2016", "Windows2019")]
+# for callers (that consume this info):  [ValidateSet("Windows2012R2", "Windows2016", "Windows2019")]
 
 function Get-WindowsVersion {
 	
@@ -14,15 +14,12 @@ function Get-WindowsVersion {
 		[System.Version]$Version = [System.Environment]::OSVersion.Version
 	)
 	
-	[string]$output;
-	
-	
 	if ($Version.Major -eq 10) {
 		if ($Version.Build -ge 17763) {
-			$output = "Windows2019";
+			return "Windows2019";
 		}
 		else {
-			$output = "Windows2016";
+			return "Windows2016";
 		}
 		
 		#$output = $Version.Build -ge 17763 ? "Windows2019" : "Windows2016";
@@ -31,22 +28,20 @@ function Get-WindowsVersion {
 	if ($Version.Major -eq 6){
 		switch ($Version.Minor) {
 			0 {
-				$output = "Windows2008";
+				return "Windows2008";
 			}
 			1 {
-				$output = "Windows2008R2";
+				return "Windows2008R2";
 			}
 			2 {
-				$output = "Windows2012";
+				return "Windows2012";
 			}
 			3 {
-				$output = "Windows2012R2";
+				return "Windows2012R2";
 			}
 			default {
-				$output = "UNKNOWN"
+				return "UNKNOWN"
 			}
 		}
 	}
-	
-	return $output;
 }

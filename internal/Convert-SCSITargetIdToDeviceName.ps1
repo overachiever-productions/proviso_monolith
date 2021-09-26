@@ -2,7 +2,7 @@
 
 function Convert-SCSITargetIdToDeviceName {
 	param (
-		[Parameter(Mandatory = $true)]
+		[Parameter(Mandatory)]
 		[int]$SCSITargetId
 		# vNEXT: Account for SCSIPort in creation/definition of device details.
 	);
@@ -19,3 +19,21 @@ function Convert-SCSITargetIdToDeviceName {
 	
 	return $deviceName;
 }
+
+
+<#
+function Convert-SCSITargetIdToDeviceName
+{
+    param([int]$SCSITargetId)
+    If ($SCSITargetId -eq 0) {
+        return "/dev/sda1"
+    }
+    $deviceName = "xvd"
+    If ($SCSITargetId -gt 25) {
+        $deviceName += [char](0x60 + [int]($SCSITargetId / 26))
+    }
+    $deviceName += [char](0x61 + $SCSITargetId % 26)
+    return $deviceName
+}
+
+#>

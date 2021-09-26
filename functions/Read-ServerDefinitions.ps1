@@ -14,7 +14,8 @@ function Read-ServerDefinitions {
 	
 	$output = [PSCustomObject]$data;
 	
-	$currentHostName = $env:COMPUTERNAME;
+	#$currentHostName = $env:COMPUTERNAME;
+	$currentHostName = ([System.Net.Dns]::GetHostName());
 	
 	if ($Strict) {
 		if ($currentHostName -ne $output.TargetServer) {

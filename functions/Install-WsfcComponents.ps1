@@ -5,17 +5,21 @@ function Install-WsfcComponents {
 	# Fodder: https://docs.microsoft.com/en-us/powershell/module/failoverclusters/?view=windowsserver2019-ps
 	
 	$rebootRequired = $false;
+	$processingError = $null;
 	
 	$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 	switch ($installed) {
 		"Installed" {
-			Write-Host "WSFC Components already installed.";
+			Write-ProvisoLog -Message "WSFC Components already installed." -Level Important;
 		}
 		"InstallPending" {
-			Write-Host "WindowsFeature 'Failover-Clustering' is in InstallPending state - i.e., installed by machine requires restart.";
+			Write-ProvisoLog -Message "WindowsFeature 'Failover-Clustering' is in InstallPending state - i.e., installed by machine requires restart." -Level Important;
+			$rebootRequired = $true;
 		}
 		"Available" {
-			Install-WindowsFeature Failover-Clustering -IncludeManagementTools | Out-Null;
+			# TODO: this can't be Out-Null only/solely. need some sort of error handling. 
+			#   otherwise, IF there's a problem installing WSFC stuff... the error is silent, $rebootaRequired = $true, and we end up in a vicious reboot cycle... 
+			Install-WindowsFeature Failover-Clustering -IncludeManagementTools -ErrorVariable processingError | Out-Null;
 			$rebootRequired = $true;
 		}
 		default {

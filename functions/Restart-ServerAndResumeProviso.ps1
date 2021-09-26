@@ -10,7 +10,8 @@ function Restart-ServerAndResumeProviso {
 		[string]$WorkflowFile,
 		[string]$ServerName,
 		[switch]$PreservePSVersion = $true,
-		[switch]$Force = $false
+		[switch]$Force = $false,
+		[switch]$DoNotRestart = $false  # for us in debugging/troubleshooting
 	);
 	
 	try {
@@ -75,7 +76,8 @@ function Restart-ServerAndResumeProviso {
 		$trigger.StartBoundary = (Get-Date).ToString("yyyy-MM-dd'T'HH:mm:ss");
 		$trigger.EndBoundary = (Get-Date).AddMinutes(50).ToString("yyyy-MM-dd'T'HH:mm:ss"); # in SOME environments this may require a reboot before the job is removed. on 2019 the job disappears after N minutes (if not running))
 		
-		$arguments = "-ExecutionPolicy BYPASS -NonInteractive -NoProfile -File `"$($resumableWorkflowFile)`" ";
+		# MKC: removing the -NonInteractive - I'd rather SEE that this is doing stuff... 
+		$arguments = "-ExecutionPolicy BYPASS -NoProfile -File `"$($resumableWorkflowFile)`" ";
 		if (-not ([string]::IsNullOrEmpty($ServerName))) {
 			$arguments += " -targetMachine $ServerName  ";
 		}
@@ -90,9 +92,13 @@ function Restart-ServerAndResumeProviso {
 		Register-ScheduledTask -TaskName $jobName -Trigger $trigger -Action $action -Settings $settings -User "Administrator" -Password "Pass@word1" -RunLevel Highest -Description "Resumable Proviso Workflow following Server Reboot." | Out-Null;
 	}
 	catch {
-		Write-Host "Exception: $_";
-		Write-Host "`t$($_.ScriptStackTrace)";
+		Write-ProvisoLog -Message ("EXCEPTION: $_  `r$($_.ScriptStackTrace) ") -Level Critical;
 	}
 	
-	Restart-Computer -Force -Confirm:$false | Out-Null;
+	if ($DoNotRestart) {
+		Restart-Computer -Force -Confirm:$false | Out-Null;
+	}
+	else {
+		Write-ProvisoLog -Message "Bypassing Restart-Compute because -DoNotRestart is set to true." -Level Critical;
+	}
 }

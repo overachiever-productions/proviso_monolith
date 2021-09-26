@@ -9,5 +9,4 @@ function Mount-Directory {
 	if (!(Test-Path -Path $Path)) {
 		New-Item -ItemType Directory -Path $Path | Out-Null;
 	}
-	
 }

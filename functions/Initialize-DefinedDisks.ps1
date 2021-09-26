@@ -29,7 +29,7 @@ function Initialize-DefinedDisks {
 		$expectedDisks = Get-UnconfiguredDisks -ServerDefinition $ServerDefinition -MountedVolumes $CurrentlyMountedVolumes;
 		
 		if ($expectedDisks.Count -eq 0) {
-			# if Verbose or if ... something else... Write-Host "All Disks defined in config file were found and already provisioned/configured.";
+			Write-ProvisoLog -Message "All Disks defined in config file were found and already provisioned/configured." -Level Verbose;
 			return;
 		}
 		

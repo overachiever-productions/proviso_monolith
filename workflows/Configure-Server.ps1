@@ -1,13 +1,14 @@
 ﻿#Requires -RunAsAdministrator;
 param (
-	$targetMachine = $null
+	$targetMachine = $null,
+	$autoRestart = $true
 );
 
 Set-StrictMode -Version 1.0;
 
 #region boostrap
 function Find-Config {
-	foreach ($location in (Split-Path -Parent $PSCommandPath), "C:\Scripts") {
+	foreach ($location in (Split-Path -Parent $PSCommandPath), "C:\Scripts", "C:\Scripts\proviso") {
 		foreach ($ext in ".psd1", ".config", ".config.psd1") {
 			$path = Join-Path -Path $location -ChildPath "proviso$($ext)";
 			if (Test-Path -Path $path) {
@@ -35,15 +36,17 @@ function Load-Proviso {
 		$_.Name -eq "ProvisoRepo"
 	};
 	
-	if ($exists -eq $null) {
+	if ($null -eq $exists) {
 		$path = Join-Path -Path $script:resourcesRoot -ChildPath "repository";
 		Register-PSRepository -Name ProvisoRepo -SourceLocation $path -InstallationPolicy Trusted;
 	}
 	
 	Install-Module -Name Proviso -Repository ProvisoRepo -Confirm:$false -Force;
 	Import-Module -Name Proviso -DisableNameChecking -Force;
+	$provisoLoaded = $true;
 	
-	Write-Log "`rProviso Install Complete... ";
+	# Use Proviso to import other dependencies: 
+	Assert-ProvisoRequiredModule -Name PSFramework -PreferProvisoRepo;
 }
 
 function Verify-ProvosioRoot {
@@ -68,31 +71,38 @@ function Verify-ProvosioRoot {
 function Write-Log {
 	param (
 		[Parameter(Mandatory = $true)]
-		[string]$Message
+		[string]$Message,
+		[string]$Level
 	);
 	
-	[string]$loggingPath = "C:\Scripts\proviso_bootstrap.txt";
-	
-	if (-not ($script:log_initialized)) {
-		if (Test-Path -Path $loggingPath) {
-			Remove-Item -Path $loggingPath -Force;
-		}
-		
-		New-Item $loggingPath -Value $Message -Force | Out-Null;
-		$script:log_initialized = $true;
+	if ($provisoLoaded) {
+		Write-ProvisoLog -Message "BOOTSTRAP: $Message" -Level $Level;
 	}
 	else {
-		Add-Content $loggingPath $Message | Out-Null;
+		[string]$loggingPath = "C:\Scripts\proviso_bootstrap.txt";
+		
+		if (-not ($script:log_initialized)) {
+			if (Test-Path -Path $loggingPath) {
+				Remove-Item -Path $loggingPath -Force;
+			}
+			
+			New-Item $loggingPath -Value $Message -Force | Out-Null;
+			$script:log_initialized = $true;
+		}
+		else {
+			Add-Content $loggingPath $Message | Out-Null;
+		}
 	}
 }
+$provisoLoaded = $false;
 $script:log_initialized = $false;
 
 try {
 	Disable-ScheduledTask -TaskName "Proviso - Workflow Restart" -ErrorAction SilentlyContinue | Out-Null;
-	Write-Log "Executing as $(whoami) ... ";
 	
 	$script:configPath = Find-Config;
 	$pRoot = $null;
+	# vNEXT: 3x iterations of basically the SAME thing here... to get $pRoot. Convert this to a func that tries 3x diff paths. and save some lines of code. 
 	if (-not ([string]::IsNullOrEmpty($script:configPath))) {
 		$pRoot = (Import-PowerShellDataFile -Path $script:configPath).ResourcesRoot;
 		$pRoot = Verify-ProvosioRoot -Directory $pRoot;
@@ -116,12 +126,13 @@ try {
 	
 	$script:resourcesRoot = $pRoot;
 	Load-Proviso;
+	Write-ProvisoLog -Message "Proviso Loaded." -Level Important;
 	
-	$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ($env:COMPUTERNAME);
+	$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ([System.Net.Dns]::GetHostName());
 	if ($matches.Count -eq 0) {
 		if (-not ($targetMachine -eq $null)) {
 			$machineName = $targetMachine;
-			Write-Host "Looking for config file for target machine: $machineName ... ";
+			Write-ProvisoLog -Message "Looking for config file for target machine: $machineName ... " -Level Debug;
 		}
 		else {
 			$machineName = Request-Value -Message "Please specify name of Target VM to provision - e.g., `"SQL-97`".`n" -Default $null;
@@ -132,28 +143,13 @@ try {
 	$machineConfigFile = $null;
 	switch ($matches.Count) {
 		0 {
-			# nothing... $mFile stays $null... 
-		}
+		} # nothing... $mFile stays $null... 
 		1 {
 			$machineConfigFile = $matches[0].Name;
 		}
 		default {
-			Write-Host "Multiple Target-Machine files detected:";
-			$i = 0;
-			foreach ($m in $matches) {
-				Write-Host "`t$([char]($i + 65)). $($m.Name) - $([System.Math]::Round($m.Size, 2))KB - ($([string]::Format("{0:yyyy-MM-dd}", $m.Modified)))";
-				$i++;
-			}
-			Write-Host "`tX. Exit or terminate processing.`n";
-			Write-Host "Please Specify which Target-Machine file to use - e.g., enter the letter A or B (or X to terminate)`n";
-			[char]$fileOption = Read-Host;
-			
-			if (([string]::IsNullOrEmpty($fileOption)) -or ($fileOption -eq "X")) {
-				Write-Host "Terminating...";
-				exit;
-			}
-			$x = [int]$fileOption - 65;
-			$machineConfigFile = $matches[$x].Name;
+			#vNEXT: https://overachieverllc.atlassian.net/browse/PRO-88
+			throw "Multiple/Duplicate .psd1 files (with the same machine name - in different sub-folders) are not, currently, supported.";
 		}
 	}
 	
@@ -163,13 +159,10 @@ try {
 	}
 	$script:targetMachineFile = $machineConfigFile;
 	
-	Write-Log "`rBootstrapping complete.";
+	Write-ProvisoLog -Message "Bootstrapping Process Complete." -Level Important;
 }
 catch {
-	Write-Host "Exception: $_";
-	Write-Host "`t$($_.ScriptStackTrace)";
-	
-	Write-Log "EXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+	Write-Log -Message ("EXCEPTION: $_  `r$($_.ScriptStackTrace) ") -Level Critical;
 }
 #endregion 
 
@@ -179,8 +172,12 @@ try {
 	
 	[PSCustomObject]$serverDefinition = Read-ServerDefinitions -Path $script:targetMachineFile -Strict;
 	
+	# TODO: LocalAdministrators
+	Write-ProvisoLog -Message "Skipping Addition of LocalAdmins (optional) ... because it's not implemented yet." -Level Important; # bug me until it's gone.
+	# foreach entry in the array: Add-LocalGroupMember (works on POSH7 as well as POSH5): https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/add-localgroupmember?view=powershell-5.1&viewFallbackFrom=powershell-7.1
+	
 	# Tackle OS Preferences First: 
-	$dvdDrive = (Get-ConfigValue -Definition $serverDefinition -Key "WindowsPreferences.DvdDriveToZ" -Default $false) ? "Z": $null;
+	$dvdDrive = "Z"; # ? doesn't work on PS5 .. (Get-ConfigValue -Definition $serverDefinition -Key "WindowsPreferences.DvdDriveToZ" -Default $false) ? "Z": $null;
 	$optimizeExplorer = Get-ConfigValue -Definition $serverDefinition -Key "WindowsPreferences.OptimizeExplorer" -Default $true;
 	$disableServerManager = Get-ConfigValue -Definition $serverDefinition -Key "WindowsPreferences.DisableServerManagerOnLaunch" -Default $true;
 	$diskCounters = Get-ConfigValue -Definition $serverDefinition -Key "WindowsPreferences.EnableDiskPerfCounters" -Default $true;
@@ -203,8 +200,9 @@ try {
 	# Required Packages
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "RequiredPackages" -Default $null) -ne $null) {
 		if ((Get-ConfigValue -Definition $serverDefinition -Key "RequiredPackages.WsfcComponents" -Default $false)) {
-			$rebootAfterWsfcIntall = Install-WsfcComponents;
-			if ($rebootAfterWsfcIntall) {
+			$rebootAfterWsfcInstall = Install-WsfcComponents;
+			if ($rebootAfterWsfcInstall) {
+				Write-ProvisoLog -Message "Iniating Restart following installation of WSFC components." -Level Important;
 				Restart-ServerAndResumeProviso -ProvisoRoot $script:resourcesRoot -ProvisoConfigPath $script:configPath -WorkflowFile "Configure-Server.ps1" -ServerName $targetMachine -Force;
 			}
 		}
@@ -229,6 +227,7 @@ try {
 	# Disks:
 	$definedVolumesAlreadyOnServer = Get-ExistingVolumeLetters;
 	Initialize-DefinedDisks -ServerDefinition $serverDefinition -CurrentlyMountedVolumes $definedVolumesAlreadyOnServer -ProcessEphemeralDisksOnly:$false -Strict;
+	Write-ProvisoLog -Message "Disks configuration complete." -Level Verbose;
 	
 	# SQL Server Installation:
 	$dataDirectory = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerInstallation.SqlServerDefaultDirectories.SqlDataPath" -Default "D:\SQLData";
@@ -271,7 +270,7 @@ try {
 	$targetInstanceName = $ini.OPTIONS.INSTANCENAME.Replace("`"", "");
 	
 	# these details potentially needed whether NOT already installed OR if already installed and StrictInstall:$false:
-	$sqlServiceName = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerInstallation .ServiceAccounts.SqlServiceAccountName" -Default "NT SERVICE\MSSQLSERVER";
+	$sqlServiceName = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerInstallation.ServiceAccounts.SqlServiceAccountName" -Default "NT SERVICE\MSSQLSERVER";
 	$agentServiceName = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerInstallation.ServiceAccounts.AgentServiceAccountName" -Default "NT SERVICE\SQLSERVERAGENT";
 	
 	if ($installedInstances -contains $targetInstanceName) {
@@ -280,7 +279,7 @@ try {
 			throw "SQL Server has already been installed, and StrictInstallOnly is set to `$true. Cannot Continue. Terminating...";
 		}
 		
-		Write-Host "SQL Server has already been installed. Skipping SQL Server installation."; # vNEXT: Run high-level checks against version, service/account accounts, collation, SqlAuth, directories, features? and report/warn on any problems.
+		Write-ProvisoLog -Message "SQL Server has already been installed. Skipping SQL Server installation." -Level Debug; # vNEXT: Run high-level checks against version, service/account accounts, collation, SqlAuth, directories, features? and report/warn on any problems.
 	}
 	else {
 		# vNEXT: options for encrypted and/or lookups of secure info like service and Sa Passwords. Implementation IF secure/lookup - then instead of "stringValue" we'll have @{ typeThingy = "blah", locationOfBlah = "another value", andSoOn = $true, $etc... }
@@ -298,26 +297,22 @@ try {
 			$sysAdmins += $entry;
 		}
 		if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerInstallation.SecuritySetup.AddCurrentUserAsAdmin" -Default $false)) {
-			if ($env:USERNAME -eq "Administrator") {
-				if (-not $sysAdmins -contains "BuiltIn\Administrators") {
-				$sysAdmins += "BuiltIn\Administrators"
-				}
-			}
-			else {
-				$sysAdmins += $env:USERNAME;
-			}
+			$sysAdmins += [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
 		}
 		
 		if ($sysAdmins.Count -lt 1) {
-			throw "To continue, provide at least one WIndows account to provision as a SysAdmin. Terminating...";
+			throw "To continue, provide at least one Windows account to provision as a SysAdmin. Terminating...";
 		}
 		
 		$licenseKey = $serverDefinition.SqlServerInstallation["LicenseKey"];
 		
+		Write-ProvisoLog -Message "Starting installation of SQL Server..." -Level Important;
 		Install-SqlServer -SQLServerSetupPath $sqlInstallPath -ConfigFilePath $sqlConfigFile -SqlDirectories $sqlDirectories `
 			  -SaPassword $saPassword -SysAdminAccountMembers $sysAdmins `
 			  -SqlServiceAccountName $sqlServiceName -SqlServiceAccountPassword $sqlServicePassword `
 			  -AgentServiceAccountName $agentServiceName -AgentServiceAccountPassword $agentServicePassword -LicenseKey $licenseKey;
+		
+		Write-ProvisoLog -Message "SQL Server installation Complete." -Level Important;
 	}
 	
 	# Expected Directories and Shares (which also ensures SQL Perms if/as needed... )
@@ -326,19 +321,21 @@ try {
 	
 	# Process SQL Server Configuration:
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.LimitSqlServerTls1dot2Only" -Default $true)) {
-		Limit-SqlServerTlsOnly;
+		Limit-SqlServerTlsOnly -Instance $targetInstanceName;
+		Write-ProvisoLog -Message "Finished setting SqlServerTlsOnly" -Level Debug;
 	}
 	
-	Install-SqlServerPowerShellModule; 
+	Assert-ProvisoRequiredModule -Name SqlServer; # Import SQL Server Powershell Module. 
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.GenerateSPN" -Default $false)) {
 		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
 		# note that we'll need Domain Admin creds here (pretty sure local admin won't work - right?)
-		Write-Host "Skipping process of generating SPNs for target instance + service-account/ports/etc. - not yet implemented... ";
+		Write-ProvisoLog -Message "Skipping process of generating SPNs for target instance + service-account/ports/etc. - not yet implemented... " -Level Debug;
 	}
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.DisableSaLogin" -Default $false)) {
 		Disable-SaLogin;
+		Write-ProvisoLog -Message "The sa Login has been disabled." -Level Debug;
 	}
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.DeployContingencySpace" -Default $false)) {
@@ -350,17 +347,20 @@ try {
 		}
 		
 		Expand-ContingencySpace -TargetVolumes $drives -ZipSource (Join-Path -Path $script:resourcesRoot -ChildPath "assets\ContingencySpace.zip");
+		Write-ProvisoLog -Message "Done expanding contingency space." -Level Debug;
 	}
 	
 	$lockPages = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.EnabledUserRights.LockPagesInMemory" -Default $true;
 	$fastInit = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.EnabledUserRights.PerformVolumeMaintenanceTasks" -Default $false;
-	Set-UserRightsForSqlServer -AccountName $sqlServiceName -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
+	Set-UserRightsForSqlServer -LockPagesInMemory:$lockPages -PerformVolumeMaintenanceTasks:$fastInit;
+	Write-ProvisoLog -Message "User Rights for SQL Server are now set." -Level Debug;
 	
 	$flags = @();
 	foreach ($flag in (Get-ConfigValue -Definition $serverDefinition -Key "SqlServerConfiguration.TraceFlags" -Default @())) {
 		$flags += $flag;
 	}
 	Add-TraceFlags $flags;
+	Write-ProvisoLog -Message "Done adding Trace Flags." -Level Debug;
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "AdminDb.Deploy" -Default $true))  {
 		
@@ -687,7 +687,7 @@ try {
 				New-DataCollectorFromConfigFile -Name $collectorName -ConfigFilePath $xmlDefinition;
 			}
 			else {
-				Write-Host "Skipping configuration checks against $collectorName - i.e., already exists.";
+				Write-ProvisoLog -Message "Skipping configuration checks against $collectorName - i.e., already exists." -Level Debug;
 			}
 			
 			if ((Get-ConfigValue -Definition $serverDefinition -Key "DataCollectorSets.$collectorName.EnableStartWithOS" -Default $true)) {
@@ -705,23 +705,25 @@ try {
 				
 				# setup cleanup
 				New-CollectorSetFileCleanupJob -Name $collectorName -RetentionDays $daysToKeep;
+				Write-ProvisoLog -Message "Data Collector Set $collectorName setup completed." -Level Debug;
 			}
 		}
 	}
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "ExtendedEvents.DisableTelemetry" -Default $true)) {
 		
-		$majorVersion = 15;
-		if ($script:adminDbInstalled) {
-			$output = Invoke-SqlCmd -Query "SELECT admindb.dbo.get_engine_version()";
-			$majorVersion = [int]($output.Column1);
-		}
+		$majorVersion = [int]$(Get-SqlServerInstanceMajorVersion -Instance $targetInstanceName);
 		
-		Disable-TelemetryXEventsTrace -InstanceName $targetInstanceName -MajorVersion $majorVersion -CEIPServiceStartup "Disabled";
+#		if ($script:adminDbInstalled) {
+#			$output = Invoke-SqlCmd -Query "SELECT admindb.dbo.get_engine_version()";
+#			$majorVersion = [int]($output.Column1);
+#		}
+		
+		if ($majorVersion -ge 13) {
+			Disable-TelemetryXEventsTrace -InstanceName $targetInstanceName -MajorVersion $majorVersion -CEIPServiceStartup "Disabled";
+			Write-ProvisoLog -Message "Telemetry XEvents Trace is now disabled/removed." -Level Debug;
+		}
 	}
-	
-	# enable/start AG health? 
-	# foreach whatever in ExtendedEventsTraces ... add each trace as defined. 
 	
 	if ((Get-ConfigValue -Definition $serverDefinition -Key "SqlServerManagementStudio.InstallSsms" -Default $false)) {
 		
@@ -734,12 +736,16 @@ try {
 			$binaryPath = Find-SsmsBinaries -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "binaries\ssms") -Binary (Get-ConfigValue -Definition $serverDefinition -Key "SqlServerManagementStudio.Binary");
 			$installAzure = Get-ConfigValue -Definition $serverDefinition -Key "SqlServerManagementStudio.IncludeAzureStudio" -Default $false;
 			
+			Write-ProvisoLog -Message "Starting SSMS installation..." -Level Verbose;
 			Install-SqlServerManagementStudio -Binaries $binaryPath -InstallPath $installPath -IncludeAzureDataStudio:$installAzure;
+			
+			Write-ProvisoLog -Message "SSMS is now installed." -Level Debug;
 		}
 	}
+	
+	Write-ProvisoLog -Message "Workflow for Configure-Server is now complete." -Level Important;
 }
 catch {
-	Write-Host "Exception: $_";
-	Write-Host "`t$($_.ScriptStackTrace)";
+	Write-ProvisoLog -Message ("EXCEPTION: $_  `r$($_.ScriptStackTrace) ") -Level Critical;
 }
 #endregion

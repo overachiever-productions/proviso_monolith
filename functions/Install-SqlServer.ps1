@@ -90,5 +90,26 @@ function Install-SqlServer {
 		$installCommand += $arg;
 	}
 	
-	Invoke-Expression $installCommand;
+	#vNEXT: just getting this to work was a PITA...but I'm pretty sure that Invoke-Expression is 'ALWAYS BAD'
+	#    so, i need to look into that... and see if there's a better way.
+	# 	NOTE: I've got & xxxx code working in the Install-SqlServerManagementStudio.ps1 file... 
+	<#
+		Yeah, from Page 395 in PowerShell in Action, 3rd Edition:
+	
+			WARNING  Danger! Danger! Danger! If you ever find yourself using the Invoke -Expression cmdlet (or the corresponding APIs) 
+			in production code, you're almost certainly wrong. With all of the other features covered in this chapter, there's little 
+			need to ever use this cmdlet. Certainly, you should never call it on unvalidated user input. Incorrect use of this cmdlet 
+			can and has led to codeinjection attacks and other security issues in the wild. You have been warned. 
+		
+		SEEMS that they're primarily warning against injection attacks - i.e., be super careful about what kinds of INPUT I allow into what's being executed.
+			and don't allow ANYTHING from users (like 'expected' file-names/paths and the likes - cuz an 'injection' of malicious code where I'm expecting a stupid file name would be vile/nasty.).
+	
+	#>
+	$outcome = Invoke-Expression $installCommand;
+	if (($outcome -like "*following error occurred:*") -or ($outcome -like "*Error result:*")) {
+		Write-ProvisoLog "SQL Installation Error: $outcome " -Level Critical;
+		throw "Error Installing SQL Server.";
+	}
+	
+	Write-ProvisoLog "SQL Install Outcome: $outcome " -Level Debug;
 }

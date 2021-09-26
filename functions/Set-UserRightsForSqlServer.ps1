@@ -3,10 +3,11 @@
 function Set-UserRightsForSqlServer {
 	
 	param (
-		[string]$AccountName = "NT SERVICE\MSSQLSERVER",
 		[switch]$LockPagesInMemory,
 		[switch]$PerformVolumeMaintenanceTasks
 	);
+	
+	[string]$AccountName = "NT SERVICE\MSSQLSERVER";
 	
 	Mount-Directory "C:\Scripts"; 
 	[string]$secpolFile = "C:\Scripts\secpol.inf";

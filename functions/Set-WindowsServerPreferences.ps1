@@ -19,21 +19,22 @@ function Set-WindowsServerPreferences {
 	process {
 		
 		# Process directives for DVD move/changes:
-		$targetDrive = $TargetVolumeForDvdDrive.Replace(":", "").Replace("\", "") + ":";
-		
-		$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
-		if ($dvdDrive) {
-			$drive = $dvdDrive | Select-Object DriveLetter;
-			$driveLetter = $drive.DriveLetter;
-			
-			if ($driveLetter -ne $targetDrive) {
-				if ($Force -or $PSCmdlet.ShouldProcess("Set-WindowsServerPreferences", "Move-DvdDriveToVolume")) {
-					
-					Set-CimInstance -InputObject $dvdDrive -Arguments @{
-						DriveLetter = $targetDrive
-					} | Out-Null;
-					
-					Write-Host "DVD Drive moved to $targetDrive\ ...";
+		if (-not ([string]::IsNullOrEmpty($TargetVolumeForDvdDrive))){
+			$targetDrive = $TargetVolumeForDvdDrive.Replace(":", "").Replace("\", "") + ":";
+			$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
+			if ($dvdDrive) {
+				$drive = $dvdDrive | Select-Object DriveLetter;
+				$driveLetter = $drive.DriveLetter;
+				
+				if ($driveLetter -ne $targetDrive) {
+					if ($Force -or $PSCmdlet.ShouldProcess("Set-WindowsServerPreferences", "Move-DvdDriveToVolume")) {
+						
+						Set-CimInstance -InputObject $dvdDrive -Arguments @{
+							DriveLetter = $targetDrive
+						} | Out-Null;
+						
+						Write-ProvisoLog -Message "DVD Drive moved to $targetDrive\ ..." -Level Debug;
+					}
 				}
 			}
 		}
@@ -46,9 +47,9 @@ function Set-WindowsServerPreferences {
 			$hideExt = $null;
 			$showHidden = $null;
 			
-			$launchTo = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "LaunchTo";
-			$hideExt = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "HideFileExt";
-			$showHidden = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "Hidden";
+			$launchTo = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "LaunchTo" -ErrorAction SilentlyContinue;
+			$hideExt = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "HideFileExt" -ErrorAction SilentlyContinue;
+			$showHidden = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "Hidden" -ErrorAction SilentlyContinue;
 			
 			if (($launchTo.LaunchTo -ne 1) -or ($hideExt.HideFileExt -ne 0) -or ($showHidden.Hidden -ne 1)) {
 				if ($Force -or $PSCmdlet.ShouldProcess("Set-WindowsServerPreferences", "Set-WindowsExplorerPreferences")) {
@@ -65,7 +66,7 @@ function Set-WindowsServerPreferences {
 			}
 		}
 		
-		# server manaager: 
+		# server manager: 
 		if ($DisableServerManager) {
 			$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon"
 			

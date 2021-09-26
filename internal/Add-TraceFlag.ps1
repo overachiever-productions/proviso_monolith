@@ -27,7 +27,7 @@ function Add-TraceFlag {
 	$exists = Invoke-SqlCmd -Query $flagExistsQuery -Variable $flagVariable;
 	
 	if ($exists -ne $null) {
-		Write-Host "Flag -T$($Flag) is already enabled for Startup...";
+		Write-ProvisoLog -Message "Flag -T$($Flag) is already enabled for Startup..." -Level Debug;
 	}
 	else {
 		
@@ -62,6 +62,6 @@ function Add-TraceFlag {
 		# and, enable the TF within global scope (i.e., until next Server/Service Restart).
 		Invoke-SqlCmd -Query "DBCC TRACEON(`$(FLAG_VALUE), -1);" -Variable "FLAG_VALUE = $Flag";
 		
-		Write-Host "Trace Flag -T$Flag added to Registry as Startup Parameter and added to running SQL instance via DBCC TRACEON().";
+		Write-ProvisoLog -Message "Trace Flag -T$Flag added to Registry as Startup Parameter and added to running SQL instance via DBCC TRACEON()." -Level Debug;
 	}
 }

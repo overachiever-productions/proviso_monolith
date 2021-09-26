@@ -1,9 +1,5 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-#>
-
 function Read-SqlIniFile {
 	param (
 		[Parameter(Mandatory = $true)]

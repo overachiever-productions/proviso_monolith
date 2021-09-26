@@ -69,7 +69,7 @@ function Confirm-DefinedAdapters {
 				try {
 					$matchedAdapterName = $matchedAdapter.Name;
 					
-					Write-Host "Renaming '$matchedAdapterName' to '$interfaceName'. ";
+					Write-ProvisoLog  -Message "Renaming '$matchedAdapterName' to '$interfaceName'. " -Level Important;
 					Rename-NetAdapter -Name $matchedAdapterName -NewName $interfaceName;
 					
 					$actualAdapter = $CurrentAdapters | Where-Object {
@@ -107,14 +107,16 @@ function Confirm-DefinedAdapters {
 			# expected + comparisons/changes:
 			[string[]]$expectedIpParts = $definedAdapter.IpAddress -split "/";
 			
+			$ipsChanged = $false;
 			if (($ip -ne $expectedIpParts[0]) -or ($length -ne $expectedIpParts[1]) -or ($gateway -ne $definedAdapter.Gateway)) {
 				
-				Write-Host "Changing the IP to $($expectedIpParts[0])/$($expectedIpParts[1]) with a gateway of $($definedAdapter.Gateway).";
+				Write-ProvisoLog -Message "Changing the IP to $($expectedIpParts[0])/$($expectedIpParts[1]) with a gateway of $($definedAdapter.Gateway)." -Level Important;
 				
 				Remove-NetIPAddress -InterfaceIndex $interfaceIndex -Confirm:$false;
 				Remove-NetRoute -InterfaceIndex $interfaceIndex -DestinationPrefix 0.0.0.0/0 -Confirm:$false; # sigh. remove the gateway too: https://etechgoodness.wordpress.com/2013/01/18/removing-an-adapter-gateway-using-powershell/
 				
 				New-NetIPAddress -InterfaceIndex $interfaceIndex -IPAddress $expectedIpParts[0] -PrefixLength $expectedIpParts[1] -DefaultGateway $definedAdapter.Gateway;
+				$ipsChanged = $true;
 			}
 			
 			$definedDns2 = $null;
@@ -122,13 +124,14 @@ function Confirm-DefinedAdapters {
 				$definedDns2 = $definedAdapter.SecondaryDns;
 			}
 			
-			if (($dns1 -ne $definedAdapter.PrimaryDns) -or ($dns2 -ne $definedDns2)) {
+			# NOTE: If we change from DHCP to STATIC in same SUBNET, default DNS (e.g., 10.0.0.1) would have already been set - so $dns1 would equal $defined.Primary)... but changing IPs CLEARS/RESETS DNS - so... we end up with '' for primary DNS without making changes if/when IPs change.
+			if (($ipsChanged) -or ($dns1 -ne $definedAdapter.PrimaryDns) -or ($dns2 -ne $definedDns2)) {
 				[string[]]$dns = @($definedAdapter.PrimaryDns);
 				if ($definedDns2 -ne $null) {  # vNEXT: this is all clunky/hacky... i.e., I create $definedDNs2 above... and then check it here... seems smelly. 
 					$dns += $definedDns2
 				}
 				
-				Write-Host "Changing DNS servers to $dns . ";
+				Write-ProvisoLog  -Message "Changing DNS servers to $dns . " -Level Important;
 				Set-DnsClientServerAddress -InterfaceIndex $interfaceIndex -ServerAddresses ($dns);
 			}
 			

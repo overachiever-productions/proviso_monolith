@@ -35,7 +35,5 @@ function Deploy-AdminDb {
 		}
 	}
 	
-	Install-SqlServerPowerShellModule; # installs if NOT already installed/deployed... 
-	
 	Invoke-SqlCmd -InputFile $adminDbPath -DisableVariables;
 }

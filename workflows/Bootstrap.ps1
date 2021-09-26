@@ -1,13 +1,14 @@
 ﻿#Requires -RunAsAdministrator;
 param (
-	$targetMachine = $null
+	$targetMachine = $null,
+	$autoRestart = $true
 );
 
 Set-StrictMode -Version 1.0;
 
 #region boostrap
 function Find-Config {
-	foreach ($location in (Split-Path -Parent $PSCommandPath), "C:\Scripts") {
+	foreach ($location in (Split-Path -Parent $PSCommandPath), "C:\Scripts", "C:\Scripts\proviso") {
 		foreach ($ext in ".psd1", ".config", ".config.psd1") {
 			$path = Join-Path -Path $location -ChildPath "proviso$($ext)";
 			if (Test-Path -Path $path) {
@@ -23,7 +24,7 @@ function Request-Value {
 		[string]$Default
 	);
 	
-	if (-not($output = Read-Host ($Message -f $Default))) {
+	if (-not ($output = Read-Host ($Message -f $Default))) {
 		$output = $Default
 	}
 	
@@ -31,17 +32,21 @@ function Request-Value {
 }
 
 function Load-Proviso {
-	$exists = Get-PSRepository | Where-Object { $_.Name -eq "ProvisoRepo" };
+	$exists = Get-PSRepository | Where-Object {
+		$_.Name -eq "ProvisoRepo"
+	};
 	
-	if ($exists -eq $null) {
+	if ($null -eq $exists) {
 		$path = Join-Path -Path $script:resourcesRoot -ChildPath "repository";
 		Register-PSRepository -Name ProvisoRepo -SourceLocation $path -InstallationPolicy Trusted;
 	}
 	
 	Install-Module -Name Proviso -Repository ProvisoRepo -Confirm:$false -Force;
 	Import-Module -Name Proviso -DisableNameChecking -Force;
+	$provisoLoaded = $true;
 	
-	Write-Log "`rProviso Install Complete... ";
+	# Use Proviso to import other dependencies: 
+	Assert-ProvisoRequiredModule -Name PSFramework -PreferProvisoRepo;
 }
 
 function Verify-ProvosioRoot {
@@ -66,31 +71,38 @@ function Verify-ProvosioRoot {
 function Write-Log {
 	param (
 		[Parameter(Mandatory = $true)]
-		[string]$Message
+		[string]$Message,
+		[string]$Level
 	);
 	
-	[string]$loggingPath = "C:\Scripts\proviso_bootstrap.txt";
-	
-	if (-not ($script:log_initialized)) {
-		if (Test-Path -Path $loggingPath) {
-			Remove-Item -Path $loggingPath -Force;
-		}
-		
-		New-Item $loggingPath -Value $Message -Force | Out-Null;
-		$script:log_initialized = $true;
+	if ($provisoLoaded) {
+		Write-ProvisoLog -Message "BOOTSTRAP: $Message" -Level $Level;
 	}
 	else {
-		Add-Content $loggingPath $Message | Out-Null;
+		[string]$loggingPath = "C:\Scripts\proviso_bootstrap.txt";
+		
+		if (-not ($script:log_initialized)) {
+			if (Test-Path -Path $loggingPath) {
+				Remove-Item -Path $loggingPath -Force;
+			}
+			
+			New-Item $loggingPath -Value $Message -Force | Out-Null;
+			$script:log_initialized = $true;
+		}
+		else {
+			Add-Content $loggingPath $Message | Out-Null;
+		}
 	}
 }
+$provisoLoaded = $false;
 $script:log_initialized = $false;
 
 try {
 	Disable-ScheduledTask -TaskName "Proviso - Workflow Restart" -ErrorAction SilentlyContinue | Out-Null;
-	Write-Log "Executing as $(whoami) ... ";
 	
 	$script:configPath = Find-Config;
 	$pRoot = $null;
+	# vNEXT: 3x iterations of basically the SAME thing here... to get $pRoot. Convert this to a func that tries 3x diff paths. and save some lines of code. 
 	if (-not ([string]::IsNullOrEmpty($script:configPath))) {
 		$pRoot = (Import-PowerShellDataFile -Path $script:configPath).ResourcesRoot;
 		$pRoot = Verify-ProvosioRoot -Directory $pRoot;
@@ -114,12 +126,13 @@ try {
 	
 	$script:resourcesRoot = $pRoot;
 	Load-Proviso;
+	Write-ProvisoLog -Message "Proviso Loaded." -Level Important;
 	
-	$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ($env:COMPUTERNAME);
+	$matches = Find-MachineDefinition -RootDirectory (Join-Path -Path $script:resourcesRoot -ChildPath "definitions\servers") -MachineName ([System.Net.Dns]::GetHostName());
 	if ($matches.Count -eq 0) {
 		if (-not ($targetMachine -eq $null)) {
 			$machineName = $targetMachine;
-			Write-Host "Looking for config file for target machine: $machineName ... ";
+			Write-ProvisoLog -Message "Looking for config file for target machine: $machineName ... " -Level Debug;
 		}
 		else {
 			$machineName = Request-Value -Message "Please specify name of Target VM to provision - e.g., `"SQL-97`".`n" -Default $null;
@@ -129,44 +142,27 @@ try {
 	
 	$machineConfigFile = $null;
 	switch ($matches.Count) {
-		0 { # nothing... $mFile stays $null... 
-		}
+		0 {
+		} # nothing... $mFile stays $null... 
 		1 {
 			$machineConfigFile = $matches[0].Name;
 		}
 		default {
-			Write-Host "Multiple Target-Machine files detected:";
-			$i = 0;
-			foreach ($m in $matches) {
-				Write-Host "`t$([char]($i + 65)). $($m.Name) - $([System.Math]::Round($m.Size, 2))KB - ($([string]::Format("{0:yyyy-MM-dd}", $m.Modified)))";
-				$i++;
-			}
-			Write-Host "`tX. Exit or terminate processing.`n";
-			Write-Host "Please Specify which Target-Machine file to use - e.g., enter the letter A or B (or X to terminate)`n";
-			[char]$fileOption = Read-Host;
-			
-			if (([string]::IsNullOrEmpty($fileOption)) -or ($fileOption -eq "X")) {
-				Write-Host "Terminating...";
-				exit;
-			}
-			$x = [int]$fileOption - 65;
-			$machineConfigFile = $matches[$x].Name;
+			#vNEXT: https://overachieverllc.atlassian.net/browse/PRO-88
+			throw "Multiple/Duplicate .psd1 files (with the same machine name - in different sub-folders) are not, currently, supported.";
 		}
 	}
 	
 	$machineConfigFile = Test-ProvisoConfigurationFile -ConfigPath $machineConfigFile;
-	if ($machineConfigFile -eq $null){
+	if ($machineConfigFile -eq $null) {
 		throw "Missing or Invalid Target-Machine-Name Specified. Please verify that a '<Machine-Name.psd1>' or '<Machine-Name>.config' file exists in the Resources-Root\definitions directory.";
 	}
 	$script:targetMachineFile = $machineConfigFile;
 	
-	Write-Log "`rBootstrapping complete.";
+	Write-ProvisoLog -Message "Bootstrapping Process Complete." -Level Important;
 }
 catch {
-	Write-Host "Exception: $_";
-	Write-Host "`t$($_.ScriptStackTrace)";
-	
-	Write-Log "EXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+	Write-Log -Message ("EXCEPTION: $_  `r$($_.ScriptStackTrace) ") -Level Critical;
 }
 #endregion 
 
@@ -179,7 +175,6 @@ try {
 	# Restart-ServerAndResumeProviso -ProvisoRoot "\\storage\Lab\proviso\" -ProvisoConfigPath "C:\Scripts\proviso.config.psd1" -WorkflowFile "C:\Users\Administrator\Desktop\Bootstrap.ps1" -ServerName "PRO-99" -Force;
 }
 catch {
-	Write-Host "Exception: $_";
-	Write-Host "`t$($_.ScriptStackTrace)";
+	Write-ProvisoLog -Message ("EXCEPTION: $_  `r$($_.ScriptStackTrace) ") -Level Critical;
 }
 #endregion

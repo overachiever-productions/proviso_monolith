@@ -4,26 +4,22 @@ namespace Proviso.Models
 {
 	public class Assertion
 	{
-	    public Assertion(string name, ScriptBlock assertionBlock)
-	    {
+        public string Name { get; private set; }
+        public string ParentFacetName { get; private set; }
+        public ScriptBlock ScriptBlock { get; private set; }
 
-	    }
+		public AssertionOutcome Outcome { get; private set; }
 
-	    /*
-	        Members: 
-	            .Name
-	            .CodeBlock (I assume I can pass those around strongly typed as System.Automation.xyz.CodeBlocks or whatever. 
-	            .ParentFacet        
-	            .ExecutionOrder ?
+	    public Assertion(string name, string parentFacetName, ScriptBlock assertionBlock)
+        {
+            this.Name = name;
+            this.ParentFacetName = parentFacetName;
+            this.ScriptBlock = assertionBlock;
+        }
 
-
-	            .AssertionOutcome 
-	                    if it's null, the assertion hasn't been run. 
-	                .Execution date/time 
-	                .pass/fail 
-	                .Exception
-	                
-	    */
-
+        public void AssignOutcome(AssertionOutcome assigned)
+        {
+            this.Outcome = assigned;
+        }
 	}
 }

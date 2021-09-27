@@ -21,16 +21,12 @@ function Facet {
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "default")]
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
-		[ScriptBlock]$Scripts
+		[ScriptBlock]$Scripts,
+		[switch]$AllowReset = $false
 	);
 	
 	begin {
-		if ([string]::IsNullOrEmpty($Name)) {
-			# set it to the name of the file/facet itself... 
-		}
-		
-		$tempHashTable = @{
-		};
+		$facetModel = New-Object Proviso.Models.Facet($Name, ($MyInvocation.ScriptName).Replace($script:provisoRoot, ".."));
 	}
 	
 	process {
@@ -48,15 +44,11 @@ function Facet {
 					[ScriptBlock]$Assertion
 				);
 				
-				Write-Host "`t`t`tIn an Actual Assertion with Description of: $Description";
-				$tempHashTable.Assertions.Add($Description, $Assertion);
+				Write-Host "Inside of an assert... ";
+				
+				$assertionModel = New-Object Proviso.Models.Assertion($Description, $Name, $Assertion);
+				$facetModel.AddAssertion($assertionModel);
 			}
-			
-			Write-Host "`t`tIn Assertions...";
-			
-			$assertsArray = [ordered]@{
-			};
-			$tempHashTable.Add("Assertions", $assertsArray);
 			
 			& $Assertions;
 		}
@@ -66,8 +58,7 @@ function Facet {
 				[scriptblock]$RebaseBlock
 			);
 			
-			Write-Host "`t`tIn Rebase...":
-			$tempHashTable.Add("RebaseCode", $RebaseBlock);
+#			$tempHashTable.Add("RebaseCode", $RebaseBlock);
 		}
 		
 		function Definitions {
@@ -108,27 +99,16 @@ function Facet {
 				Write-Host "`t`t`tIn an Actual Definition. Name: $Description ";
 			}
 			
-			Write-Host "`t`tIn Definitions... ";
-			$defsArray = [ordered]@{
-			};
-			$tempHashTable.Add("Definitions", $defsArray);
 			& $Definitions;
 		}
-		
-		# TODO: create and/or populate a new FacetCodeManager object/thingy... (here or up in BEGIN).
-		Write-Host "";
-		Write-Host "Starting Code-Load for Facet: $Name.";
-		& $Scripts;
-		Write-Host "Code-Load for Facet complete.";
-		Write-Host "";
 	}
 	
 	end {
 		
-		Write-Host "------------------------------------------------------------------------------";
-		Write-Host "`t`tAsserts Details: 	$($tempHashTable.Assertions.Count) ";
-		Write-Host "`t`tRebase Details: 	$($tempHashTable.RebaseCode)";
-		Write-Host "`t`tRebase Details: 	$($tempHashTable.Definitions.Count)";
+		Write-Host "FacetModel.Assertions.Count: $($facetModel.Assertions.Count)";
+		
+		$facetManager = [Proviso.Models.FacetManager]::GetInstance();
+		$facetManager.AddFacet($facetModel);
 	}
 }
 

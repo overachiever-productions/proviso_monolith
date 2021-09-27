@@ -3,9 +3,16 @@
 [string[]]$provisoPublicModuleMembers = @();
 [string]$script:provisoRoot = $PSScriptRoot;
 
-
-# 1. Import (.NET) Classes
-
+# 1. Import (.NET) classes (ordered to address dependency chains)
+$classFiles = @(
+	"$PSScriptRoot\classes\AssertionOutcome.cs"
+	"$PSScriptRoot\classes\Assertion.cs"
+	"$PSScriptRoot\classes\Rebase.cs"
+	"$PSScriptRoot\classes\Definition.cs"
+	"$PSScriptRoot\classes\TestOutcome.cs"
+	#"$PSScriptRoot\classes\Facet.cs"
+);
+Add-Type -Path $classFiles;
 
 # 2. Build Public Functions / DSL
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'functions/*.ps1') -Recurse -ErrorAction Stop))) {
@@ -34,8 +41,36 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -C
 	try {
 		. $file.FullName;
 		
-		$provisoPublicModuleMembers += "Verify-$($file.Basename)";
-		$provisoPublicModuleMembers += "Configure-$($file.Basename)";
+		$validateFacet = {
+			param (
+				[Parameter(Mandatory)]
+				[string]$FacetName,
+				[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
+				[PSCustomObject]$Config
+			);
+			
+			Process-Facet -FacetName $FacetName -Config $Config -Validate;
+		};
+		
+		$configureFacet = {
+			param (
+				[Parameter(Mandatory)]
+				[string]$FacetName,
+				[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
+				[PSCustomObject]$Config
+			);
+			
+			Process-Facet -FacetName $FacetName -Config $Config -Configure;
+		};
+		
+		$validateName = "Validate-$($file.Basename)";
+		$configureName = "Configure-$($file.Basename)";
+		
+		Set-Item -Path "Function:$validateName" -Value $validateFacet;
+		Set-Item -Path "Function:$configureName" -Value $configureFacet;
+		
+		$provisoPublicModuleMembers += $validateName;
+		$provisoPublicModuleMembers += $configureName;
 	}
 	catch {
 		throw "Unable to dot source Facet: [$($file.FullName)]";

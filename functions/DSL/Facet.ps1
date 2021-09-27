@@ -44,8 +44,6 @@ function Facet {
 					[ScriptBlock]$Assertion
 				);
 				
-				Write-Host "Inside of an assert... ";
-				
 				$assertionModel = New-Object Proviso.Models.Assertion($Description, $Name, $Assertion);
 				$facetModel.AddAssertion($assertionModel);
 			}
@@ -58,7 +56,7 @@ function Facet {
 				[scriptblock]$RebaseBlock
 			);
 			
-#			$tempHashTable.Add("RebaseCode", $RebaseBlock);
+			#$rebaseModel = New-Object Proviso.Models.Rebase()
 		}
 		
 		function Definitions {
@@ -71,8 +69,7 @@ function Facet {
 				param (
 					[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
 					[string]$Description,
-					[string]$Expect,
-					# optional mechanism for handing in Expect details...
+					[string]$Expect, 	# optional mechanism for handing in Expect details...
 					[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 					[ScriptBlock]$Definition
 				)
@@ -101,14 +98,14 @@ function Facet {
 			
 			& $Definitions;
 		}
+		
+		& $Scripts;
 	}
 	
 	end {
 		
-		Write-Host "FacetModel.Assertions.Count: $($facetModel.Assertions.Count)";
-		
-		$facetManager = [Proviso.Models.FacetManager]::GetInstance();
-		$facetManager.AddFacet($facetModel);
+		Write-Host "Adding Facet: $($facetModel.Name) to Manager...";
+		[Proviso.Models.FacetManager]::GetInstance().AddFacet($facetModel);
 	}
 }
 

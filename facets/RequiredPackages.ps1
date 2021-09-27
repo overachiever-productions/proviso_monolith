@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# . ..\functions\DSL\Facet.ps1
+
 Facet "RequiredPackages" {
 	
 	Assertions {

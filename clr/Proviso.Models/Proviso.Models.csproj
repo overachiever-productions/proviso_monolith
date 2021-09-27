@@ -6,9 +6,12 @@
 
   <ItemGroup>
     <Compile Include="..\..\classes\Assertion.cs" Link="Assertion.cs" />
+    <Compile Include="..\..\classes\AssertionOutcome.cs" Link="AssertionOutcome.cs" />
+    <Compile Include="..\..\classes\Definition.cs" Link="Definition.cs" />
     <Compile Include="..\..\classes\Facet.cs" Link="Facet.cs" />
-    <Compile Include="..\..\classes\FacetCatalog.cs" Link="FacetCatalog.cs" />
+    <Compile Include="..\..\classes\FacetManager.cs" Link="FacetManager.cs" />
     <Compile Include="..\..\classes\Rebase.cs" Link="Rebase.cs" />
+    <Compile Include="..\..\classes\TestOutcome.cs" Link="TestOutcome.cs" />
   </ItemGroup>
 
   <ItemGroup>

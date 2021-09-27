@@ -102,7 +102,6 @@ $facetManager = [Proviso.Models.FacetManager]::GetInstance();
 
 Write-Host "`r-------------------------------------------------------------------------------------------";
 Write-Host "FacetManager.Count: $($facetManager.Count)";
-Write-Host "Count of Required-Packages Assertions: $($facetManager.GetFacet('RequiredPackages').Assertions.Count) ";
 
 # 5
 #Get-ChildItem -Path Function:;

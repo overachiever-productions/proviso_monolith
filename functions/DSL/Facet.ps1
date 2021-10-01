@@ -54,10 +54,11 @@ function Facet {
 					[string]$Description,
 					[Parameter(Position = 1)]
 					[ScriptBlock]$AssertBlock,
-					[Switch]$Fatal = $false
+					[Alias("NotFatal","UnFatal", "Informal", "")]
+					[Switch]$NonFatal = $false 
 				);
 				
-				$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $Fatal);
+				$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $NonFatal);
 				$facet.AddAssertion($assertion);
 			}
 			

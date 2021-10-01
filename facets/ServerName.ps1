@@ -6,12 +6,20 @@ Facet "ServerName" {
 	# assert we're admins
 	
 	Assertions {
-		Assert "Adminstrator" -Fatal {
-			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-			# todo... see if current user is in the admins role... 
-			# if not, throw... 
+		Assert "Fake Test" -NotFatal {
+			throw "This assertion is NON fatal."; # test of non-fatal assertions... 
 		}
-		Assert "Domain Admin Creds" -Fatal {
+		
+		Assert "Adminstrator" {
+			# TODO: this logic is actually busted (contains isn't working like I want it to... ).
+			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
+#			$admins = Get-LocalGroupMember -Group Administrators;
+#			
+#			if (-not ($admins -contains $currentUser)){
+#				throw "$currentUser is not a member of Administrators.";
+#			}
+		}
+		Assert "Domain Admin Creds" {
 			# TODO: implement this correctly... i.e., this is just a VERY rough stub.
 			if ($Config.GetValue("Host.TargetDomain") -ne $null) {
 				# make sure we've got $Config.Secrets.DomainAdminCreds or whatever... 
@@ -31,6 +39,8 @@ Facet "ServerName" {
 			Configure {
 				# check domain too... 
 				# and rename host or rename + domain. 
+				
+				Write-Host "This is a test. But, what I'd do would be: a. check the domain-name (matched or not) too... and b) then change name or name+domain-join.";
 			}
 		}
 		

@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <Compile Include="..\..\classes\Assertion.cs" Link="Assertion.cs" />
-    <Compile Include="..\..\classes\AssertionOutcome.cs" Link="AssertionOutcome.cs" />
     <Compile Include="..\..\classes\Definition.cs" Link="Definition.cs" />
     <Compile Include="..\..\classes\Facet.cs" Link="Facet.cs" />
     <Compile Include="..\..\classes\FacetManager.cs" Link="FacetManager.cs" />

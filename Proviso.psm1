@@ -5,7 +5,6 @@
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
-	"$PSScriptRoot\classes\AssertionOutcome.cs"
 	"$PSScriptRoot\classes\Assertion.cs"
 	"$PSScriptRoot\classes\RebaseOutcome.cs"
 	"$PSScriptRoot\classes\Rebase.cs"

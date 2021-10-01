@@ -1,5 +1,13 @@
 ﻿Set-StrictMode -Version 1.0;
 
+<#
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -Force;
+	
+	With "\\storage\Lab\proviso\definitions\servers\S4\SQL-120-01.psd1" | Validate-ServerName;
+
+#>
+
+
 function Process-Facet {
 	
 	param (
@@ -28,22 +36,46 @@ function Process-Facet {
 	}
 	
 	process {
+		# --------------------------------------------------------------------------------------
+		# Assertions	
+		# --------------------------------------------------------------------------------------
+		if ($facet.Assertions.Count -gt 0) {
+			
+			foreach ($assert in $facet.Assertions) {
+				
+				try {
+					$assert.SetAssertionStarted();
+					
+					[ScriptBlock]$codeBlock = $assert.ScriptBlock;
+					& $codeBlock;
+					
+					$assert.SetAssertionSuccess();
+				}
+				catch {
+					$assert.SetAssertionFailure($_); # https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ErrorRecord?view=powershellsdk-7.0.0
+				}
+				
+				if ($assert.Failed) {
+					if ($assert.NonFatal) {
+						# TODO: write to the proviso log instead of host... 
+						#Write-ProvisoLog ...
+						Write-Host "WARNING: Non-Fatal Assertion $($assert.Name) Failed. $($assert.AssertionError);";
+					}
+					else {
+						# TODO: build a full-blown object here... along with a view and everything... 
+						throw "Assertion $($assert.Name) Failed. Error: $($assert.AssertionError)";
+					}
+				}
+				else {
+					
+				}
+			}
+		}
 		
-		#QUESTION: I assume $Config will ... be in scope for all & $block executions? 
-		
-		Write-Host "Nice. Down, inside of $FacetName, and doing stuff...";
-		# Nice. This is where the magic will happen. 
 		
 		# --------------------------------------------------------------------------------------
-		# foreach Assertion... 
-		#  		try/catch and keep tabs on pass/fail + exceptions. 
-		#   		if fail or exception, keep processing the loop. 
-		# when done with try/catch loop of all assertions: 
-		#  		if any one of them failed/excepted... 
-		#  		THROW "Assertion(s) failed";
-		
-		
-		
+		# Assertions	
+		# --------------------------------------------------------------------------------------		
 		
 		# --------------------------------------------------------------------------------------
 		#  Execute Definition Tests. 
@@ -56,7 +88,24 @@ function Process-Facet {
 		# 
 		#
 		
-		if ($Validate){
+		if ($Validate) {
+			
+			foreach ($definition in $facet.Definitions){
+				
+				# test-runner type object (that compares inputs and outputs... )
+				#$tester = New-Object Proviso.Models.TestEvaluator();
+				
+				[ScriptBlock]$expectedBlock = $definition.Expectation;
+				$expectedOutcome = & $expectedBlock;
+				Write-Host "Outcome of Expectation for $($definition.Description) was: $expectedOutcome";
+				
+				[ScriptBlock]$testBlock = $definition.Test;
+				$testOutcome = & $testBlock;
+				Write-Host "Test Outcome for $($definition.Description) was: $testOutcome ";
+				
+			}
+			
+			
 			# IMPORTANT: don't 'implement' the  following view. 
 			# 		instead, make sure that an OBJECT or set of objects is passed out with ALL details ... 
 			# 			with the IDEA that if/when -Validate is run... that... end-users will see SOMETHING like the below
@@ -70,7 +119,10 @@ function Process-Facet {
 			
 		}
 		
-		if ($Configure){
+		if ($Configure) {
+			
+			Write-Host "Configuring vs Validating... ";
+			
 			# foreach definition where test-outcome = FAIL (and/or exception?)
 			#  		try/catch (and capture any exceptions + try to keep going? hmmm)
 			# 			Ah... perfect. Definitions.Config will have a -ExceptionsAsFatal or -ErrorAction thingy that lets each one determine/define if it crashes the whole thing or not. 

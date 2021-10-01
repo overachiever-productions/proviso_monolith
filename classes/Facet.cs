@@ -46,11 +46,6 @@ namespace Proviso.Models
             this.Definitions.Add(added);
         }
 
-        public void BindAssertionOutcome(Assertion target, AssertionOutcome outcome)
-        {
-            // i THINK this is where to do this? 
-        }
-
         public void BindTestOutcome(Definition target, TestOutcome outcome)
         {
 

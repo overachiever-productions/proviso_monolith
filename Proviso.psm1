@@ -7,12 +7,14 @@
 $classFiles = @(
 	"$PSScriptRoot\classes\AssertionOutcome.cs"
 	"$PSScriptRoot\classes\Assertion.cs"
+	"$PSScriptRoot\classes\RebaseOutcome.cs"
 	"$PSScriptRoot\classes\Rebase.cs"
 	"$PSScriptRoot\classes\Definition.cs"
 	"$PSScriptRoot\classes\TestOutcome.cs"
-	#"$PSScriptRoot\classes\Facet.cs"
+	"$PSScriptRoot\classes\Facet.cs"
+	"$PSScriptRoot\classes\FacetManager.cs"
 );
-Add-Type -Path $classFiles;
+Add-Type -Path $classFiles; # damn i love powershell... 
 
 # 2. Build Public Functions / DSL
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'functions/*.ps1') -Recurse -ErrorAction Stop))) {
@@ -22,7 +24,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -C
 		$provisoPublicModuleMembers += $file.Basename;
 	}
 	catch {
-		throw "Unable to dot source Core Function: [$($file.FullName)]";
+		throw "Unable to dot source Core Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
 
@@ -32,50 +34,42 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -C
 		. $file.FullName;
 	}
 	catch {
-		throw "Unable to dot source Internal Function: [$($file.FullName)]";
+		throw "Unable to dot source Internal Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
 
 # 4. Import/Build Facets and dynamically create Verify|Configure-<FacetName> funcs. 
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'facets/*.ps1') -Recurse -ErrorAction Stop))) {
+$script:provisoFacetManager = [Proviso.Models.FacetManager]::Instance;
+Clear-FacetProxies -RootDirectory $script:provisoRoot;
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'facets/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
 		
-		$validateFacet = {
-			param (
-				[Parameter(Mandatory)]
-				[string]$FacetName,
-				[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
-				[PSCustomObject]$Config
-			);
+		$currentFacet = $script:provisoFacetManager.GetFacetByFileName(($file.Basename));
+		if ($null -ne $currentFacet) {
+			$facetName = $currentFacet.Name;
+			$allowsRebase = $currentFacet.AllowsReset;
 			
-			Process-Facet -FacetName $FacetName -Config $Config -Validate;
-		};
-		
-		$configureFacet = {
-			param (
-				[Parameter(Mandatory)]
-				[string]$FacetName,
-				[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
-				[PSCustomObject]$Config
-			);
-			
-			Process-Facet -FacetName $FacetName -Config $Config -Configure;
-		};
-		
-		$validateName = "Validate-$($file.Basename)";
-		$configureName = "Configure-$($file.Basename)";
-		
-		Set-Item -Path "Function:$validateName" -Value $validateFacet;
-		Set-Item -Path "Function:$configureName" -Value $configureFacet;
-		
-		$provisoPublicModuleMembers += $validateName;
-		$provisoPublicModuleMembers += $configureName;
+			Export-FacetProxyFunction -RootDirectory $script:provisoRoot -FacetName $facetName -MethodType Validate;
+			Export-FacetProxyFunction -RootDirectory $script:provisoRoot -FacetName $facetName -MethodType Configure -AllowRebase:$allowsRebase;
+		}
 	}
 	catch {
-		throw "Unable to dot source Facet: [$($file.FullName)]";
+		throw "Unable to Import Facet: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
 
-# 5. Export
+# 5. Import DSL Facet-Proxies (syntactic sugar):
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'facets/generated/*.ps1') -ErrorAction Stop))) {
+	try {
+		. $file.FullName;
+		
+		$provisoPublicModuleMembers += $file.Basename;
+	}
+	catch {
+		throw "Unable to Import Facet Proxy-Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+	}
+}
+
+# 6. Export
 Export-ModuleMember -Function $provisoPublicModuleMembers;

@@ -10,23 +10,35 @@
 
 	FUNCTIONALITY: 
 		When a 'Facet' is run/imported, it doesn't 'DO' anything. 
-			Instead, whenever a Facet is run/imported, it creates a xxx - which is a list of ordered code-blocks that are executed by... 
-				xxxx instead via Verify-<FacetName> and Configure-<FacetName> funcs... 
+			Instead, whenever a facet is run/imported, it creates a Proviso.Models.Facet object - which is a list of ordered code-blocks
+					that are, in turn, stored/managed in a (Singleton) Proviso.Models.FacetManager. 
+				Surrogate/Facade methods for Verify-<FacetName> and Configure-<FacetName> are then created (during module import/spin up)
+					for each facet which act as simple 'wrappers'/proxies (DSL syntactic sugar) that then make calls down into Process-Facet. 
 
 #>
+
+# vNEXT: add error-handling/try-catches... 
+# vNEXT: before assignment of inputs/code-blocks to Proviso.Models (of any kind), do the following: 
+# 		verify that the 'call-stack' is correct and as expected - i.e., that rebase is a member of facet or that Test is a member of Definition, definitions, facet
+# 			and so on. 
+# 				ultimately, build a Confirm-CallStackPlacement() func that knows how to do this stuff.
 
 function Facet {
 	
 	param (
-		[Parameter(Mandatory, Position = 0, ParameterSetName = "default")]
+		[Parameter(Position = 0, ParameterSetName = "default")]
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
-		[ScriptBlock]$Scripts,
-		[switch]$AllowReset = $false
+		[ScriptBlock]$Scripts
 	);
 	
 	begin {
-		$facetModel = New-Object Proviso.Models.Facet($Name, ($MyInvocation.ScriptName).Replace($script:provisoRoot, ".."));
+		$facetFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
+		if ($null -eq $Name) {
+			$Name = $facetFileName;
+		}
+		
+		$facet = New-Object Proviso.Models.Facet($Name, $facetFileName, ($MyInvocation.ScriptName).Replace($script:provisoRoot, ".."));
 	}
 	
 	process {
@@ -41,11 +53,12 @@ function Facet {
 					[Parameter(Position = 0)]
 					[string]$Description,
 					[Parameter(Position = 1)]
-					[ScriptBlock]$Assertion
+					[ScriptBlock]$AssertBlock,
+					[Switch]$Fatal = $false
 				);
 				
-				$assertionModel = New-Object Proviso.Models.Assertion($Description, $Name, $Assertion);
-				$facetModel.AddAssertion($assertionModel);
+				$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $Fatal);
+				$facet.AddAssertion($assertion);
 			}
 			
 			& $Assertions;
@@ -56,7 +69,8 @@ function Facet {
 				[scriptblock]$RebaseBlock
 			);
 			
-			#$rebaseModel = New-Object Proviso.Models.Rebase()
+			$rebase = New-Object [Proviso.Models.Rebase]($RebaseBlock, $Name);
+			$facet.AddRebase($rebase);
 		}
 		
 		function Definitions {
@@ -71,29 +85,53 @@ function Facet {
 					[string]$Description,
 					[string]$Expect, 	# optional mechanism for handing in Expect details...
 					[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
-					[ScriptBlock]$Definition
+					[ScriptBlock]$DefinitionBlock
 				)
 				
-				function Expect {
-					param (
-						[ScriptBlock]$ExpectBlock
-					);
+				begin {
+					$definition = New-Object Proviso.Models.Definition($Description);
 				}
 				
-				function Test {
-					param (
-						[ScriptBlock]$TestBlock
-					);
+				process {
+					
+					#region vNEXT
+					# vNEXT: MIGHT make sense to have an optional 'func' called Validate that returns a ValidationOutput object with .Expected and .Actual values
+					#  		i.e., my idea of having distinct 'funcs' for Expect and Test might end up being a bit of a bitch. 
+					# 			in that it might be hard to pull off with 2 DISTINCT bodies of text/code (e.g., what if one returns "ADMINISTRATOR" and the other returns ADMINISTRATOR?)
+					# 				that'd suck
+					# 			So, the idea is that a 'Validate' block could/would run some comparisons and "expect/require" a ValidationOutput result as the outcome. 
+					# 				and said ValidationOutput would provide .Expected and .Actual values along with .Pass or whatever... 
+					#endregion
+					function Expect {
+						param (
+							[ScriptBlock]$ExpectBlock
+						);
+						
+						$definition.AddExpect($ExpectBlock);
+					}
+					
+					function Test {
+						param (
+							[ScriptBlock]$TestBlock
+						);
+						
+						$definition.AddTest($TestBlock);
+					}
+					
+					function Configure {
+						param (
+							[ScriptBlock]$ConfigureBlock
+						);
+						
+						$definition.AddConfiguration($ConfigureBlock)
+					}
+					
+					& $DefinitionBlock;
 				}
 				
-				function Provision {
-					param (
-						[ScriptBlock]$ProvisionBlock
-					);
+				end {
+					$facet.AddDefinition($definition);
 				}
-				
-				
-				Write-Host "`t`t`tIn an Actual Definition. Name: $Description ";
 			}
 			
 			& $Definitions;
@@ -103,61 +141,41 @@ function Facet {
 	}
 	
 	end {
-		
-		Write-Host "Adding Facet: $($facetModel.Name) to Manager...";
-		[Proviso.Models.FacetManager]::GetInstance().AddFacet($facetModel);
+		$facetManager = Get-ProvisoFacetManager;
+		$facetManager.AddFacet($facet);
 	}
 }
 
-# --------------------------------------------------------------------------------------------------------------------------------------------------------
-#  sample facet/dev-testing.... 
+
+# ---------------------------------------------------------------------------------------------------------
+# Examples of spinning up CLR objects:
+# ---------------------------------------------------------------------------------------------------------
+#	$facetManager = [Proviso.Models.FacetManager]::GetInstance();
+#	Write-Host $facetManager.GetStuff();
+#	
+#	return;
+#	$block = {
+#		Write-Host "this is a nested code block";
+#		$x = 12;
+#	}
+#	
+#	$assertion = New-Object Proviso.Models.Assertion("my assertion", "Facet Name Here",  $block);
+#	Write-Host "Assertion.Name: $($assertion.Name) ";
+#	Write-Host "Assertion.ScriptBlock $($assertion.ScriptBlock) ";
+#	
+#	$outcome = New-Object Proviso.Models.AssertionOutcome($true, $null);
+#	$assertion.AssignOutcome($outcome);
+#	
+#	Write-Host "Assertion.Outcome: $($assertion.Outcome.Passed)";
+#	return;
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Examples of interacting with the facet manager:
+# ---------------------------------------------------------------------------------------------------------
+#	Write-Host "`r-------------------------------------------------------------------------------------------";
+#	$facetManager = Get-ProvisoFacetManager;
+#	Write-Host "FacetManager.Count: $($facetManager.FacetCount)";
 #
-#Facet "NetworkAdapters" {
-#	
-#	Assertions {
-#		Assert -Description "1. Something Should be Present." {
-#			$stringHere = "this is where the actual assertion code would go. ";
-#		}
-#		Assert -Description "2. Another thing should be here." {
-#			$stringHere = "this is where the actual assertion code would go. ";
-#		}
-#		Assert -Description "3. Third thing to do goes here... " {
-#			if ($Config.GetValue("Host.Something.AnotherThing.Value")) {
-#				throw "This won't get thrown until the actual assert is executed - assuming that -Config is an object at that point... ";
-#			}
-#		}
-#	}
-#	
-#	Rebase {
-#		$variable = "12345 - fake code block here.";
-#	}
-#	
-#	Definitions {
-#		Definition "IP Address" -Expect "192.168.1.200" {
-#			Test {
-#				$t = "do whatever it takes to get the current IP addy.";
-#			}
-#			Provision {
-#				$p = "do whatever it takes to set the IP for such and such adapter to such and such IP. ";
-#			}
-#		}
-#		Definition "IP Gateway" {
-#			
-#			Expect {
-#				$Config.GetValue("Host.Definitions.VMNetwork.Gateway");
-#			}
-#			
-#			Test {
-#				$t = "get the IP gateway... ";
-#			}
-#			
-#			Provision {
-#				$p = "set the gateway for such and such adapter to expected/etc.";
-#			}
-#			
-#		}
-#		Definition "DNS Server Addresses" {
-#			
-#		}
-#	}
-#}
+#	[Proviso.Models.Facet]$f = $facetManager.GetFacet("ServerName");
+#	Write-Host $f.SourceFile;

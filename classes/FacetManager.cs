@@ -1,28 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Management.Automation;
+using System.Runtime.CompilerServices;
 
 namespace Proviso.Models
 {
     public class FacetManager
     {
-        // TODO: look at implementing this as an ORDERED dictionary;
-        private readonly Dictionary<string, Facet> _facets = new Dictionary<string, Facet>();
-        private static readonly FacetManager _singletonInstance = new FacetManager();
-        static FacetManager() { }
-        private FacetManager() { }
+        private Dictionary<string, Facet> _facets = new Dictionary<string, Facet>();
+        private Dictionary<string, string> _facetsByFileName = new Dictionary<string, string>();
 
         public int FacetCount => this._facets.Count;
-        
-        public static FacetManager GetInstance()
-        {
-            return _singletonInstance;
-        }
+
+        private FacetManager() { }
+
+        public static FacetManager Instance => new FacetManager();
 
         public void AddFacet(Facet added)
         {
-            // TODO: figure out writeobject() so'z i can see if I'm getting a singleton or not... 
             this._facets.Add(added.Name, added);
+            this._facetsByFileName.Add(added.FileName, added.Name);
         }
 
         //public void RemoveFacet(Facet removed)
@@ -30,10 +27,25 @@ namespace Proviso.Models
 
         //}
 
-        public Facet GetFacet(string name)
+        public Facet GetFacet(string facetName)
         {
-            if (this._facets.ContainsKey(name))
-                return this._facets[name];
+            if (this._facets.ContainsKey(facetName))
+                return this._facets[facetName];
+
+            return null;
+        }
+
+        public Facet GetFacetByFileName(string filename)
+        {
+            if (this._facetsByFileName.ContainsKey(filename))
+            {
+                string facetName = this._facetsByFileName[filename];
+
+                if (this._facets.ContainsKey(facetName))
+                {
+                    return this._facets[facetName];
+                }
+            }
 
             return null;
         }

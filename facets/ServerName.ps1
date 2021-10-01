@@ -6,13 +6,16 @@ Facet "ServerName" {
 	# assert we're admins
 	
 	Assertions {
-		Assert "Adminstrator" {
-			
+		Assert "Adminstrator" -Fatal {
+			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
+			# todo... see if current user is in the admins role... 
+			# if not, throw... 
 		}
-		Assert "Domain Admin Creds" {
+		Assert "Domain Admin Creds" -Fatal {
 			# TODO: implement this correctly... i.e., this is just a VERY rough stub.
 			if ($Config.GetValue("Host.TargetDomain") -ne $null) {
 				# make sure we've got $Config.Secrets.DomainAdminCreds or whatever... 
+				# othrwise, throw... 
 			}
 		}
 	}
@@ -46,6 +49,9 @@ Facet "ServerName" {
 				
 				# at any rate: Target Server SHOULD, in most cases, handle domain-join + host rename. 
 				# meaning that this should just be domain-join if/when the host is already good. 
+				
+				# if we end up needing to reboot... make sure to signal that up:
+				$ProvisoContext.RequiresReboot = $true;
 			}
 		}
 	}

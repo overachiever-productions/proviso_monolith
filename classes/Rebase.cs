@@ -4,18 +4,19 @@ namespace Proviso.Models
 {
     public class Rebase
     {
+        public ScriptBlock RebaseBlock { get; set; }
+        public string ParentFacetName { get; set; }
+        public RebaseOutcome RebaseOutcome { get; set; }
 
-        /*
-            Members: 
-                .ScriptBlock
-                .ParentFacet
-                .ParentAllowsHardResets         
+        public Rebase(ScriptBlock rebaseBlock, string parentFacetName)
+        {
+            this.RebaseBlock = rebaseBlock;
+            this.ParentFacetName = parentFacetName;
+        }
 
-                .RebaseOutcome (null = not executed)
-                    .executed (date/time)
-                    .pass/fail. 
-                    .exception 
-
-        */
+        public void AddOutcome(RebaseOutcome outcome)
+        {
+            this.RebaseOutcome = outcome;
+        }
     }
 }

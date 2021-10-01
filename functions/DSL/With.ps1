@@ -69,9 +69,11 @@ function With {
 		}
 		
 		# Add Properties and Methods:
-		Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict;
+		# vNEXT: bit of an oddity here with the -Force on these Add-Member calls. Specifically: if i do something like $config = WIth "pathTo.psd1 or config object here"; then... if I later try to use WIth $Config ... i get errors about not being able to add members cuz they already exist. 
+		# 			maybe i just add a member that's something like: .FullyValidated = $true and ... if that's the case, pass it right out the end... otherwise do all this build stuff including -Force? 
+		Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
 		if ($null -eq $Config.AllowGlobalDefaults) {
-			Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults;
+			Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults -Force;
 		}
 		else {
 			$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.

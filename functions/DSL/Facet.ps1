@@ -23,6 +23,42 @@
 # 			and so on. 
 # 				ultimately, build a Confirm-CallStackPlacement() func that knows how to do this stuff.
 
+
+# vNEXT: should a Facet OUTPUT something? maybe dump a Context object into the mix? 
+# 		that way a workflow could EASILY examine the outcome/output of a Facet-Operation. 
+# 			ARGUABLY, it totally should - in the sense that a Facet should return/output some sort of full-blown object with details about exceptions/errors and the lot. 
+#  		the only rub would be ... my idea to do something like: 
+#  				> With "something here" | Secured-By $thisObject | Process {
+#					Validate-ThisFacet;
+#					validate-ThatFacet; 
+#					AndSo-On
+#				};
+# 		though, arguably, the way the above would work is ... 
+# 			that I'd either
+# 				a) make 'Process' (or whatever it is called) a 'wrapper' around Process-Facet calls
+# 					such that it'd keep a COLLECTION of 'FacetOutcome' objects (ordered and by facet-name/operation)
+# 				or 
+# 				b) i'd look at making some sort of 'follow-on' object... 
+# 				like 
+# 					> With "eetc" | Process { Validate-This; Validate-That; } | Results-As $output;
+
+#  	 		and.. that's not a terrible flow ANYHOW.  i.e., Results-As would be a bit different than Result-As (or maybe Outcome-As)
+# 										as in, Result_S_-As would be plural/many, the other would be singular. 
+# 									the rub here though is that ... this whole thing 
+# 						VIOLATEs what would come normal in powershell, being: 
+# 							> $results = With "such and such" | Secured-By $something | Process { Validate-This; Validate-That; };
+# 							or 
+# 							> $results = With "path.psd1" | Secured-By $secretsManager | Validate-ServerName;
+
+#  so... i think: 
+# 			a. I SHOULD return results. 
+# 			b. this is easy enough to do for 'Process' (i.e., whatever 'verb' or whatever I end up using to tackle multiples)
+# 				... via option A above - i.e 'Process' would simply 'wrap' and collect outputs of the above. 
+# 			c. I should probably fully EMBRACE $outcome = With "something" | Validate-X. 
+#   	    d. Arguably... users could ALSO grab outcomes as: 
+# 						> With "sdfdsf" | Validate-Xxxx; 
+# 						> $results = Last-ProvisoOutcome; -- i.e., some sort of 'static' or $script/$global 'last result' as a means of grabbing those after the fact... 
+
 function Facet {
 	
 	param (
@@ -33,6 +69,8 @@ function Facet {
 	);
 	
 	begin {
+		Limit-ValidProvisoDSL -MethodName "Facet" -AsFacet;
+		
 		$facetFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
 		if ($null -eq $Name) {
 			$Name = $facetFileName;
@@ -48,6 +86,8 @@ function Facet {
 				[ScriptBlock]$Assertions
 			);
 			
+			Limit-ValidProvisoDSL -MethodName "Assertions" -AsFacet;
+			
 			function Assert {
 				param (
 					[Parameter(Position = 0)]
@@ -58,17 +98,26 @@ function Facet {
 					[Switch]$NonFatal = $false 
 				);
 				
+				Limit-ValidProvisoDSL -MethodName "Assert" -AsFacet;
+				
 				$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $NonFatal);
 				$facet.AddAssertion($assertion);
 			}
 			
+			# vNEXT: figure out how to constrain inputs here - as per: https://powershellexplained.com/2017-03-13-Powershell-DSL-design-patterns/#restricted-dsl
+			# 		oddly, I can't use a ScriptBlock literal here - i.e., i THINK I could use a string, but not a block... so, MAYBE? convert the block to a string then 'import' it that way to ensure it's constrained?
+#			$validatedAssertions = [ScriptBlock]::Create("DATA -SupportedCommand Assert {$Assertions}");
+#			& $validatedAssertions
 			& $Assertions;
+			
 		}
 		
 		function Rebase {
 			param (
 				[scriptblock]$RebaseBlock
 			);
+			
+			Limit-ValidProvisoDSL -MethodName "Rebase" -AsFacet;
 			
 			$rebase = New-Object [Proviso.Models.Rebase]($RebaseBlock, $Name);
 			$facet.AddRebase($rebase);
@@ -80,6 +129,8 @@ function Facet {
 				[ScriptBlock]$Definitions
 			);
 			
+			Limit-ValidProvisoDSL -MethodName "Definitions" -AsFacet;
+			
 			function Definition {
 				param (
 					[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
@@ -90,6 +141,7 @@ function Facet {
 				)
 				
 				begin {
+					Limit-ValidProvisoDSL -MethodName "Definition" -AsFacet;
 					$definition = New-Object Proviso.Models.Definition($Description);
 				}
 				
@@ -108,6 +160,7 @@ function Facet {
 							[ScriptBlock]$ExpectBlock
 						);
 						
+						Limit-ValidProvisoDSL -MethodName "Expect" -AsFacet;
 						$definition.AddExpect($ExpectBlock);
 					}
 					
@@ -116,6 +169,7 @@ function Facet {
 							[ScriptBlock]$TestBlock
 						);
 						
+						Limit-ValidProvisoDSL -MethodName "Test" -AsFacet;
 						$definition.AddTest($TestBlock);
 					}
 					
@@ -124,6 +178,7 @@ function Facet {
 							[ScriptBlock]$ConfigureBlock
 						);
 						
+						Limit-ValidProvisoDSL -MethodName "Configure" -AsFacet;
 						$definition.AddConfiguration($ConfigureBlock)
 					}
 					

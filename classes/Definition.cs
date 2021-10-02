@@ -31,15 +31,6 @@ namespace Proviso.Models
             this.Configure = configurationBlock;
         }
 
-        //public Definition(ScriptBlock expectation, ScriptBlock test, ScriptBlock configure)
-        //{
-        //    this.Expectation = expectation;
-        //    this.Test = test;
-        //    this.Configure = configure;
-        //}
-
-
-
         public void SetOutcome(TestOutcome outcome)
         {
             this.Outcome = outcome;

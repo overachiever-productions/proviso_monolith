@@ -32,6 +32,8 @@ function With {
 	);
 	
 	begin {
+		Limit-ValidProvisoDSL -MethodName "With";
+		
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {
 				throw "Specified -ConfigFile path of $ConfigFile does not exist.";
@@ -56,7 +58,6 @@ function With {
 	}
 	
 	process {
-		
 		if ($strict) {
 			if ($null -eq $Config.TargetServer) {
 				throw "-Strict set to TRUE, but Configuration.TargetServer value not set or found.";
@@ -79,6 +80,20 @@ function With {
 			$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.
 		}
 		
+		[scriptblock]$setValue = {
+			param (
+				[Parameter(Mandatory)]
+				[ValidateNotNullOrEmpty()]
+				[string]$Key,
+				[Parameter(Mandatory)]
+				[ValidateNotNullOrEmpty()]
+				[string]$Value
+			);
+			
+			Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
+		}
+		Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue;
+		
 		[scriptblock]$getValue = {
 			param (
 				[ValidateNotNullOrEmpty()]
@@ -92,13 +107,11 @@ function With {
 				return $output;
 			}
 			
-			if ($null -eq $output) {
-				# account for instance-specific keys defaulted to MSSQLSERVER: 
-				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
-				if ($match) {
-					$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
-					$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
-				}
+			# account for instance-specific keys defaulted to MSSQLSERVER: 
+			$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
+			if ($match) {
+				$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
+				$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
 			}
 			
 			if ($null -ne $output) {
@@ -154,8 +167,7 @@ function With {
 	}
 	
 	end {
-		# emit into pipeline:		
-		return $Config;
+		return $Config; # emit to pipeline.
 	}
 }
 

@@ -22,6 +22,8 @@ function {0}-{1} {{
 		[PSCustomObject]$Config{2}
 	);
 	
+	Limit-ValidProvisoDSL -MethodName "{0}";
+
 	Process-Facet -FacetName "{1}" -Config $Config -{0}{3};
 }}';
 		

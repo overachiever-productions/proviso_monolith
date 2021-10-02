@@ -5,6 +5,7 @@
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
+	"$PSScriptRoot\classes\DslStack.cs"
 	"$PSScriptRoot\classes\Assertion.cs"
 	"$PSScriptRoot\classes\RebaseOutcome.cs"
 	"$PSScriptRoot\classes\Rebase.cs"
@@ -16,6 +17,7 @@ $classFiles = @(
 Add-Type -Path $classFiles; # damn i love powershell... 
 
 # 2. Build Public Functions / DSL
+$script:provisoDslStack = [Proviso.Models.DslStack]::Instance;
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $script:provisoRoot -ChildPath 'functions/*.ps1') -Recurse -ErrorAction Stop))) {
 	try {
 		. $file.FullName;

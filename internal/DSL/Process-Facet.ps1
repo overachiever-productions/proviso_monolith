@@ -7,7 +7,6 @@
 
 #>
 
-
 function Process-Facet {
 	
 	param (
@@ -21,6 +20,8 @@ function Process-Facet {
 	);
 	
 	begin {
+		Limit-ValidProvisoDSL -MethodName "Process-Facet";
+		
 		if ($Validate -and $Configure) {
 			# vNEXT: re-evaluate this. There's no real reason it can't be both. In which case I'd create a new surrogate function called <VerbSomething-ThatMeansValidateAndConfigure>-<FacetName>
 			throw "Switches -Validate and -Configure cannot both be set to true. Execute one option or the other.";
@@ -35,7 +36,7 @@ function Process-Facet {
 		}
 	}
 	
-	process {
+	process { Add-Type -AssemblyName System.Management.Instrumentation
 		# --------------------------------------------------------------------------------------
 		# Assertions	
 		# --------------------------------------------------------------------------------------
@@ -74,8 +75,23 @@ function Process-Facet {
 		
 		
 		# --------------------------------------------------------------------------------------
-		# Assertions	
+		# Definitions / Testing
 		# --------------------------------------------------------------------------------------		
+		
+		foreach ($definition in $facet.Definitions) {
+			
+			# test-runner type object (that compares inputs and outputs... )
+			#$tester = New-Object Proviso.Models.TestEvaluator();
+			
+			[ScriptBlock]$expectedBlock = $definition.Expectation;
+			$expectedOutcome = & $expectedBlock;
+			Write-Host "Outcome of Expectation for $($definition.Description) was: $expectedOutcome";
+			
+			[ScriptBlock]$testBlock = $definition.Test;
+			$testOutcome = & $testBlock;
+			Write-Host "Test Outcome for $($definition.Description) was: $testOutcome ";
+			
+		}
 		
 		# --------------------------------------------------------------------------------------
 		#  Execute Definition Tests. 
@@ -85,26 +101,8 @@ function Process-Facet {
 		# 			some expectations may be scalar (actually, scalar expectations will be turned into [ScriptBlock]$expectation = { $scalarValueHere;} inside of Facet.Definition itself...  )
 		# 		  run the test. 
 		# 		  save the result (exception or output) as a C# TestOutcome. 
-		# 
-		#
 		
 		if ($Validate) {
-			
-			foreach ($definition in $facet.Definitions){
-				
-				# test-runner type object (that compares inputs and outputs... )
-				#$tester = New-Object Proviso.Models.TestEvaluator();
-				
-				[ScriptBlock]$expectedBlock = $definition.Expectation;
-				$expectedOutcome = & $expectedBlock;
-				Write-Host "Outcome of Expectation for $($definition.Description) was: $expectedOutcome";
-				
-				[ScriptBlock]$testBlock = $definition.Test;
-				$testOutcome = & $testBlock;
-				Write-Host "Test Outcome for $($definition.Description) was: $testOutcome ";
-				
-			}
-			
 			
 			# IMPORTANT: don't 'implement' the  following view. 
 			# 		instead, make sure that an OBJECT or set of objects is passed out with ALL details ... 
@@ -138,5 +136,7 @@ function Process-Facet {
 	
 	end {
 		# if stopwatch started, end it and report on timing.
+		
+		# output a results object of some sort... 
 	}
 }

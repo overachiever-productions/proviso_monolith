@@ -5,8 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DslStack.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\..\classes\Assertion.cs" Link="Assertion.cs" />
     <Compile Include="..\..\classes\Definition.cs" Link="Definition.cs" />
+    <Compile Include="..\..\classes\DslStack.cs" Link="DslStack.cs" />
     <Compile Include="..\..\classes\Facet.cs" Link="Facet.cs" />
     <Compile Include="..\..\classes\FacetManager.cs" Link="FacetManager.cs" />
     <Compile Include="..\..\classes\Rebase.cs" Link="Rebase.cs" />

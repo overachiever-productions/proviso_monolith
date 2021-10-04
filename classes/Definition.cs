@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 
 namespace Proviso.Models
 {
@@ -11,9 +10,12 @@ namespace Proviso.Models
         public ScriptBlock Configure { get; private set; }
         public TestOutcome Outcome { get; private set; }
 
+        public bool IsValidated { get; private set; }
+
         public Definition(string description)
         {
             this.Description = description;
+            this.IsValidated = false;
         }
 
         public void AddExpect(ScriptBlock expectation)
@@ -34,6 +36,9 @@ namespace Proviso.Models
         public void SetOutcome(TestOutcome outcome)
         {
             this.Outcome = outcome;
+
+            if (outcome.Matched)
+                this.IsValidated = true;
         }
     }
 }

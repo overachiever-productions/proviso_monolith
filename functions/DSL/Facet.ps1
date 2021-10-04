@@ -18,46 +18,7 @@
 #>
 
 # vNEXT: add error-handling/try-catches... 
-# vNEXT: before assignment of inputs/code-blocks to Proviso.Models (of any kind), do the following: 
-# 		verify that the 'call-stack' is correct and as expected - i.e., that rebase is a member of facet or that Test is a member of Definition, definitions, facet
-# 			and so on. 
-# 				ultimately, build a Confirm-CallStackPlacement() func that knows how to do this stuff.
 
-
-# vNEXT: should a Facet OUTPUT something? maybe dump a Context object into the mix? 
-# 		that way a workflow could EASILY examine the outcome/output of a Facet-Operation. 
-# 			ARGUABLY, it totally should - in the sense that a Facet should return/output some sort of full-blown object with details about exceptions/errors and the lot. 
-#  		the only rub would be ... my idea to do something like: 
-#  				> With "something here" | Secured-By $thisObject | Process {
-#					Validate-ThisFacet;
-#					validate-ThatFacet; 
-#					AndSo-On
-#				};
-# 		though, arguably, the way the above would work is ... 
-# 			that I'd either
-# 				a) make 'Process' (or whatever it is called) a 'wrapper' around Process-Facet calls
-# 					such that it'd keep a COLLECTION of 'FacetOutcome' objects (ordered and by facet-name/operation)
-# 				or 
-# 				b) i'd look at making some sort of 'follow-on' object... 
-# 				like 
-# 					> With "eetc" | Process { Validate-This; Validate-That; } | Results-As $output;
-
-#  	 		and.. that's not a terrible flow ANYHOW.  i.e., Results-As would be a bit different than Result-As (or maybe Outcome-As)
-# 										as in, Result_S_-As would be plural/many, the other would be singular. 
-# 									the rub here though is that ... this whole thing 
-# 						VIOLATEs what would come normal in powershell, being: 
-# 							> $results = With "such and such" | Secured-By $something | Process { Validate-This; Validate-That; };
-# 							or 
-# 							> $results = With "path.psd1" | Secured-By $secretsManager | Validate-ServerName;
-
-#  so... i think: 
-# 			a. I SHOULD return results. 
-# 			b. this is easy enough to do for 'Process' (i.e., whatever 'verb' or whatever I end up using to tackle multiples)
-# 				... via option A above - i.e 'Process' would simply 'wrap' and collect outputs of the above. 
-# 			c. I should probably fully EMBRACE $outcome = With "something" | Validate-X. 
-#   	    d. Arguably... users could ALSO grab outcomes as: 
-# 						> With "sdfdsf" | Validate-Xxxx; 
-# 						> $results = Last-ProvisoOutcome; -- i.e., some sort of 'static' or $script/$global 'last result' as a means of grabbing those after the fact... 
 
 function Facet {
 	
@@ -76,7 +37,7 @@ function Facet {
 			$Name = $facetFileName;
 		}
 		
-		$facet = New-Object Proviso.Models.Facet($Name, $facetFileName, ($MyInvocation.ScriptName).Replace($script:provisoRoot, ".."));
+		$facet = New-Object Proviso.Models.Facet($Name, $facetFileName, ($MyInvocation.ScriptName).Replace($ProvisoScriptRoot, ".."));
 	}
 	
 	process {
@@ -146,14 +107,18 @@ function Facet {
 				}
 				
 				process {
-					
 					#region vNEXT
-					# vNEXT: MIGHT make sense to have an optional 'func' called Validate that returns a ValidationOutput object with .Expected and .Actual values
-					#  		i.e., my idea of having distinct 'funcs' for Expect and Test might end up being a bit of a bitch. 
-					# 			in that it might be hard to pull off with 2 DISTINCT bodies of text/code (e.g., what if one returns "ADMINISTRATOR" and the other returns ADMINISTRATOR?)
-					# 				that'd suck
-					# 			So, the idea is that a 'Validate' block could/would run some comparisons and "expect/require" a ValidationOutput result as the outcome. 
-					# 				and said ValidationOutput would provide .Expected and .Actual values along with .Pass or whatever... 
+					# vNEXT: It MAY (or may not) make sense to allow MULTIPLE Expects. 
+					# 		for example, TargetDomain ... could be "" or "WORKGROUP". Both answers are acceptable. 
+					# 	there are 2x main problems with this proposition, of course: 
+					#		1. How do I end up tweaking the .config to allow 1 or MORE values? (guess I could make arrays? e.g., instead of TargetDomain = "scalar" it could be TargetDomain = @("", "WORKGROUP")
+					# 		2. I then have to address how to compare one return value against multiple options. 
+					# 			that's easy on the surface - but a bit harder under the covers... 
+					# 				specifically:
+					# 					- does 1 match of actual vs ALL possibles yield a .Matched = true? 
+					# 					or does .Matched = true require that ALL values were matches? ... 
+					# 				i.e., this starts to get messy/ugly. 
+					# 		3. Yeah... the third out of 2 problems is ... that this tends to overly complicate things... it could spiral out of control quickly.
 					#endregion
 					function Expect {
 						param (
@@ -197,8 +162,7 @@ function Facet {
 	}
 	
 	end {
-		$facetManager = Get-ProvisoFacetManager;
-		$facetManager.AddFacet($facet);
+		$ProvisoFacetManager.AddFacet($facet);
 	}
 }
 

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing.Text;
 using System.Management.Automation;
-using Microsoft.PowerShell.Commands;
 
 namespace Proviso.Models
 {
@@ -11,11 +9,13 @@ namespace Proviso.Models
         public string Name { get; private set; }
         public string FileName { get; private set; }
         public string SourcePath { get; private set; }
+        public bool ComparisonsFailed { get; private set; }
 
         public bool AllowsReset => this.Rebase != null;
 
         public List<Assertion> Assertions { get; private set; }
         public List<Definition> Definitions { get; private set; }
+        public Dictionary<Definition, ErrorRecord> FailedComparisons { get; private set; }
         public Rebase Rebase { get; private set; }
 
         public Facet(string name, string fileName, string sourcePath)
@@ -26,6 +26,9 @@ namespace Proviso.Models
 
             this.Assertions = new List<Assertion>();
             this.Definitions = new List<Definition>();
+            this.FailedComparisons = new Dictionary<Definition, ErrorRecord>();
+
+            this.ComparisonsFailed = false;
         }
 
         public void AddAssertion(Assertion added)
@@ -46,9 +49,10 @@ namespace Proviso.Models
             this.Definitions.Add(added);
         }
 
-        public void BindTestOutcome(Definition target, TestOutcome outcome)
+        public void AddDefinitionError(Definition definition, ErrorRecord error)
         {
-
+            this.ComparisonsFailed = true;
+            this.FailedComparisons.Add(definition, error);
         }
     }
 }

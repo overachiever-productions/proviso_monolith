@@ -7,9 +7,7 @@ filter Export-FacetProxyFunction {
 		[string]$RootDirectory,
 		[Parameter(Mandatory)]
 		[string]$FacetName,
-		[Parameter(Mandatory)]
-		[ValidateSet("Validate", "Configure")]
-		[string]$MethodType,
+		[switch]$ExecuteConfiguration = $false,
 		[switch]$AllowRebase
 	);
 	
@@ -24,18 +22,28 @@ function {0}-{1} {{
 	
 	Limit-ValidProvisoDSL -MethodName "{0}";
 
-	Process-Facet -FacetName "{1}" -Config $Config -{0}{3};
+	Process-Facet -FacetName "{1}" -Config $Config {3}{4};
 }}';
 		
 	
-	$rebaseInput = "";
+	$rebaseParamDef = "";
 	$rebaseOutput = "";
-	if ($AllowRebase) {
-		$rebaseInput = ",`r`t`t[Switch]`$AllowRebase = `$false ";
-		$rebaseOutput = " -AllowRebase:`$AllowRebase";
+	$executeConfig = "";
+	if ($ExecuteConfiguration) {
+		$executeConfig = " -ExecuteConfiguration";
+		
+		if ($AllowRebase) {
+			$rebaseParamDef = ",`r`t`t[Switch]`$AllowRebase = `$false ";
+			$rebaseOutput = " -AllowRebase:`$AllowRebase";
+		}
 	}
 	
-	$body = [string]::Format($template, $MethodType, $FacetName, $rebaseInput, $rebaseOutput);
+	$methodType = "Validate";
+	if ($ExecuteConfiguration) {
+		$methodType = "Configure";
+	}
+	
+	$body = [string]::Format($template, $methodType, $FacetName, $rebaseParamDef, $rebaseOutput, $executeConfig);
 	
 	try {
 		$filePath = Join-Path -Path $RootDirectory -ChildPath "\facets\generated";
@@ -48,4 +56,5 @@ function {0}-{1} {{
 	}
 }
 
-#Export-FacetProxyFunction -RootDirectory "D:\Dropbox\Repositories\proviso" -FacetName "ServerName" -MethodType Configure -AllowRebase;
+#Export-FacetProxyFunction -RootDirectory "D:\Dropbox\Repositories\proviso" -FacetName "ServerName";
+#Export-FacetProxyFunction -RootDirectory "D:\Dropbox\Repositories\proviso" -FacetName "ServerName" -ExecuteConfiguration -AllowRebase;

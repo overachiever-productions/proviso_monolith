@@ -1,15 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
-		
-	vNEXT: 
-		-SecretsProvider param + SecuredBy DSL capabilities: 
-			See: https://overachieverllc.atlassian.net/browse/PRO-99
-
-	vNEXT: 
-		Chained operations - i.e., once the $Config is set (and optionally secured)... we can run one facet or ... MULTIPLE. 
-			See: https://overachieverllc.atlassian.net/browse/PRO-100
-
 	Primary Purposes: 
 		1. Syntactical Sugar / Redirection (i.e., allows input from 3x different options/locations + chaining).
 		2. Loads file-paths if/as Proviso data if path is correct/etc. 
@@ -27,6 +18,7 @@ function With {
 		[Hashtable]$ConfigData,
 		[Parameter(Position = 0, ParameterSetName = "File")]
 		[string]$ConfigFile,
+		[switch]$Force = $false, # causes/forces a reload... 
 		[switch]$Strict = $false,
 		[switch]$AllowGlobalDefaults = $false
 	);
@@ -69,104 +61,111 @@ function With {
 			}
 		}
 		
+		[bool]$addMembers = $true;
+		if (($Config.PSObject.Properties.Name -eq "MembersConfigured") -and (-not($Force))) {
+			$addMembers = $false;
+		}
+		
 		# Add Properties and Methods:
-		# vNEXT: bit of an oddity here with the -Force on these Add-Member calls. Specifically: if i do something like $config = WIth "pathTo.psd1 or config object here"; then... if I later try to use WIth $Config ... i get errors about not being able to add members cuz they already exist. 
-		# 			maybe i just add a member that's something like: .FullyValidated = $true and ... if that's the case, pass it right out the end... otherwise do all this build stuff including -Force? 
-		Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
-		if ($null -eq $Config.AllowGlobalDefaults) {
-			Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults -Force;
-		}
-		else {
-			$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.
-		}
-		
-		[scriptblock]$setValue = {
-			param (
-				[Parameter(Mandatory)]
-				[ValidateNotNullOrEmpty()]
-				[string]$Key,
-				[Parameter(Mandatory)]
-				[ValidateNotNullOrEmpty()]
-				[string]$Value
-			);
+		if ($addMembers) {
+			Add-Member -InputObject $Config -MemberType NoteProperty -Name MembersConfigured -Value $true -Force;
+			Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
+			if ($null -eq $Config.AllowGlobalDefaults) {
+				Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults -Force;
+			}
+			else {
+				$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.
+			}
 			
-			Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
-		}
-		Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue;
-		
-		[scriptblock]$getValue = {
-			param (
-				[ValidateNotNullOrEmpty()]
-				# TODO: either see if there's a way to get ValidateNotNullOrEmpty to throw a 'friendly' error message, or implement one of my own...
-				[string]$Key
-			);
+			[scriptblock]$setValue = {
+				param (
+					[Parameter(Mandatory)]
+					[ValidateNotNullOrEmpty()]
+					[string]$Key,
+					[Parameter(Mandatory)]
+					[ValidateNotNullOrEmpty()]
+					[string]$Value
+				);
+				
+				Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
+			}
+			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue -Force;
 			
-			$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
-			
-			if ($null -ne $output) {
+			[scriptblock]$getValue = {
+				param (
+					[ValidateNotNullOrEmpty()]
+					# TODO: either see if there's a way to get ValidateNotNullOrEmpty to throw a 'friendly' error message, or implement one of my own...
+					[string]$Key
+				);
+				
+				$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
+				
+				if ($null -ne $output) {
+					return $output;
+				}
+				
+				# account for instance-specific keys defaulted to MSSQLSERVER: 
+				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
+				if ($match) {
+					$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
+					$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
+				}
+				
+				if ($null -ne $output) {
+					return $output;
+				}
+				
+				$firstLevelElementName = $Key.Split(".")[0];
+				$firstLevelElement = Get-ProvisoConfigValueByKey -Config $this -Key $firstLevelElementName;
+				if ($null -eq $firstLevelElement) {
+					if (-not ($this.AllowGlobalDefaults)) {
+						# first-level key doesn't exist i.e., check for global defaults... 
+						throw "First-Level config key [$firstLevelElementName] not defined in configuration object and -AllowGlobalDefaults is false.";
+					}
+				}
+				
+				# If we haven't found an explicit value, grab a default (which may be null):
+				$output = Get-ProvisoConfigDefault -Key $Key;
+				
+				if ($null -eq $output) {
+					# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
+					switch -regex ($Key) {
+						'Host\.NetworkDefinitions\.[^.]+\.AssumableIfNames' {
+							throw "Host.NetworkDefinitions<interfaceName>.AssumableIfNames cannot be null or use defaults.";
+						}
+						'Host\.NetworkDefinitions\.[^.]+\.(IpAddress|Gateway|PrimaryDns|SecondaryDns)+' {
+							throw "Host.NetworkDefinitions.<interfaceName> core networking details (IP, gateway, DNS) cannot be null or use defaults.";
+						}
+						'Host\.ExpectedDisks\..+.PhysicalDiskIdentifiers\..+' {
+							throw "Host.ExpectedDisk.<diskName>.PhysicalDiskIdentifiers cannot be null or use defaults.";
+						}
+						'Host\.ExpectedDisks\..+.VolumeName' {
+							throw "Host.ExpectedDisks.<diskName>.VolumeName (drive letter) cannot be null or use defaults.";
+						}
+						# TODO: this isn't correctly accounting for both MSSSQLSERVER and <empty>
+						'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
+							# if we didn't find defaults, it's for a non-default instance and ... we can't use defaults/etc.
+							throw "SqlServerInstallation.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
+						}
+						# ditto ... needs to account for MSSSQLSERVER|_
+						'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
+							throw "SqlServerInstallation.SQLServerDefaultDirectories cannot be null of use defaults.";
+						}
+						'TODO-match on cluster stuff here ' {
+							throw "Need to implement cluster checks and AG checks and anything else that makes sense";
+						}
+					}
+				}
+				
 				return $output;
 			}
 			
-			# account for instance-specific keys defaulted to MSSQLSERVER: 
-			$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
-			if ($match) {
-				$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
-				$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
-			}
-			
-			if ($null -ne $output) {
-				return $output;
-			}
-			
-			$firstLevelElementName = $Key.Split(".")[0];
-			$firstLevelElement = Get-ProvisoConfigValueByKey -Config $this -Key $firstLevelElementName;
-			if ($null -eq $firstLevelElement) {
-				if (-not ($this.AllowGlobalDefaults)) {
-					# first-level key doesn't exist i.e., check for global defaults... 
-					throw "First-Level config key [$firstLevelElementName] not defined in configuration object and -AllowGlobalDefaults is false.";
-				}
-			}
-			
-			# If we haven't found an explicit value, grab a default (which may be null):
-			$output = Get-ProvisoConfigDefault -Key $Key;
-			
-			if ($null -eq $output) {
-				# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
-				switch -regex ($Key) {
-					'Host\.NetworkDefinitions\.[^.]+\.AssumableIfNames' {
-						throw "Host.NetworkDefinitions<interfaceName>.AssumableIfNames cannot be null or use defaults.";
-					}
-					'Host\.NetworkDefinitions\.[^.]+\.(IpAddress|Gateway|PrimaryDns|SecondaryDns)+' {
-						throw "Host.NetworkDefinitions.<interfaceName> core networking details (IP, gateway, DNS) cannot be null or use defaults.";
-					}
-					'Host\.ExpectedDisks\..+.PhysicalDiskIdentifiers\..+' {
-						throw "Host.ExpectedDisk.<diskName>.PhysicalDiskIdentifiers cannot be null or use defaults.";
-					}
-					'Host\.ExpectedDisks\..+.VolumeName' {
-						throw "Host.ExpectedDisks.<diskName>.VolumeName (drive letter) cannot be null or use defaults.";
-					}
-					# TODO: this isn't correctly accounting for both MSSSQLSERVER and <empty>
-					'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
-						# if we didn't find defaults, it's for a non-default instance and ... we can't use defaults/etc.
-						throw "SqlServerInstallation.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
-					}
-					# ditto ... needs to account for MSSSQLSERVER|_
-					'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
-						throw "SqlServerInstallation.SQLServerDefaultDirectories cannot be null of use defaults.";
-					}
-					'TODO-match on cluster stuff here ' {
-						throw "Need to implement cluster checks and AG checks and anything else that makes sense";
-					}
-				}
-			}
-			
-			return $output;
+			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "GetValue" -Value $getValue -Force;
 		}
-		
-		Add-Member -InputObject $Config -MemberType ScriptMethod -Name "GetValue" -Value $getValue;
 	}
 	
 	end {
+		$global:PVConfig = $Config; # expose globally... 
 		return $Config; # emit to pipeline.
 	}
 }

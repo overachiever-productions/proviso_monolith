@@ -53,7 +53,6 @@ function Secured-By {
 		}
 		
 		$secrets = $null;
-		
 		try {
 			[System.Collections.Hashtable]$secrets = $Provider.GetValues();
 		}

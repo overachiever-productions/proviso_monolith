@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Management.Automation;
 
 namespace Proviso.Models
 {
@@ -19,11 +18,6 @@ namespace Proviso.Models
             this._facets.Add(added.Name, added);
             this._facetsByFileName.Add(added.FileName, added.Name);
         }
-
-        //public void RemoveFacet(Facet removed)
-        //{
-
-        //}
 
         public Facet GetFacet(string facetName)
         {

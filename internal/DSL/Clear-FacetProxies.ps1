@@ -13,7 +13,7 @@ filter Clear-FacetProxies {
 		Remove-Item -Path $targetPath -Recurse -Confirm:$false -Force;
 	}
 	catch {
-		
+		throw "Exception clearing Generated Facets in $targetPath. `rException: $_ `r`t$($_.ScriptStackTrace)";
 	}
 }
 

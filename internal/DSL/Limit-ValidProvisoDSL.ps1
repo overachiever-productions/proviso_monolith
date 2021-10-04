@@ -7,11 +7,7 @@ filter Limit-ValidProvisoDSL {
 		[switch]$AsFacet = $false
 	);
 	
-	if ($null -eq $script:provisoDslStack) {
-		$script:provisoDslStack = [Proviso.Models.FacetManager]::Instance
-	}
-	
-	$stack = $script:provisoDslStack;
+	$stack = $ProvisoDslStack;
 	
 	$dslError = "";
 	if ($AsFacet) {

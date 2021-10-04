@@ -14,6 +14,7 @@
     <Compile Include="..\..\classes\DslStack.cs" Link="DslStack.cs" />
     <Compile Include="..\..\classes\Facet.cs" Link="Facet.cs" />
     <Compile Include="..\..\classes\FacetManager.cs" Link="FacetManager.cs" />
+    <Compile Include="..\..\classes\ProcessingContext.cs" Link="ProcessingContext.cs" />
     <Compile Include="..\..\classes\Rebase.cs" Link="Rebase.cs" />
     <Compile Include="..\..\classes\RebaseOutcome.cs" Link="RebaseOutcome.cs" />
     <Compile Include="..\..\classes\TestOutcome.cs" Link="TestOutcome.cs" />

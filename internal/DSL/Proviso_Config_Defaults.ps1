@@ -1,5 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# Refactor: ProvisoConfigDefaults ... and change the file-name as well... 
 [PSCustomObject]$script:Proviso_Config_Defaults = [PSCustomObject]@{
 	
 	Host = @{

@@ -7,7 +7,7 @@ Facet "ServerName" {
 	
 	Assertions {
 		Assert "Fake Test" -NotFatal {
-			throw "This assertion is NON fatal."; # test of non-fatal assertions... 
+			throw "Test Exception."; # test of non-fatal assertions... 
 		}
 		
 		Assert "Adminstrator" {
@@ -34,11 +34,27 @@ Facet "ServerName" {
 				$Config.GetValue("Host.TargetServer");
 			}
 			Test {
+				#region Example of more-accurate(possibly?) implementation: 
+#				$currentHost = [System.Net.Dns]::GetHostName();
+#				$Context.StoreTemporaryFacetValue("CurrentHostName", $currentHost);
+#				return $currentHost;
+				#endregion 
+				
 				[System.Net.Dns]::GetHostName();
 			}
 			Configure {
-				# check domain too... 
-				# and rename host or rename + domain. 
+				
+				# TODO: check the domain as well... if that needs to be changed TOO... then... 
+				#  hmm... maybe we skip this and let the Domain-Name Change operation/code handle this? 
+				#   in which case, i might be able to do this: 
+				# if (domainName -ne ExpecteDomainName) {
+				#	Context.SetTemporaryFacetValue("NameChangeRequired", $true);
+				#}
+				#  and.... then, down in the Configure for "Target Domain":
+				#    a. check for Context.GetTemporaryFacetValue("NameChangeRequired")
+				#    b. if $true, then tackle that as well. 
+				
+				# i.e., there are a number of ways I can manage 'between operation' state.
 				
 				Write-Host "This is a test. But, what I'd do would be: a. check the domain-name (matched or not) too... and b) then change name or name+domain-join.";
 			}
@@ -49,19 +65,24 @@ Facet "ServerName" {
 				$Config.GetValue("Host.TargetDomain");
 			}
 			Test{
-				(Get-CimInstance Win32_ComputerSystem).Domain;
+				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
+				if ($domain -eq "WORKGROUP") {
+					$domain = "";
+				}
+				# TODO: "" (when 'domain' -eq WORKGROUP) and "" from the $Config.Host.TargetDomain ... aren't matching. THEY SHOULD BE... 
+				# 		that's the whole purpose of the if(is-string) & if(empty)... inside of Compare-ExpectedWithActual.ps1;
+				return $domain;  # ruh roh... it MIGHT be the return?
 			}
 			Configure {
-				# if machine name is fine, then just join domain. 
-				# otherwise, check to see if we've got a restart pending or whatever. 
-				# which means we need a FacetContext (ProvisioningContext/ProvisoContext)
-				# 		something that keeps tabs on some key values/details like .RestartRequired / etc. 
 				
-				# at any rate: Target Server SHOULD, in most cases, handle domain-join + host rename. 
-				# meaning that this should just be domain-join if/when the host is already good. 
+				#region example-ish
+				if ((Context.GetTemporaryFacetValue("CurrentHostName")) -ne ($Config.GetValue("Host.TargetServer"))) {
+					#at this point, we know that ... domain-join isn't THE only thing we need. 
+					# we need both DOMAIN-JOIN _AND_ a name-change. 
+				}
+				#endregion				
 				
-				# if we end up needing to reboot... make sure to signal that up:
-				$ProvisoContext.RequiresReboot = $true;
+				$Context.SetRebootRequired("Computer Name Change from [old-name] to [new-name].");
 			}
 		}
 	}

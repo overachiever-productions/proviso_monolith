@@ -12,12 +12,13 @@ namespace Proviso.Models
 
         private DslStack()
         {
-            this._allowedMethods.Add("With");               // 0
-            this._allowedMethods.Add("Secured-By");         // 1
-            this._allowedMethods.Add("Validate");           // 2
-            this._allowedMethods.Add("Configure");          // 2
-            this._allowedMethods.Add("Process-Facet");      // 3 - CAN be called directly... not sure why anyone would want to... but permitted. 
-            // TODO: add ... "Process" or "Bulk-Process" which would be a parent of FACETs... (and could only contain facets).
+            this._allowedMethods.Add("With");                       // 0
+            this._allowedMethods.Add("Secured-By");                 // 1
+            this._allowedMethods.Add("Validate");                   // 2
+            this._allowedMethods.Add("Configure");                  // 2
+            this._allowedMethods.Add("Invoke");                     // 2 - wrapper to allow processing of one or more facets... 
+            this._allowedMethods.Add("Process-Facet");              // 3 - CAN be called directly... not sure why anyone would want to... but permitted. 
+            
 
             this._allowedFacetBlocks.Add("Facet");              // 0
             this._allowedFacetBlocks.Add("Assertions");         // 1 - child of facet
@@ -39,7 +40,7 @@ namespace Proviso.Models
         public string AddFacetBlock(string block)
         {
             if (!this._allowedFacetBlocks.Contains(block))
-                return $"Invalid Proviso Facet Operation: [{block}] is not a valid Facet member.";
+                return "Invalid Proviso Facet Operation: [{block}] is not a valid Facet member.";
 
             // TODO: ... implement.
 
@@ -50,7 +51,7 @@ namespace Proviso.Models
         public string AddDslMethod(string method)
         {
             if (!this._allowedMethods.Contains(method))
-                return $"Invalid Proviso DSL: [{method}] is not a valid Proviso DSL method.";
+                return "Invalid Proviso DSL: [{method}] is not a valid Proviso DSL method.";
 
             // TODO: actually spend some time defining the rules for each element/method. 
             //      i.e., with HAS to be first. 

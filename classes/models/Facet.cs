@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Management.Automation;
 
 namespace Proviso.Models
 {
@@ -9,13 +8,12 @@ namespace Proviso.Models
         public string Name { get; private set; }
         public string FileName { get; private set; }
         public string SourcePath { get; private set; }
-        public bool ComparisonsFailed { get; private set; }
 
         public bool AllowsReset => this.Rebase != null;
 
         public List<Assertion> Assertions { get; private set; }
+        public List<Assertion> FailedAssertions { get; private set; }
         public List<Definition> Definitions { get; private set; }
-        public Dictionary<Definition, ErrorRecord> FailedComparisons { get; private set; }
         public Rebase Rebase { get; private set; }
 
         public Facet(string name, string fileName, string sourcePath)
@@ -25,10 +23,8 @@ namespace Proviso.Models
             this.SourcePath = sourcePath;
 
             this.Assertions = new List<Assertion>();
+            this.FailedAssertions = new List<Assertion>(); // TODO: I probably don't NEED 2x different lists/sets of assertions. Probably makes MORE SENSE to mark existing assertions as FAILED... 
             this.Definitions = new List<Definition>();
-            this.FailedComparisons = new Dictionary<Definition, ErrorRecord>();
-
-            this.ComparisonsFailed = false;
         }
 
         public void AddAssertion(Assertion added)
@@ -47,12 +43,6 @@ namespace Proviso.Models
         public void AddDefinition(Definition added)
         {
             this.Definitions.Add(added);
-        }
-
-        public void AddDefinitionError(Definition definition, ErrorRecord error)
-        {
-            this.ComparisonsFailed = true;
-            this.FailedComparisons.Add(definition, error);
         }
     }
 }

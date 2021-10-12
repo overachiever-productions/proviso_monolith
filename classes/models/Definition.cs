@@ -8,14 +8,10 @@ namespace Proviso.Models
         public ScriptBlock Expectation { get; private set; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
-        public TestOutcome Outcome { get; private set; }
-
-        public bool IsValidated { get; private set; }
 
         public Definition(string description)
         {
             this.Description = description;
-            this.IsValidated = false;
         }
 
         public void AddExpect(ScriptBlock expectation)
@@ -31,14 +27,6 @@ namespace Proviso.Models
         public void AddConfiguration(ScriptBlock configurationBlock)
         {
             this.Configure = configurationBlock;
-        }
-
-        public void SetOutcome(TestOutcome outcome)
-        {
-            this.Outcome = outcome;
-
-            if (outcome.Matched)
-                this.IsValidated = true;
         }
     }
 }

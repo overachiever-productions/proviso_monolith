@@ -1,10 +1,10 @@
 ﻿@{
 	
 	# Script module or binary module file associated with this manifest
-	RootModule = 'Proviso.psm1'
+	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.3.2'
+	ModuleVersion = '0.3.6'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -16,7 +16,7 @@
 	CompanyName = 'OverAchiever Productions, LLC.'
 	
 	# Copyright statement for this module
-	Copyright = '(c) 2019+. All rights reserved.'
+	Copyright = '(c) 2017+. All rights reserved.'
 	
 	# Description of the functionality provided by this module
 	Description = 'SQL Server Provisioning Tools'
@@ -53,7 +53,7 @@
 	NestedModules = @()
 	
 	# Functions to export from this module
-	FunctionsToExport = '*' #For performance, list functions explicitly
+	FunctionsToExport = @() #For performance, list functions explicitly
 	
 	# Cmdlets to export from this module
 	CmdletsToExport = '*' 

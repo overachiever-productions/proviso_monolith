@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Proviso.Models\Proviso.Models.csproj" />
+    <ProjectReference Include="..\Proviso.Models\Proviso.csproj" />
   </ItemGroup>
 
 </Project>

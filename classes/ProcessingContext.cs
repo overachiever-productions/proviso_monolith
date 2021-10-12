@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+using Proviso.Models;
 
-namespace Proviso.Models
+namespace Proviso
 {
     public class ProcessingContext
     {
@@ -13,12 +14,12 @@ namespace Proviso.Models
         public bool RebootRequired { get; private set; }
         public string RebootReason { get; private set; }
 
+        public static ProcessingContext Instance => new ProcessingContext();
+        
         private ProcessingContext()
         {
             this.RebootRequired = false;
         }
-
-        public static ProcessingContext Instance => new ProcessingContext();
 
         public void SetRebootRequired(string reason = null)
         {
@@ -38,7 +39,6 @@ namespace Proviso.Models
 
         public void CloseCurrentFacet()
         {
-
             this._temporaryValues = new Dictionary<string, object>();
         }
 

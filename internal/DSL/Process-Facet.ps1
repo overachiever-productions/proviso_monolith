@@ -1,7 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\proviso.psm1" -DisableNameChecking -Force;
 	
 	With "\\storage\Lab\proviso\definitions\servers\S4\SQL-120-01.psd1" | Configure-ServerName;
 
@@ -21,10 +21,11 @@ function Process-Facet {
 	begin {
 		Limit-ValidProvisoDSL -MethodName "Process-Facet";
 		
-		$facet = $ProvisoFacetManager.GetFacet($FacetName);
+		$facet = $ProvisoFacetsCatalog.GetFacet($FacetName);
 		if ($null -eq $facet) {
-			throw "Invalid Facet-Name. [$FacetName] does not exist or has not yet been loaded. If this is a custom Facet, verify Import-Facet has been executed.";
+			throw "Invalid Facet-Name. [$FacetName] does not exist or has not yet been loaded. If this is a custom Facet, verify that [Import-Facet] has been executed.";
 		}
+		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $ExecuteConfiguration);
 		$Context.SetCurrentFacet($facet, $ExecuteConfiguration, $AllowHardReset);
 	}
 	
@@ -34,88 +35,118 @@ function Process-Facet {
 		# --------------------------------------------------------------------------------------
 		if ($facet.Assertions.Count -gt 0) {
 			
+			$facetProcessingResult.StartProcessingAssertions();
+			$results = @();
+			[bool]$warnings = $false;
+			
 			foreach ($assert in $facet.Assertions) {
 				
-				try {
-					$assert.SetAssertionStarted();
-					
+				$assertionResult = New-Object Proviso.Processing.AssertionResult($assert);
+				$results += $assertionResult;
+				
+				try {				
 					[ScriptBlock]$codeBlock = $assert.ScriptBlock;
 					& $codeBlock;
 					
-					$assert.SetAssertionSuccess();
+					# TODO: I can't JUST run the block ... i have to grab it's outcome. 
+					#  i.e., either there's no outcome... which I'll treat as ... true?, or a $false outcome or $true outcome (which I then need to run past -False)
+					#    or there's an exception. I'm handling the exception - but not the 'outcome';
+					#  and... i should probably pass in a true/false to .Complete as well - i.e., passed/failed - something of that order. 
+					#  at which point, $assertionResult.Failed can/will tell whether or not to allow further processing... 
+					$assertionResult.Complete();
 				}
 				catch {
-					$assert.SetAssertionFailure($_); # https://docs.microsoft.com/en-us/dotnet/api/System.Management.Automation.ErrorRecord?view=powershellsdk-7.0.0
+					$assertionResult.Complete($_); 
 				}
 				
 				if ($assert.Failed) {
 					if ($assert.NonFatal) {
+						$warnings = $true;
 						$Context.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assert.AssertionError)", "Important");
 					}
 					else {
-						# TODO: build a full-blown object here... along with a view and everything... 
+						$facetProcessingResult.EndProcessingAssertions([Proviso.Enums.AssertionOutcome]::HardFailure, $results)
 						throw "Assertion $($assert.Name) Failed. Error: $($assert.AssertionError)";
 					}
 				}
 			}
+			
+			$outcome = [Proviso.Enums.AssertionsOutcome]::AllPassed;
+			if ($warnings) {
+				$outcome = [Proviso.Enums.AssertionOutcome]::Warning;
+			}
+			$facetProcessingResult.EndProcessingAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results)
 		}
 		
 		# --------------------------------------------------------------------------------------
 		# Definitions / Testing
-		# --------------------------------------------------------------------------------------		
+		# --------------------------------------------------------------------------------------	
+		$facetProcessingResult.StartProcessingValidations();
+		$validations = @();
+		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		foreach ($definition in $facet.Definitions) {
 			
 			[ScriptBlock]$expectedBlock = $definition.Expectation;
 			[ScriptBlock]$testBlock = $definition.Test;
 			
-			#region REFACTOR
-			# REFACTOR: push all of the code in this region into the $comparison. 
-			#   it'll need to add new properties: .ExpectedResult, .ExpectedException, .ActualResult, .ActualException. 
-			# 		and may need a way to differentiate between validation-tests and 're-tests' (i.e., which happen AFTER config blocks are run... )
-			#  it'll also need 2x new params: 
-			# 		[ScriptBlock]$expectedBlock
-			# 		[ScriptBlock]$testBlock
-			# 			and... might allow for the option of $expectedBlock to be REPLACED with a scalar value. 
-			$expectedResult = $null;
-			$expectedException = $null;
+			# vNEXT: allow for ... Expectation to be a value or a block. and if it's a value (not a block) send it into Compare-ExpectedWithActual as -ExpectedValue.
+			#  and... address this 'down' in the re-comparison section for config operations as well... 
+			$comparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, ($comparison.ExpectedResult), ($comparison.ActualResult), ($comparison.Matched));
+			$validations += $validationResult;
 			
-			try {
-				$expectedResult = & $expectedBlock;
+			if ($null -ne $comparison.ExpectedError) {
+				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Expected, ($comparison.ExpectedError));
+				$validationResult.AddValidationError($validationError);
 			}
-			catch {
-				$expectedException = $_;
+			if ($null -ne $comparison.ActualError) {
+				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Actual, ($comparison.ActualError));
+				$validationResult.AddValidationError($validationError);
+			}
+			if($null -ne $comparison.ComparisonError) {
+				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Compare, ($comparison.ComparisonError));
+				$validationResult.AddValidationError($validationError);
 			}
 			
-			$actualResult = $null;
-			$actualException = $null;
-			try {
-				$actualResult = & $testBlock;
-			}
-			catch {
-				$actualException = $_;
-			}
-			#endregion
-			
-			$comparison = Compare-ExpectedWithActual -Expected $expectedResult -Actual $actualResult;
-			
-			$testOutcome = New-Object Proviso.Models.TestOutcome($expectedResult, $actualResult, ($comparison.Match), ($comparison.Error));
-			$definition.SetOutcome($testOutcome);
-			
-			if ($null -ne ($comparison.Error)){
-				$facet.AddDefinitionError($definition, $comparisonError);
+			if ($validationResult.Failed) {
+				$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., not the same as "didn't match", but... exception/failure.
 			}
 		}
 		
+		$facetProcessingResult.EndProcessingValidations($validationsOutcome, $validations);
+		
+		# --------------------------------------------------------------------------------------
+		# Rebase
+		# --------------------------------------------------------------------------------------
+		
+		# TODO: ... add in rebase if allowed/etc. 
+		
+		
+		
+		# --------------------------------------------------------------------------------------
+		# Configuration
+		# --------------------------------------------------------------------------------------		
 		if ($ExecuteConfiguration) {
 			
-			if ($facet.ComparisonsFailed) {
+			if ($facetProcessingResult.ValidationsFailed){
 				# vNEXT: get the count and report i.e., "# Validation Comaprison(s) Failed."
+				# vNEXT: might... strangely, also, make sense to let some comparisons/failures be NON-FATAL (but, assumde/default to fatal... in all cases)
+				$Context.CloseCurrentFacet();
 				throw "Unable to process configuration-operations for Facet [$FacetName] - Validation Comparisons Failed.";
 			}
 			
-			foreach ($definition in $facet.Definitions) {
-				if ($definition.Matched) {
-					$Context.Write("Bypassing configuration of [$($definition.Description)] - Expected and Actual values already matched.", "Verbose")
+			$facetProcessingResult.StartProcessingConfiguration();
+			$configurations = @();
+			$configurationsOutcome = [Proviso.Models.ConfigurationsOutcome]::Completed;
+			
+			foreach($validation in $facetProcessingResult.GetValidationResults()) {
+				
+				$configResult = New-Object Proviso.Models.ConfigurationResult($validation);
+				$configurations += $configResult;
+				
+				if ($validation.Matched) {
+					$configResult.SetBypassed();
+					$Context.WriteLog("Bypassing configuration of [$($definition.Description)] - Expected and Actual values already matched.", "Verbose")
 				}
 				else {
 					if ($Context.RebootRequired) {
@@ -124,41 +155,40 @@ function Process-Facet {
 						#   i.e., maybe there needs to be a $Context.RebootPendingBehavior of { Continue | Throw | Reboot | RebootAndRestartFacet }
 					}
 					else {
-						Write-Host "Processing [$($definition.Description)]::> EXPECTED: $($definition.Outcome.Expected) -> ACTUAL: $($definition.Outcome.Actual) ";
-						
-						$configurationSucceed = $false;
+						#Write-Host "Processing [$($validation.Description)]::> EXPECTED: $($validation.Outcome.Expected) -> ACTUAL: $($validation.Outcome.Actual) ";
+					
 						try {
-							[ScriptBlock]$configureBlock = $definition.Configure;
+							[ScriptBlock]$configureBlock = $validation.Configure;
 							
 							& $configureBlock;
-							
-							$reComparison = Compare-ExpectedWithActual 
-							
-							# re-run the evaluation? I think so actually... 
-							#  if so... then wrap the process of testing into a func that returns an object with necessary props (expected, actual, error);
-							# 		object can be a simple PSCustomObject... 
-							
-							# yeah... re-run. and ... $configurationSucceeded ONLY gets set to $true if/when expected and (newActual) actually match. 
-							# 	which means... i get to store/keep a .NewActual... or .PostConfigValue, etc. 
+							$configResult.SetSucceeded();
 						}
 						catch {
-							
+							$configurationError = New-Object Proviso.Models.ConfigurationError($_, $false);
+							$configResult.AddConfigurationError($configurationError);
+						}
+						
+						# Recomparisons:
+						if ($configResult.ConfigurationSucceeded) {
+							try {
+								[ScriptBlock]$expectedBlock = $definition.Expectation;
+								[ScriptBlock]$testBlock = $validation.Test;
+								
+								$reComparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+								
+								if ($reComparison.Matched) {
+									$configResult.SetRecompareSucceeded(($reComparison.ExpectedResult), ($reComparison.ActualResult), ($reComparison.Matched));
+								}
+							}
+							catch {
+								$configurationError = New-Object Proviso.Models.ConfigurationError($_, $true);
+								$configResult.AddConfigurationError($configurationError);
+							}
 						}
 					}
 				}
 			}
-			
-			# foreach definition where test-outcome = FAIL (and/or exception?)
-			#  		try/catch (and capture any exceptions + try to keep going? hmmm)
-			# 			Ah... perfect. Definitions.Config will have a -ExceptionsAsFatal or -ErrorAction thingy that lets each one determine/define if it crashes the whole thing or not. 
-			
-			# 			otherwise, while we keep going... 
-			# 				make the config change - i.e., & $configBlock
-			# 			and record the outcome. 
-			# 		when we're done, make sure to provide info on pass/fail and such. 
-			# 			(as object(s))
 		}
-		
 	}
 	
 	end {

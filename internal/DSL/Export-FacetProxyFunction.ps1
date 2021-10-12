@@ -30,7 +30,7 @@ function {0}-{1} {{
 	$rebaseOutput = "";
 	$executeConfig = "";
 	if ($ExecuteConfiguration) {
-		$executeConfig = " -ExecuteConfiguration";
+		$executeConfig = "-ExecuteConfiguration";
 		
 		if ($AllowRebase) {
 			$rebaseParamDef = ",`r`t`t[Switch]`$AllowRebase = `$false ";

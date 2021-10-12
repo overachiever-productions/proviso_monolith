@@ -64,7 +64,7 @@ Facet "ServerName" {
 			Expect {
 				$Config.GetValue("Host.TargetDomain");
 			}
-			Test{
+			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {
 					$domain = "";

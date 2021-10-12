@@ -15,10 +15,30 @@
 				Surrogate/Facade methods for Verify-<FacetName> and Configure-<FacetName> are then created (during module import/spin up)
 					for each facet which act as simple 'wrappers'/proxies (DSL syntactic sugar) that then make calls down into Process-Facet. 
 
+
+	LOGICAL ORDERING/LAYOUT (I've broken Facet-sub-funcs out into their own 'files' to help with primalsense while authoring facets: 
+
+		function Facet {
+			function Assertions {
+				function Assert {
+				}
+			}
+
+			function Rebase {}
+
+			function Definitions {
+				function Definition {
+					function Expect {}
+					function Test {} 
+					function Configure {}
+				}
+			}
+		}
+
+
 #>
 
 # vNEXT: add error-handling/try-catches... 
-
 
 function Facet {
 	
@@ -55,8 +75,8 @@ function Facet {
 					[string]$Description,
 					[Parameter(Position = 1)]
 					[ScriptBlock]$AssertBlock,
-					[Alias("NotFatal","UnFatal", "Informal", "")]
-					[Switch]$NonFatal = $false 
+					[Alias("NotFatal", "UnFatal", "Informal", "")]
+					[Switch]$NonFatal = $false
 				);
 				
 				Limit-ValidProvisoDSL -MethodName "Assert" -AsFacet;
@@ -67,8 +87,8 @@ function Facet {
 			
 			# vNEXT: figure out how to constrain inputs here - as per: https://powershellexplained.com/2017-03-13-Powershell-DSL-design-patterns/#restricted-dsl
 			# 		oddly, I can't use a ScriptBlock literal here - i.e., i THINK I could use a string, but not a block... so, MAYBE? convert the block to a string then 'import' it that way to ensure it's constrained?
-#			$validatedAssertions = [ScriptBlock]::Create("DATA -SupportedCommand Assert {$Assertions}");
-#			& $validatedAssertions
+			#			$validatedAssertions = [ScriptBlock]::Create("DATA -SupportedCommand Assert {$Assertions}");
+			#			& $validatedAssertions
 			& $Assertions;
 			
 		}
@@ -96,7 +116,7 @@ function Facet {
 				param (
 					[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
 					[string]$Description,
-					[string]$Expect, 	# optional mechanism for handing in Expect details...
+					[string]$Expect, # optional mechanism for handing in Expect details...
 					[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 					[ScriptBlock]$DefinitionBlock
 				)
@@ -162,40 +182,6 @@ function Facet {
 	}
 	
 	end {
-		$ProvisoFacetManager.AddFacet($facet);
+		$ProvisoFacetsCatalog.AddFacet($facet);
 	}
 }
-
-
-# ---------------------------------------------------------------------------------------------------------
-# Examples of spinning up CLR objects:
-# ---------------------------------------------------------------------------------------------------------
-#	$facetManager = [Proviso.Models.FacetManager]::GetInstance();
-#	Write-Host $facetManager.GetStuff();
-#	
-#	return;
-#	$block = {
-#		Write-Host "this is a nested code block";
-#		$x = 12;
-#	}
-#	
-#	$assertion = New-Object Proviso.Models.Assertion("my assertion", "Facet Name Here",  $block);
-#	Write-Host "Assertion.Name: $($assertion.Name) ";
-#	Write-Host "Assertion.ScriptBlock $($assertion.ScriptBlock) ";
-#	
-#	$outcome = New-Object Proviso.Models.AssertionOutcome($true, $null);
-#	$assertion.AssignOutcome($outcome);
-#	
-#	Write-Host "Assertion.Outcome: $($assertion.Outcome.Passed)";
-#	return;
-
-
-# ---------------------------------------------------------------------------------------------------------
-# Examples of interacting with the facet manager:
-# ---------------------------------------------------------------------------------------------------------
-#	Write-Host "`r-------------------------------------------------------------------------------------------";
-#	$facetManager = Get-ProvisoFacetManager;
-#	Write-Host "FacetManager.Count: $($facetManager.FacetCount)";
-#
-#	[Proviso.Models.Facet]$f = $facetManager.GetFacet("ServerName");
-#	Write-Host $f.SourceFile;

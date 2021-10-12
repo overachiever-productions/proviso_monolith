@@ -1,23 +1,21 @@
 ﻿Set-StrictMode -Version 1.0;
 
 function Compare-ExpectedWithActual {
+	#region vNEXT
+	# vNEXT: allow for the option to pass in 'ExpectedValue' vs just ExpectedBlock only. 
+	#   that way, we can use either ExpectedValue or ExpectedBlock -> value. 
+	#endregion;
+	
 	param (
+		$ExpectedValue,
+		[ScriptBlock]$ExpectedBlock,
 		[Parameter(Mandatory)]
-		$Expected,
-		[Parameter(Mandatory)]
-		$Actual
+		[ScriptBlock]$TestBlock
 	);
 	
 	begin {
-		if (($Expected.GetType().Name) -eq 'String') {
-			if ([string]::IsNullOrEmpty($Expected)){
-				$Expected = $null;
-			}
-		}
-		if (($Actual.GetType().Name) -eq 'String') {
-			if ([string]::IsNullOrEmpty($Actual)) {
-				$Actual = $null;
-			}
+		if (($null -eq $ExpectedValue) -and ($null -eq $ExpectedBlock)) {
+			throw "Comparisons must include either an ExpectedBlock (ScriptBlock) or ExpectedValue (scalar value).";
 		}
 	};
 	
@@ -29,22 +27,96 @@ function Compare-ExpectedWithActual {
 		# 		and potentially capture those that don't ==.
 		#endregion	
 		
-		[bool]$comparedValuesMatch = $false;
-		[System.Management.Automation.ErrorRecord]$comparisonError = $null;
-		try{
-			$comparedValuesMatch = ($expectedResult -eq $actualResult);
+		$expectedResult = $null;
+		$expectedException = $null;
+		
+		try {
+			$expectedResult = & $expectedBlock;
 		}
 		catch {
-			$comparisonError = $_;
+			$expectedException = $_;
 		}
+		
+		$actualResult = $null;
+		$actualException = $null;
+		try {
+			$actualResult = & $testBlock;
+		}
+		catch {
+			$actualException = $_;
+		}
+		
+		[bool]$comparedValuesMatch = $false;
+		
+		[System.Management.Automation.ErrorRecord]$comparisonError = $null;
+		if (($null -eq $expectedException) -and ($null -eq $actualException)) {
+			# vNEXT: this is UGLY...
+			if (($expectedResult.GetType().Name) -eq 'String') {
+				if ([string]::IsNullOrEmpty($expectedResult)) {
+					$expectedResult = $null;
+				}
+			}
+			if (($actualResult.GetType().Name) -eq 'String') {
+				if ([string]::IsNullOrEmpty($actualResult)) {
+					$actualResult = $null;
+				}
+			}
+			
+			try {
+				$comparedValuesMatch = ($expectedResult -eq $actualResult);
+			}
+			catch {
+				$comparisonError = $_;
+			}
+		}
+		else{
+			try {
+				# yeah... this is a hell of a way to do this... 
+				throw "Cannot compare Expected vs Test/Actual because one or more of the evaluation operations for Expected/Test threw an exception.";
+			}
+			catch {
+				$comparisonError = $_;
+			}
+		}
+		
 	};
 	
 	end {
 		$output = [PSCustomObject]@{
-			'Match' = $comparedValuesMatch
-			'Error' = $comparisonError
+			'ExpectedResult' = $expectedResult
+			'ExpectedError' = $expectedException
+			'ActualResult' = $actualResult
+			'ActualError' = $actualException
+			'Matched' = $comparedValuesMatch
+			'ComparisonError' = $comparisonError
 		};
 		
 		return $output;
 	};
 }
+
+## Example of a set of Tests:
+#[System.Management.Automation.ScriptBlock]$test = {
+#	$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
+#	if ($domain -eq "WORKGROUP") {
+#		$domain = "";
+#	}
+#	# TODO: "" (when 'domain' -eq WORKGROUP) and "" from the $Config.Host.TargetDomain ... aren't matching. THEY SHOULD BE... 
+#	# 		that's the whole purpose of the if(is-string) & if(empty)... inside of Compare-ExpectedWithActual.ps1;
+#	return $domain; # ruh roh... it MIGHT be the return?
+#};
+#
+#[scriptblock]$expected = {
+#	$Config.GetValue("Host.TargetDomain");
+#};
+#
+#Add-Type -Path .\..\..\classes\DslStack.cs;
+#. .\Limit-ValidProvisoDSL.ps1;
+#. .\DslStack.ps1;
+#. .\..\..\functions\DSL\With.ps1;
+#. .\Get-ProvisoConfigDefault.ps1;
+#. .\Get-ProvisoConfigValueByKey.ps1;
+#
+#$Config = With "\\storage\Lab\proviso\definitions\servers\S4\SQL-120-01.psd1";
+#$x = Compare-ExpectedWithActual -ExpectedBlock $expected -TestBlock $test;
+#Write-Host $x.Matched;

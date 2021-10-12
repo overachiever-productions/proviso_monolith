@@ -4,14 +4,25 @@
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
+	"$ProvisoScriptRoot\enums\AssertionsOutcome.cs"
+	"$ProvisoScriptRoot\enums\ConfigurationsOutcome.cs"
+	"$ProvisoScriptRoot\enums\FacetProcessingState.cs"
+	"$ProvisoScriptRoot\enums\RebaseOutcome.cs"
+	"$ProvisoScriptRoot\enums\ValidationErrorType.cs"
+	"$ProvisoScriptRoot\enums\ValidationsOutcome.cs"
+	"$ProvisoScriptRoot\classes\models\Assertion.cs"
+	"$ProvisoScriptRoot\classes\models\Definition.cs"
+	"$ProvisoScriptRoot\classes\models\Rebase.cs"
+	"$ProvisoScriptRoot\classes\models\Facet.cs"
+	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"
+	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
+	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"
+	"$ProvisoScriptRoot\classes\processing\ConfigurationResult.cs"
+	"$ProvisoScriptRoot\classes\processing\RebaseResult.cs"
+	"$ProvisoScriptRoot\classes\processing\ValidationError.cs"
+	"$ProvisoScriptRoot\classes\processing\ValidationResult.cs"
+	"$ProvisoScriptRoot\classes\processing\FacetProcessingResult.cs"
 	"$ProvisoScriptRoot\classes\DslStack.cs"
-	"$ProvisoScriptRoot\classes\Assertion.cs"
-	"$ProvisoScriptRoot\classes\RebaseOutcome.cs"
-	"$ProvisoScriptRoot\classes\Rebase.cs"
-	"$ProvisoScriptRoot\classes\Definition.cs"
-	"$ProvisoScriptRoot\classes\TestOutcome.cs"
-	"$ProvisoScriptRoot\classes\Facet.cs"
-	"$ProvisoScriptRoot\classes\FacetManager.cs"
 	"$ProvisoScriptRoot\classes\ProcessingContext.cs"
 );
 Add-Type -Path $classFiles;
@@ -45,7 +56,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	try {
 		. $file.FullName;
 		
-		$currentFacet = $script:provisoFacetManager.GetFacetByFileName(($file.Basename));
+		$currentFacet = $script:ProvisoFacetsCatalog.GetFacetByFileName(($file.Basename));
 		if ($null -ne $currentFacet) {
 			$facetName = $currentFacet.Name;
 			$allowsRebase = $currentFacet.AllowsReset;

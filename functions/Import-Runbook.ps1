@@ -1,0 +1,3 @@
+﻿Set-StrictMode -Version 1.0;
+
+ # similar to Import-Facet ... but ... simpler and at a Runbook/workflow level... 

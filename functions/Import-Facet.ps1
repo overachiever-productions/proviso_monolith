@@ -15,18 +15,19 @@
 function Import-Facet {
 	param (
 		[string]$Path,
-		[string]$Definition
+		[string]$Definition  #TODO: $Definition should probably be a [ScriptBlock]
 	);
 	
 	begin {
 		# make sure path or definition - not both. (probably use ... parametersets for this kind of stuff). 
 		# if -Path and is valid, 
-		# 		set -Definition = Get-Content -Path... 
+		# 		set -Definition = Get-Content -Path... -> and then do a ScriptBlock.Create() or whatever... 
 		
 	}
 	
 	process {
 		# (make sure to do a foreach in $Definition(s)... )
+		#  i.e., if someone spams in > 1 $Path or > 1 $Definition... need to process them all ... not just 'scalar/1x'
 		
 		# basically: 
 		# 1. run/import the facet: 

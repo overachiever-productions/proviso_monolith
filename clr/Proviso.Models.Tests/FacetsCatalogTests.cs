@@ -3,7 +3,7 @@
 namespace Proviso.Models.Tests
 {
     [TestFixture]
-    public class FacetManagerTests
+    public class FacetsCatalogTests
     {
         //    [Test]
         //    public void AddingFacets_Should_IncrementFacetCount()

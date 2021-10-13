@@ -316,3 +316,4 @@ FodyWeavers.xsd
 /clr/Proviso.Models/Proviso.Models.csproj
 /clr/Proviso.Models/Proviso.Models.sln
 /clr/Proviso.Models/Proviso.sln.DotSettings
+/clr/Proviso.Models.Tests/Proviso.Models.Tests.csproj

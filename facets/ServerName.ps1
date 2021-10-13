@@ -1,66 +1,80 @@
 ﻿Set-StrictMode -Version 1.0;
 
-# . ..\functions\DSL\Facet.ps1
-
 Facet "ServerName" {
-	# assert we're admins
 	
 	Assertions {
-		Assert "Fake Test" -NotFatal {
-			throw "Test Exception."; # test of non-fatal assertions... 
+		Assert "Fake Test" -NotFatal -Ignored {
+			throw "Test Exception."; # simple test of non-fatal assertions... 
 		}
 		
-		Assert "Adminstrator" {
-			# TODO: this logic is actually busted (contains isn't working like I want it to... ).
+		Assert -Is "Adminstrator" -FailureMessage "Current User is not a Member of the Administrators Group" {
 			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-#			$admins = Get-LocalGroupMember -Group Administrators;
-#			
-#			if (-not ($admins -contains $currentUser)){
-#				throw "$currentUser is not a member of Administrators.";
+			$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
+			
+#			if (-not ($admins.Name.Contains($currentUser))){
+#				return $false;
 #			}
+			
+			return $true;
 		}
-		Assert "Domain Admin Creds" {
-			# TODO: implement this correctly... i.e., this is just a VERY rough stub.
-			if ($Config.GetValue("Host.TargetDomain") -ne $null) {
-				# make sure we've got $Config.Secrets.DomainAdminCreds or whatever... 
-				# othrwise, throw... 
-			}
+		
+		Assert -Has "Domain Admin Creds" {
+#			if ($Config.GetValue("Host.TargetDomain") -ne $null) {
+#				
+#				# make sure we've got $Config.Secrets.DomainAdminCreds or whatever... 
+#				# othrwise, throw or return $false... 
+#				return $false;
+#			}
+			
+			return $true;
+		}
+		
+		Assert -DoesNotExist "Target Domain Machine" {
+			# if Host.TargetDomain & Host.TargetServer <> current values... 
+			#   since we should, now, have domain creds... 
+			#   use those to ensure that the <targteMachine>.<targetDomain> doesn't already exist... 
+			#    i.e., sometimes when provisioning a new server - it's a REPAVE of an existing box - 
+			# 			and if said 'box' already has been registered in AD (but the VM has been destroyed) we'll run into an error.
+			
+			# ARGUABLY: 
+			#   an assert COULD detect the above an then TRY to drop the offending object from AD (i.e., do some automated cleanup)
+			#   but there are TWO big/ugly things about that that I don't like:
+			# 	1. Automating the REMOVAL of a machine from AD seems sketchy/dumb - i.e., I'd much rather get an alert: "Doh. Can rename xyz1234 to sql27.mydomain as sql27.mydomain already exists."
+			#   2. Asserts are ... assertions, not places to 'do work'
+			# 		along those lines, it'd be way better to have a Facet for 'AD cleanup' if/as needed as a PREDECESSOR to this facet (in a workflow/runbook)
+			return $false; # inverted... 
 		}
 	}
 	
+	Rebase {
+		Write-Host "<DO REBASE STUFF HERE>";
+		$PVContext.SetRebootRequired("Rebase Requires Reboot for FULL reset.");
+	}
+	
 	Definitions {
-		Definition "Target Server" {
+		Definition -For "Target Server" {
 			Expect {
 				$Config.GetValue("Host.TargetServer");
 			}
 			Test {
-				#region Example of more-accurate(possibly?) implementation: 
-#				$currentHost = [System.Net.Dns]::GetHostName();
-#				$Context.StoreTemporaryFacetValue("CurrentHostName", $currentHost);
-#				return $currentHost;
-				#endregion 
-				
-				[System.Net.Dns]::GetHostName();
+				$currentHost = [System.Net.Dns]::GetHostName();
+				$PVContext.AddFacetState("CurrentHostName", $currentHost);
+				return $currentHost;
 			}
 			Configure {
 				
-				# TODO: check the domain as well... if that needs to be changed TOO... then... 
-				#  hmm... maybe we skip this and let the Domain-Name Change operation/code handle this? 
-				#   in which case, i might be able to do this: 
-				# if (domainName -ne ExpecteDomainName) {
-				#	Context.SetTemporaryFacetValue("NameChangeRequired", $true);
-				#}
-				#  and.... then, down in the Configure for "Target Domain":
-				#    a. check for Context.GetTemporaryFacetValue("NameChangeRequired")
-				#    b. if $true, then tackle that as well. 
+				# NOTE: this definition is for target server... but if the domain name needs to be changed too, we'll want to tackle that here. 
+				$targetDomainName = $Config.GetValue("Host.TargetDomain");
+				$currentDomainName = $PVContext.GetFacetState("CurrentDomain");
 				
-				# i.e., there are a number of ways I can manage 'between operation' state.
+				#Write-Host "Configuration Example: TargetDomain: $targetDomainName => Current DomainName: $currentDomainName ";
 				
-				Write-Host "This is a test. But, what I'd do would be: a. check the domain-name (matched or not) too... and b) then change name or name+domain-join.";
+				# assuming domain-join and rename went fine: 
+				$PVContext.AddFacetState("JoinedToDomain", $true);  # which we can check down below... 
 			}
 		}
 		
-		Definition "Target Domain" {
+		Definition -For "Target Domain" {
 			Expect {
 				$Config.GetValue("Host.TargetDomain");
 			}
@@ -69,19 +83,20 @@ Facet "ServerName" {
 				if ($domain -eq "WORKGROUP") {
 					$domain = "";
 				}
-				# TODO: "" (when 'domain' -eq WORKGROUP) and "" from the $Config.Host.TargetDomain ... aren't matching. THEY SHOULD BE... 
-				# 		that's the whole purpose of the if(is-string) & if(empty)... inside of Compare-ExpectedWithActual.ps1;
-				return $domain;  # ruh roh... it MIGHT be the return?
+				
+				$PVContext.AddFacetState("CurrentDomain", $domain);
+				return $domain; 
 			}
 			Configure {
 				
-				#region example-ish
-				if ((Context.GetTemporaryFacetValue("CurrentHostName")) -ne ($Config.GetValue("Host.TargetServer"))) {
-					#at this point, we know that ... domain-join isn't THE only thing we need. 
-					# we need both DOMAIN-JOIN _AND_ a name-change. 
-				}
-				#endregion				
+#				#region example-ish
+#				if ((Context.GetTemporaryFacetValue("CurrentHostName")) -ne ($Config.GetValue("Host.TargetServer"))) {
+#					#at this point, we know that ... domain-join isn't THE only thing we need. 
+#					# we need both DOMAIN-JOIN _AND_ a name-change. 
+#				}
+#				#endregion				
 				
+				#assuming it's needed..: 
 				$Context.SetRebootRequired("Computer Name Change from [old-name] to [new-name].");
 			}
 		}

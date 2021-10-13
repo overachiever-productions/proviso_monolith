@@ -11,7 +11,7 @@ namespace Proviso.Processing
         public object RecompareExpected { get; private set; }
         public object RecompareActual { get; private set; }
         public bool RecompareMatched { get; private set; }
-        public ErrorRecord ConfigurationError { get; private set; }
+        public ConfigurationError ConfigurationError { get; private set; }
 
         public ConfigurationResult(ValidationResult validation)
         {
@@ -39,7 +39,7 @@ namespace Proviso.Processing
             this.RecompareMatched = matched;
         }
 
-        public void AddConfigurationError(ErrorRecord added)
+        public void AddConfigurationError(ConfigurationError added)
         {
             this.ConfigurationError = added;
         }

@@ -9,7 +9,7 @@ namespace Proviso.Models
         public string FileName { get; private set; }
         public string SourcePath { get; private set; }
 
-        public bool AllowsReset => this.Rebase != null;
+        public bool RebasePresent => this.Rebase != null;
 
         public List<Assertion> Assertions { get; private set; }
         public List<Assertion> FailedAssertions { get; private set; }

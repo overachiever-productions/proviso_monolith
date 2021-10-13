@@ -1,9 +1,12 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
+
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\proviso.psm1" -DisableNameChecking -Force;
 	
-	With "\\storage\Lab\proviso\definitions\servers\S4\SQL-120-01.psd1" | Configure-ServerName;
+	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-ServerName; # -ExecuteRebase -Force;
+	
+	$PVContext.LastProcessingResult;
 
 #>
 
@@ -14,8 +17,9 @@ function Process-Facet {
 		[string]$FacetName,
 		[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config,
-		[switch]$ExecuteConfiguration = $false,
-		[switch]$AllowHardReset = $false
+		[Switch]$ExecuteRebase = $false,
+		[Switch]$Force = $false,
+		[Switch]$ExecuteConfiguration = $false
 	);
 	
 	begin {
@@ -25,8 +29,15 @@ function Process-Facet {
 		if ($null -eq $facet) {
 			throw "Invalid Facet-Name. [$FacetName] does not exist or has not yet been loaded. If this is a custom Facet, verify that [Import-Facet] has been executed.";
 		}
+		
+		if ($ExecuteRebase) {
+			if (-not ($Force)) {
+				throw "Invalid -ExecuteRebase inputs. Because Rebase CAN be detrimental, it MUST be accompanied with the -Force [switch] as well.";
+			}
+		}
+		
 		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $ExecuteConfiguration);
-		$Context.SetCurrentFacet($facet, $ExecuteConfiguration, $AllowHardReset);
+		$Context.SetCurrentFacet($facet, $ExecuteRebase, $ExecuteConfiguration, $facetProcessingResult);
 	}
 	
 	process { 
@@ -35,53 +46,51 @@ function Process-Facet {
 		# --------------------------------------------------------------------------------------
 		if ($facet.Assertions.Count -gt 0) {
 			
-			$facetProcessingResult.StartProcessingAssertions();
+			$facetProcessingResult.StartAssertions();
 			$results = @();
-			[bool]$warnings = $false;
 			
+			$assertionsOutcomes = [Proviso.Enums.AssertionsOutcome]::AllPassed;
 			foreach ($assert in $facet.Assertions) {
-				
 				$assertionResult = New-Object Proviso.Processing.AssertionResult($assert);
 				$results += $assertionResult;
 				
 				try {				
 					[ScriptBlock]$codeBlock = $assert.ScriptBlock;
-					& $codeBlock;
+					$output = & $codeBlock;
 					
-					# TODO: I can't JUST run the block ... i have to grab it's outcome. 
-					#  i.e., either there's no outcome... which I'll treat as ... true?, or a $false outcome or $true outcome (which I then need to run past -False)
-					#    or there's an exception. I'm handling the exception - but not the 'outcome';
-					#  and... i should probably pass in a true/false to .Complete as well - i.e., passed/failed - something of that order. 
-					#  at which point, $assertionResult.Failed can/will tell whether or not to allow further processing... 
-					$assertionResult.Complete();
+					if ($null -eq $output) {
+						$output = $true;
+					}
+					
+					if ($assert.IsNegated) {
+						$output = (!$output);
+					}
+					
+					$assertionResult.Complete($output);
 				}
 				catch {
-					$assertionResult.Complete($_); 
+					$assertionResult.Complete($_);
 				}
 				
-				if ($assert.Failed) {
+				if ($assertionResult.Failed) {
 					if ($assert.NonFatal) {
-						$warnings = $true;
-						$Context.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assert.AssertionError)", "Important");
+						$assertionsOutcomes = [Proviso.Enums.AssertionsOutcome]::Warning;
+						$Context.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Important");
 					}
 					else {
-						$facetProcessingResult.EndProcessingAssertions([Proviso.Enums.AssertionOutcome]::HardFailure, $results)
-						throw "Assertion $($assert.Name) Failed. Error: $($assert.AssertionError)";
+						$facetProcessingResult.EndAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results)
+						throw "Assertion $($assert.Name) Failed. Error: $($assertionResult.GetErrorMessage())";
 					}
 				}
 			}
 			
-			$outcome = [Proviso.Enums.AssertionsOutcome]::AllPassed;
-			if ($warnings) {
-				$outcome = [Proviso.Enums.AssertionOutcome]::Warning;
-			}
-			$facetProcessingResult.EndProcessingAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results)
+			$facetProcessingResult.EndAssertions($assertionsOutcomes, $results)
 		}
 		
 		# --------------------------------------------------------------------------------------
 		# Definitions / Testing
 		# --------------------------------------------------------------------------------------	
-		$facetProcessingResult.StartProcessingValidations();
+		$facetProcessingResult.StartValidations();
 		$validations = @();
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		foreach ($definition in $facet.Definitions) {
@@ -113,35 +122,59 @@ function Process-Facet {
 			}
 		}
 		
-		$facetProcessingResult.EndProcessingValidations($validationsOutcome, $validations);
+		$facetProcessingResult.EndValidations($validationsOutcome, $validations);
 		
 		# --------------------------------------------------------------------------------------
 		# Rebase
 		# --------------------------------------------------------------------------------------
-		
-		# TODO: ... add in rebase if allowed/etc. 
-		
-		
-		
-		# --------------------------------------------------------------------------------------
+		if ($ExecuteRebase) {
+			
+			$facetProcessingResult.StartRebase();
+			
+			[ScriptBlock]$rebaseBlock = $facet.Rebase.RebaseBlock;
+			$rebaseResult = New-Object Proviso.Processing.RebaseResult(($facet.Rebase));
+			$rebaseOutcome = [Proviso.Enums.RebaseOutcome]::Success;
+			
+			try {
+				& $rebaseBlock;
+				
+				$rebaseResult.SetSuccess();
+			}
+			catch {
+				$rebaseResult.SetFailure($_);
+				$rebaseOutcome = [Proviso.Enums.RebaseOutcome]::Failure;
+			}
+			
+			$facetProcessingResult.EndRebase($rebaseOutcome, $rebaseResult);
+			
+			if($facetProcessingResult.RebaseFailed){
+				$facetProcessingResult.SetProcessingFailed();
+				throw "Rebase Execution Failure: $($rebaseResult.RebaseError). Configuration Processing cannot continue. Terminating.";
+			}
+			
+			if ($Context.RebootRequired) {
+				Write-Host "Doh! a reboot is required in/after processing Rebase Functionality. Reason: $($Context.RebootReason)";
+			}
+		}
+	
+	# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
 		if ($ExecuteConfiguration) {
 			
 			if ($facetProcessingResult.ValidationsFailed){
-				# vNEXT: get the count and report i.e., "# Validation Comaprison(s) Failed."
-				# vNEXT: might... strangely, also, make sense to let some comparisons/failures be NON-FATAL (but, assumde/default to fatal... in all cases)
+				# vNEXT: might... strangely, also, make sense to let some comparisons/failures be NON-FATAL (but, assume/default to fatal... in all cases)
 				$Context.CloseCurrentFacet();
-				throw "Unable to process configuration-operations for Facet [$FacetName] - Validation Comparisons Failed.";
+				throw "Unable to process configuration-operations for Facet [$FacetName] - Validations Failed.";
 			}
 			
-			$facetProcessingResult.StartProcessingConfiguration();
+			$facetProcessingResult.StartConfigurations();
 			$configurations = @();
-			$configurationsOutcome = [Proviso.Models.ConfigurationsOutcome]::Completed;
+			$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Completed;
 			
 			foreach($validation in $facetProcessingResult.GetValidationResults()) {
 				
-				$configResult = New-Object Proviso.Models.ConfigurationResult($validation);
+				$configResult = New-Object Proviso.Processing.ConfigurationResult($validation);
 				$configurations += $configResult;
 				
 				if ($validation.Matched) {
@@ -155,8 +188,7 @@ function Process-Facet {
 						#   i.e., maybe there needs to be a $Context.RebootPendingBehavior of { Continue | Throw | Reboot | RebootAndRestartFacet }
 					}
 					else {
-						#Write-Host "Processing [$($validation.Description)]::> EXPECTED: $($validation.Outcome.Expected) -> ACTUAL: $($validation.Outcome.Actual) ";
-					
+						
 						try {
 							[ScriptBlock]$configureBlock = $validation.Configure;
 							
@@ -164,7 +196,8 @@ function Process-Facet {
 							$configResult.SetSucceeded();
 						}
 						catch {
-							$configurationError = New-Object Proviso.Models.ConfigurationError($_, $false);
+							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
+							$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $false);
 							$configResult.AddConfigurationError($configurationError);
 						}
 						
@@ -181,29 +214,55 @@ function Process-Facet {
 								}
 							}
 							catch {
-								$configurationError = New-Object Proviso.Models.ConfigurationError($_, $true);
+								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+								$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $true);
 								$configResult.AddConfigurationError($configurationError);
 							}
 						}
 					}
 				}
 			}
+			
+			$facetProcessingResult.EndConfigurations($configurationsOutcome, $configurations);
 		}
 	}
 	
 	end {
-		# OUTPUT needs to include: 
-		# 		.Facet
-		# 			so'z the Asserts, Rebase, Defs are all accessible. 
+		
+		#region output description
 		# 
+		
+		
+		
+		
+		#   here's a ROUGH overview of all of what outputs there can be.... 
+		# 		.Facet
+		# 			Name: <facet name here> 
+		# 			FileName: <filename> 
+		# 			RebasePresent: true/false
+		# 
+		# 		.ProcessingDetails 
+		# 			Run: start-timestamp - end-timestamp (xxx milliseconds).
+		# 			Reboot Incurred: true/false 
+		# 			ProcessingStates: enum showing all states... 
+		#			AssertionsOutcome: AllPassed | Warnings | Fatal/Failed - 
+		# 			WarnedAssertions: name1, name2. 
+		# 			FailedAssertsions: name1, name2, etc. 
+		#		  & on... i..e, this can/will get a bit ugly... so, i need to spend some time refactoring and trying to streamline quite a bit. 
+		#
+		#
+		#       .AssertionResults 
+		# 			Hmmmm: I could throw these out here... 
+		# 			Actually, yeah, that makes a lot of sense. 
+		# 			
 		# 		.ValidationResults 
 		# 			which needs to be a set of OBJECTS that lets me represent something along the lines of the following: 
 		# 				i.e., don't output the following, just allow the following via the OBJECTS. 
 		#
-		#  						Definition					 	Outcome		Expectation 			Actual
+		#  						Definition					 	Matched		Expectation 			Actual
 		# 						----------------------------	--------	----------------------	--------------------
-		#  						IP Address						FAIL		192.168.1.100			10.20.0.200
-		# 						etc								PASS		Y						Y		
+		#  						IP Address						TRUE		192.168.1.100			10.20.0.200
+		# 						etc								FALSE		Y						Y		
 		#
 		#   	.ConfigurationResults 
 		# 			if this was a -Configure ... then, i want to be able to show/express roughly the following via OBJECTS: 
@@ -226,10 +285,8 @@ function Process-Facet {
 		# 							Exception: (if there is one.)
 		# 							Change-Script: not actually visible in the 'default view..' but definitely part of the object/output.		
 		
+		#endregion
 		
-		
-		# ARGUABLY, i can/should be able to GET the $output object from the Facet itself... i.e.,: 
-#		$facetOutput = $facet.GetValidationOutput();		# this'll 'know' if there was a configure block or not, and dump all of needed info/summary data from above. 
-#		$Context.CloseCurrentFacet($facetOutput);
+		$Context.CloseCurrentFacet();
 	}
 }

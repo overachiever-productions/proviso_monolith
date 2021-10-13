@@ -4,7 +4,7 @@
     {
         UnProcessed,
         Completed,
-        RecompareFailed,
-        Failed
+        Failed,
+        RecompareFailed
     }
 }

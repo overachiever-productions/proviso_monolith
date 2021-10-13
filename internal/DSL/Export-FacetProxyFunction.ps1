@@ -33,8 +33,8 @@ function {0}-{1} {{
 		$executeConfig = "-ExecuteConfiguration";
 		
 		if ($AllowRebase) {
-			$rebaseParamDef = ",`r`t`t[Switch]`$AllowRebase = `$false ";
-			$rebaseOutput = " -AllowRebase:`$AllowRebase";
+			$rebaseParamDef = ",`r`t`t[Switch]`$ExecuteRebase = `$false, `r`t`t[Switch]`$Force = `$false ";
+			$rebaseOutput = "-ExecuteRebase:`$ExecuteRebase -Force:`$Force ";
 		}
 	}
 	

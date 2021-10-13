@@ -59,7 +59,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 		$currentFacet = $script:ProvisoFacetsCatalog.GetFacetByFileName(($file.Basename));
 		if ($null -ne $currentFacet) {
 			$facetName = $currentFacet.Name;
-			$allowsRebase = $currentFacet.AllowsReset;
+			$allowsRebase = $currentFacet.RebasePresent;
 			
 			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName;
 			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName -ExecuteConfiguration -AllowRebase:$allowsRebase;

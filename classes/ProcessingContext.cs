@@ -1,18 +1,25 @@
 ﻿using System.Collections.Generic;
 using Proviso.Models;
+using Proviso.Processing;
 
 namespace Proviso
 {
     public class ProcessingContext
     {
-        private Dictionary<string, object> _temporaryValues = new Dictionary<string, object>();
+        private Dictionary<string, object> _temporaryFacetState = new Dictionary<string, object>();
         private readonly Stack<Facet> _facets = new Stack<Facet>();
+        private readonly Stack<FacetProcessingResult> _processingResults = new Stack<FacetProcessingResult>();
 
-        public bool ConfigurationEnabled { get; private set; }
-        public bool AllowHardReset { get; private set; }
-
+        public bool ExecuteConfiguration { get; private set; }
+        public bool ExecuteRebase { get; private set; }
         public bool RebootRequired { get; private set; }
         public string RebootReason { get; private set; }
+        public Facet LastProcessedFacet => this._facets.Count > 0 ? this._facets.Peek() : null;
+        public FacetProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
+        public int ProcessedFacetsCount => this._facets.Count;
+        public int FacetResultsCount => this._processingResults.Count;
+
+        public Dictionary<string, object> TemporaryFacetState => this._temporaryFacetState;
 
         public static ProcessingContext Instance => new ProcessingContext();
         
@@ -28,31 +35,41 @@ namespace Proviso
                 this.RebootReason = reason;
         }
 
-        public void SetCurrentFacet(Facet added, bool executeConfiguration, bool allowReset)
+        public void SetCurrentRunbook(string runbookName)
         {
-            this._temporaryValues = new Dictionary<string, object>();
-            this._facets.Push(added);
+            // just a place-holder. i.e., I'll probably end up having a full-blown Runbook object
+            // which'll have properties for various details... well, properties for various switches... 
+        }
 
-            this.ConfigurationEnabled = executeConfiguration;
-            this.AllowHardReset = allowReset;
+        public void CloseCurrentRunbook()
+        {
+
+        }
+
+        public void SetCurrentFacet(Facet added, bool executeRebase, bool executeConfiguration, FacetProcessingResult processingResult)
+        {
+            this._temporaryFacetState = new Dictionary<string, object>();
+            this._facets.Push(added);
+            this._processingResults.Push(processingResult);
+
+            this.ExecuteRebase = executeRebase;
+            this.ExecuteConfiguration = executeConfiguration;
         }
 
         public void CloseCurrentFacet()
         {
-            this._temporaryValues = new Dictionary<string, object>();
+            this._temporaryFacetState = new Dictionary<string, object>();
         }
 
-        // REFACTOR: SetFacet[Processing]State(key, value);
-        public void StoreTemporaryFacetValue(string key, object value)
+        public void AddFacetState(string key, object value)
         {
-            this._temporaryValues.Add(key, value);
+            this._temporaryFacetState.Add(key, value);
         }
 
-        // REFACTOR: GetFacet[Processing]State(key);
-        public object GetTemporaryFacetValue(string key)
+        public object GetFacetState(string key)
         {
-            if (this._temporaryValues.ContainsKey(key))
-                return this._temporaryValues[key];
+            if (this._temporaryFacetState.ContainsKey(key))
+                return this._temporaryFacetState[key];
 
             return null;
         }

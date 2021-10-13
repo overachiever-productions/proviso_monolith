@@ -3,7 +3,7 @@
     public enum RebaseOutcome
     {
         UnProcessed,
-        Completed,
-        Failed
+        Success,
+        Failure
     }
 }

@@ -6,45 +6,43 @@ namespace Proviso.Processing
 {
     public class AssertionResult
     {
-        private bool _failed = true;
+        private bool _assertionPassed = false;
 
         public Assertion Assertion { get; private set; }
-        public DateTime AssertionStarted { get; private set; }
-        public DateTime? AssertionEnded { get; private set; }
         public ErrorRecord AssertionError { get; private set; }
+
+        public bool Passed => this.AssertionError == null && this._assertionPassed;
+        public bool Failed => !this.Passed;
 
         public AssertionResult(Assertion assertion)
         {
             this.Assertion = assertion;
-            this.AssertionStarted = DateTime.Now;
         }
 
-        public bool Failed
+        public void Complete(bool assertionPassed)
         {
-            get
-            {
-                if (!this.AssertionEnded.HasValue)
-                {
-                    var ex = new Exception("Unknown problem. Assertion was started, but not marked as complete. Assuming Failure.");
-                    var er = new ErrorRecord(ex, "Proviso.Models.Assertion.InvalidCheck.End", ErrorCategory.InvalidOperation, this);
-                    this.Complete(er);
-                }
-
-                return _failed;
-            }
-        }
-
-        public void Complete()
-        {
-            this._failed = false;
-            this.AssertionEnded = DateTime.Now;
+            this._assertionPassed = assertionPassed;
         }
 
         public void Complete(ErrorRecord errorRecord)
         {
-            this._failed = true;
+            this._assertionPassed = false;
             this.AssertionError = errorRecord;
-            this.AssertionEnded = DateTime.Now;
+        }
+
+        public string GetErrorMessage()
+        {
+            if (this.AssertionError != null)
+            {
+                if (this.Assertion.FailureMessage != null)
+                {
+                    return this.Assertion.FailureMessage + Environment.NewLine + this.AssertionError.Exception.Message;
+                }
+
+                return this.AssertionError.Exception.Message;
+            }
+
+            return this.Assertion.FailureMessage ?? "Unknown Error.";
         }
     }
 }

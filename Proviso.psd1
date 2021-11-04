@@ -53,7 +53,7 @@
 	NestedModules = @()
 	
 	# Functions to export from this module
-	FunctionsToExport = @() #For performance, list functions explicitly
+	FunctionsToExport = '*'
 	
 	# Cmdlets to export from this module
 	CmdletsToExport = '*' 

@@ -42,7 +42,9 @@ function Facet {
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$Scripts,
-		[Switch]$For # syntactic sugar only... 
+		[Switch]$For, # syntactic sugar only... 
+		[ValidateNotNullOrEmpty()]
+		[string]$Key
 	);
 	
 	begin {
@@ -54,6 +56,9 @@ function Facet {
 		}
 		
 		$facet = New-Object Proviso.Models.Facet($Name, $facetFileName, ($MyInvocation.ScriptName).Replace($ProvisoScriptRoot, ".."));
+		if (-not ([string]::IsNullOrEmpty($Key))) {
+			$facet.AddConfigKey($Key);
+		}
 	}
 	
 	process {

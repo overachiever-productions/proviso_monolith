@@ -1,12 +1,12 @@
 ﻿Set-StrictMode -Version 1.0;
 
-# Refactor: ProvisoConfigDefaults ... and change the file-name as well... 
-[PSCustomObject]$script:Proviso_Config_Defaults = [PSCustomObject]@{
+[PSCustomObject]$script:ProvisoConfigDefaults = [PSCustomObject]@{
 	
 	Host = @{
 		
-		#TargetServer = NOT SPECIFIED AS A DEFAULT
-		#TargetDOMAIN = NOT SPECIFIED AS A DEFAULT 
+		TargetServer = "{~DEFAULT_PROHIBITED~}"
+		TargetDomain = "{~DEFAULT_PROHIBITED~}"
+		
 		AllowGlobalDefaults = $false
 		
 		NetworkDefinitions  = @{
@@ -125,6 +125,7 @@
 			}
 			
 			TraceFlags				   = @(
+				3326
 				7745
 				7752
 			)

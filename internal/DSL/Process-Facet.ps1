@@ -2,10 +2,13 @@
 
 <#
 
+	#Update-TypeData -TypeName Proviso.Processing.FacetProcessingResult -DefaultDisplayPropertySet Facet, ProcessingState, ExecuteConfiguration, AssertionsOutcome, ValidationsFailed;
+
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\proviso.psm1" -DisableNameChecking -Force;
 	
-	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-ServerName; # -ExecuteRebase -Force;
-	
+	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Configure-ServerName -ExecuteRebase -Force;
+	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-FirewallRules;
+
 	$PVContext.LastProcessingResult;
 
 #>
@@ -96,11 +99,18 @@ function Process-Facet {
 		foreach ($definition in $facet.Definitions) {
 			
 			[ScriptBlock]$expectedBlock = $definition.Expectation;
+			if (($null -eq $expectedBlock) -and ($null -ne $definition.Key)) {
+				# dynamically CREATE a script-block ... that spits out the config key: 
+				$script = "return `$Config.GetValue('$($definition.Key)');";
+				$expectedBlock = [scriptblock]::Create($script);
+			}
+			
 			[ScriptBlock]$testBlock = $definition.Test;
 			
-			# vNEXT: allow for ... Expectation to be a value or a block. and if it's a value (not a block) send it into Compare-ExpectedWithActual as -ExpectedValue.
-			#  and... address this 'down' in the re-comparison section for config operations as well... 
 			$comparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+			
+			#Write-Host "Comparison for $($definition.Description): $comparison ";
+			
 			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, ($comparison.ExpectedResult), ($comparison.ActualResult), ($comparison.Matched));
 			$validations += $validationResult;
 			
@@ -157,7 +167,7 @@ function Process-Facet {
 			}
 		}
 	
-	# --------------------------------------------------------------------------------------
+		# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
 		if ($ExecuteConfiguration) {
@@ -228,65 +238,127 @@ function Process-Facet {
 	}
 	
 	end {
-		
-		#region output description
-		# 
-		
-		
-		
-		
-		#   here's a ROUGH overview of all of what outputs there can be.... 
-		# 		.Facet
-		# 			Name: <facet name here> 
-		# 			FileName: <filename> 
-		# 			RebasePresent: true/false
-		# 
-		# 		.ProcessingDetails 
-		# 			Run: start-timestamp - end-timestamp (xxx milliseconds).
-		# 			Reboot Incurred: true/false 
-		# 			ProcessingStates: enum showing all states... 
-		#			AssertionsOutcome: AllPassed | Warnings | Fatal/Failed - 
-		# 			WarnedAssertions: name1, name2. 
-		# 			FailedAssertsions: name1, name2, etc. 
-		#		  & on... i..e, this can/will get a bit ugly... so, i need to spend some time refactoring and trying to streamline quite a bit. 
-		#
-		#
-		#       .AssertionResults 
-		# 			Hmmmm: I could throw these out here... 
-		# 			Actually, yeah, that makes a lot of sense. 
-		# 			
-		# 		.ValidationResults 
-		# 			which needs to be a set of OBJECTS that lets me represent something along the lines of the following: 
-		# 				i.e., don't output the following, just allow the following via the OBJECTS. 
-		#
-		#  						Definition					 	Matched		Expectation 			Actual
-		# 						----------------------------	--------	----------------------	--------------------
-		#  						IP Address						TRUE		192.168.1.100			10.20.0.200
-		# 						etc								FALSE		Y						Y		
-		#
-		#   	.ConfigurationResults 
-		# 			if this was a -Configure ... then, i want to be able to show/express roughly the following via OBJECTS: 
-		# 			
-		# 						<DEFINITION-NAME-HERE>
-		# 							Expected: 192.168.1.100
-		# 							Actual: 10.20.0.200
-		# 							'Outcome': FAIL   	(this name sucks... )
-		# 							Configuration-Start: timestamp
-		# 							Configuration-Outcome: SUCCESS | FAIL | EXCEPTION  (fail = no exception but the value isn't as expected... )
-		# 							Exception: (if there is one.)
-		# 							Change-Script: not actually visible in the 'default view..' but definitely part of the object/output.
-		#
-		# 						<DEFINITION2-NAME-HERE>
-		# 							Expected: 192.168.1.100
-		# 							Actual: 10.20.0.200
-		# 							'Outcome': FAIL   	(this name sucks... )
-		# 							Configuration-Start: timestamp
-		# 							Configuration-Outcome: SUCCESS | FAIL | EXCEPTION  (fail = no exception but the value isn't as expected... )
-		# 							Exception: (if there is one.)
-		# 							Change-Script: not actually visible in the 'default view..' but definitely part of the object/output.		
-		
-		#endregion
-		
 		$Context.CloseCurrentFacet();
+<# 
+		
+	For Reference, here's what the current output looks like:
+		
+Facet                 : Proviso.Models.Facet
+ExecuteConfiguration  : True
+ProcessingStart       : 10/16/2021 4:05:09 PM
+ProcessingEnd         :
+ProcessingState       : AssertsStarted, AssertsEnded, ValidationsStarted, ValidationsEnded, RebaseStarted, RebaseEnded, ConfigurationsStarted
+AssertionsOutcome     : AllPassed
+AssertionResults      : {Proviso.Processing.AssertionResult, Proviso.Processing.AssertionResult, Proviso.Processing.AssertionResult}
+AssertionsFailed      : False
+ValidationsOutcome    : Completed
+ValidationResults     : {Proviso.Processing.ValidationResult, Proviso.Processing.ValidationResult}
+ValidationsFailed     : False
+RebaseOutcome         : Success
+RebaseResult          : Proviso.Processing.RebaseResult
+RebaseFailed          : False
+ConfigurationsOutcome : UnProcessed
+ConfigurationResults  : {}
+ConfigurationsFailed  : False
+		
+		
+		
+	Fodder: 
+		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_format.ps1xml?view=powershell-7.1
+		
+		JACKPOT:
+		- https://docs.microsoft.com/en-us/powershell/scripting/developer/format/formatting-file-overview?view=powershell-7.1
+		
+		DETAILED xml format/schema docs:
+		- https://docs.microsoft.com/en-us/powershell/scripting/developer/format/format-schema-xml-reference?view=powershell-7.1
+		
+		
+		TODO: 
+		Look into the use of 'Property Sets' as outlined near the bottom of this post: 
+		- https://mcpmag.com/articles/2014/05/13/powershell-properties-part-3.aspx
+		
+		
+		
+		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/export-formatdata?view=powershell-7.1
+		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/update-formatdata?view=powershell-7.1
+			-prependPath = OVERWRITE any formatting that might already exist. -appendPath = put formatting defs safely 'at end' of all other defs - i.e., don't overwrite. 
+		
+		AWESOME:
+		- https://stackoverflow.com/questions/67990004/is-there-a-way-to-cause-powershell-to-use-a-particular-format-for-a-functions-o
+		
+		MIGHT be useful: 
+		- https://stackoverflow.com/questions/13611380/safe-use-of-update-formatdata 
+		- https://petri.com/using-formatting-files-with-powershell-7
+		
+		
+		
+	Example of Expected/Desired formatting for FacetProcessingResult
+		1. It'll have the following properties: Facet, ProcessingResults, Assertions, Validations, Configurations
+		
+		2. And, each of the above can/should look roughly like the following (in order) 
+		
+FACET 
+	Name: <facetName> 
+	FileName: <filename>
+	[ConfigSection: config key if present]
+	AllowsRebase:
+		
+PROCESSING RESULTS 
+	Execution: <start-timestamp> - <end-timestamp>  (total ms)
+	Reboot Executed: 
+	Reboot Required: 
+	Processing States: AssertsStarted, AssertsEnded, ValidationsStarted, ValidationsEnded, etc.... 
+	Assertions Outcome: AllPassed, etc. 
+	Assertions with Warnings: name1, name2
+	Failed Assertions: name1, name2
+	Failed Validations: name1, name2, etc. 
+	Rebase Executed: true/false (only if a. configure, and b. rebase was present)
+	Rebase Outcome: pass/fail (only if possible AND if executed)
+	
+ASSERTIONS 
+	<assertion-name>: Passed | FailedWithWarning | FailedWithException
+	<assertion-name>: Passed | FailedWithWarning | FailedWithException
+	<assertion-name>: Passed | FailedWithWarning | FailedWithException
+	etc... 
+		
+		
+VALIDATIONS 
+	Definition					 			Matched		Expectation 			Actual
+	------------------------------------	--------	----------------------	--------------------
+	IP Address								TRUE		192.168.1.100			10.20.0.200
+	etc										FALSE		Y						Y	
+	something name here - truncated ... 	EXCEPTION	1234 - 4567				ERROR 1 *
+		
+		
+	VALIDATION ERRORS: 
+	1 - error message here. 
+	2 - error message here ofr error 2 from above, and so on... 
+		
+CONFIGURATIONS 
+	DEFINITION: <name here>
+		Expected: 192.168.1.100
+		Actual: 10.20.0.200
+		Matched: false
+		Processing: <start> - <end> (total MS)
+		New-Actual: 192.168.1.100
+		New-Matched: true
+		Outcome: SUCCESS | FAILURE | ERROR (failure = no error, but didn't match). 
+		[Error Detail]
+			Type: Expected | Actual | Comparison | Re-Actual | Re-Comparison
+			Message: goes here if there was any kind of exception... 
+		[Error Detail] (i.e., another one - if present) 
+			Type: Expected | Actual | Comparison | Re-Actual | Re-Comparison
+			Message: goes here if there was any kind of exception... 
+		
+	DEFINITION: <name here>		
+		Expected: 
+		Actual: 
+		Matched: true 
+		Processing: 0ms 
+		Outcome: SKIPPED (already matched) 
+		
+	DEFINITION: <n...>
+#>		
+		
 	}
 }

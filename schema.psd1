@@ -1,4 +1,5 @@
 ﻿@{
+	# NOTE: This is the DSL/New Schema
 	Host = @{
 		TargetServer	   = "AWS-SQL-1A"
 		TargetDomain	   = ""
@@ -36,7 +37,9 @@
 		
 		RequiredPackages   = @{
 			WsfcComponents				     = $true
+			
 			NetFxForPre2016InstancesRequired = $false
+			AdManagementFeaturesforPowershell6PlusRequired = $false # not 100% sure this is still in use... 
 		}
 		
 		LimitHostTls1dot2Only = $true
@@ -134,7 +137,7 @@
 			
 			SecuritySetup	  = @{
 				EnableSqlAuth			    = $true
-				AddCurrentUserAsAdmin	    = $true
+				AddCurrentUserAsAdmin	    = $false
 				SaPassword				    = "12345"
 				MembersOfSysAdmin		    = @(
 					"domain\techops"
@@ -186,7 +189,7 @@
 		
 		MSSQLSERVER = @{
 			Deploy		      = $true
-			OverrideSource    = "assets/admindb_latest.sql"
+			#OverrideSource    = "assets/admindb_latest.sql"
 			
 			InstanceSettings = @{
 				Enabled 					= $true
@@ -225,7 +228,7 @@
 			
 			Alerts		      = @{
 				IOAlertsEnabled	       = $true
-				IOAlertsFiltered	   = $false # for example... 
+				IOAlertsFiltered	   = $false 
 				SeverityAlertsEnabled  = $true
 				SeverityAlertsFiltered = $true
 			}

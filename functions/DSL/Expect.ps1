@@ -13,10 +13,12 @@
 # 					or does .Matched = true require that ALL values were matches? ... 
 # 				i.e., this starts to get messy/ugly. 
 # 		3. Yeah... the third out of 2 problems is ... that this tends to overly complicate things... it could spiral out of control quickly.
+# 	all of the above said... IF I end up going with 'multiples', then I think the approach would be: Expect { x } OrExpect { z } OrExpect { y }
 #endregion
 function Expect {
 	param (
-		[ScriptBlock]$ExpectBlock
+		[ScriptBlock]$ExpectBlock,
+		[string]$That   # syntactic sugar
 	);
 	
 	Limit-ValidProvisoDSL -MethodName "Expect" -AsFacet;

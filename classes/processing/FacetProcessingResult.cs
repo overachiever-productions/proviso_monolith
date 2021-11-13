@@ -32,14 +32,6 @@ namespace Proviso.Processing
         public List<ConfigurationResult> ConfigurationResults { get; private set; }
         public bool ConfigurationsFailed => this.ProcessingState.HasFlag(FacetProcessingState.ConfigurationsFailed);
 
-        public bool Succeded
-        {
-            get
-            {
-                throw new Exception("Need to process a lot of things here to see if it failed or not... ");
-            }
-        }
-
         public FacetProcessingResult(Facet facet, bool executeConfiguration)
         {
             this.Facet = facet;

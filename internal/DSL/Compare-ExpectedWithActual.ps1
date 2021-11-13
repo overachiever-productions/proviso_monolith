@@ -7,16 +7,13 @@ function Compare-ExpectedWithActual {
 	#endregion;
 	
 	param (
-		$ExpectedValue,
 		[ScriptBlock]$ExpectedBlock,
 		[Parameter(Mandatory)]
 		[ScriptBlock]$TestBlock
 	);
 	
 	begin {
-		if (($null -eq $ExpectedValue) -and ($null -eq $ExpectedBlock)) {
-			throw "Comparisons must include either an ExpectedBlock (ScriptBlock) or ExpectedValue (scalar value).";
-		}
+
 	};
 	
 	process {

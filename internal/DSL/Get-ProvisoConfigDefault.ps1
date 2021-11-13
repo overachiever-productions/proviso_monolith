@@ -4,10 +4,20 @@ filter Get-ProvisoConfigDefault {
 	param (
 		[Parameter(Mandatory)]
 		[ValidateNotNullOrEmpty()]
-		[string]$Key
+		[string]$Key,
+		[switch]$ValidateOnly = $false  # validate vs return values... 
 	);
 	
-	$defaulValue = Get-ProvisoConfigValueByKey -Config $script:Proviso_Config_Defaults -Key $Key;
+	$defaulValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+	
+	if ($null -ne $defaulValue) {
+		if ($defaulValue -eq "{~DEFAULT_PROHIBITED~}") {
+			if (-not ($ValidateOnly)){
+				$defaulValue = $null;
+			}
+		}
+	}
+	
 	if ($null -ne $defaulValue) {
 		return $defaulValue;
 	}
@@ -16,27 +26,38 @@ filter Get-ProvisoConfigDefault {
 	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
 	if ($match) {
 		$partialName = $match[0].Groups['partialName'];
+
 		if (-not ([string]::IsNullOrEmpty($partialName))) {
 			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
 			
-			$defaulValue = Get-ProvisoConfigValueByKey -Config $script:Proviso_Config_Defaults -Key $nonSqlPartialKey;
+			$defaulValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
+			
 			if ($null -ne $defaulValue) {
+				if ($ValidateOnly -and ($defaulValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
+					return $defaulValue;
+				}
+				
 				if ($defaulValue -eq "~{PARENT}~") {
 					$defaulValue = $partialName;
 				}
 				
-				return $defaulValue;
+				if ($null -ne $defaulValue) {
+					return ($defaulValue).Value;
+				}
+			}
+			
+			if ($ValidateOnly) {
+				return ($partialName).Value;
 			}
 		}
 	}
 	
-	# NOTE: ARGUABLY, I could potentially combine 'non-sql-instance-names' (SqlDataDisk, VM Network, etc. ) amd sql-instance-names (MSSQLSERVER, TEST, etc)
-	#   into a big/single REGEX that does one and/or the other ... 
-	#   BUT: having 2x fairly-duplicated-ish bits of logic keeps the complexity a LOT simpler. i.e., check for x. if not x, check for y. the end. 
+	# Address wildcards: 
+	# 	NOTE: I COULD have used 1x regex (that combined instance AND other details), but went with SRP (i.e., each regex is for ONE thing):
 	$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
 	if ($match) {
 		$keyWithoutDefaultMSSQLServerName = $Key.Replace('MSSQLSERVER', '{~ANY~}');
-		$output = Get-ProvisoConfigValueByKey -Config $script:Proviso_Config_Defaults -Key $keyWithoutDefaultMSSQLServerName;
+		$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $keyWithoutDefaultMSSQLServerName;
 		
 		if ($null -ne $output) {
 			return $output;

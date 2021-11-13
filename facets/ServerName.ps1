@@ -11,11 +11,11 @@ Facet "ServerName" {
 			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
 			$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
 			
-#			if (-not ($admins.Name.Contains($currentUser))){
-#				return $false;
-#			}
+			if ($admins.Name -contains $currentUser) {
+				return $true;
+			}
 			
-			return $true;
+			return $false;
 		}
 		
 		Assert -Has "Domain Admin Creds" {

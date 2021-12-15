@@ -5,7 +5,7 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	
-	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-FirewallRules;
+	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-FirewallRules;
 	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Configure-ServerName; # -ExecuteRebase -Force;
 	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-TestingFacet; 
 

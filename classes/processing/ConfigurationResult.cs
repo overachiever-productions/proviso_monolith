@@ -60,15 +60,15 @@ namespace Proviso.Processing
             //  b. previously/already set (i.e., bypassed). 
             //  c. set but recompare failed (i.e., no exceptions but... post-configure value isn't as expected). 
             //  d. set + recompare succeeded - it.., SET.
-            
+
+            if (this.ConfigurationError != null)
+                return "ERROR";
+
             if (this.ConfigurationBypassed)
                 return "PRE-SET";  // UNSET? 
 
             if (this.ConfigurationSucceeded & !this.RecompareMatched)
                 return "FAILED";
-
-            if (this.ConfigurationError != null)
-                return "ERROR";
 
             return "SET";
         }
@@ -76,48 +76,31 @@ namespace Proviso.Processing
         public string GetActualSummary()
         {
             // see OUTCOME OPTIONS in .GetOutcomeSummary(); 
-
-            // this is a bug... actual shouldn't be EMPTY unless there was an EXCEPTION... 
-            //      but I'm getting if/when there's a 'bypass'... 
-            if (this.Validation.Actual == null)
-            {
-
-                return "DOH. Actual is empty. "; // is this an error or because it was bypassed or what? 
-
-            }
-
-
             string output = this.Validation.Actual.ToString().Trim();
             if (string.IsNullOrEmpty(output))
                 output = "<EMPTY>";
 
-            return output;
+            if (this.ConfigurationError != null)
+                return "Exception: " + this.ConfigurationError.Error.Exception.Message;
 
+            if (this.ConfigurationBypassed)
+                return output + " (already set)";
 
-            //if (this.ConfigurationBypassed)
-            //{
+            if (!this.RecompareMatched)
+            {
+                string actual = "<EMPTY>";
+                if (this.RecompareActual != null)
+                {
+                    actual = this.RecompareActual.ToString().Trim();
+                    if (string.IsNullOrEmpty(actual))
+                        actual = "<EMPTY>";
+                }
                 
-            //}
+                return $"Failure. Recompare (post-configure) failed. Expected: {output}, got: {actual}";
+            }
 
-            //return "TODO...";
-
-
-            //string output = this.RecompareActual.ToString();
-            //if (this.ConfigurationBypassed)
-            //    output = this.Validation.Actual.ToString();
-
-            //if (string.IsNullOrEmpty(output))
-            //    output = "<EMPTY>";
-
-            //if (this.ConfigurationBypassed)
-            //{
-            //    return output + " (already matched)";
-            //}
-
-            //if (this.ConfigurationError != null)
-            //    return "Exception: " + this.ConfigurationError.Error.Exception.Message;
-
-            //return output;
+            // otherwise, success (i.e., correctly-set) - output the result. 
+            return output;
         }
     }
 }

@@ -3,9 +3,6 @@
 Facet "ServerName" {
 	
 	Assertions {
-		Assert "Fake Test" -NotFatal -Ignored {
-			throw "Test Exception."; # simple test of non-fatal assertions... 
-		}
 		
 		Assert -Is "Adminstrator" -FailureMessage "Current User is not a Member of the Administrators Group" {
 			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
@@ -47,15 +44,14 @@ Facet "ServerName" {
 	}
 	
 	Rebase {
-		Write-Host "<DO REBASE STUFF HERE>";
+		#Write-Host "<DO REBASE STUFF HERE>";
 		$PVContext.SetRebootRequired("Rebase Requires Reboot for FULL reset.");
+		
+		#throw "Doh! This is a test of what a rebase failure would look like...";
 	}
 	
 	Definitions {
-		Definition -For "Target Server" {
-			Expect {
-				$Config.GetValue("Host.TargetServer");
-			}
+		Definition -For "Target Server" -Key "Host.TargetServer" {
 			Test {
 				$currentHost = [System.Net.Dns]::GetHostName();
 				$PVContext.AddFacetState("CurrentHostName", $currentHost);
@@ -74,10 +70,7 @@ Facet "ServerName" {
 			}
 		}
 		
-		Definition -For "Target Domain" {
-			Expect {
-				$Config.GetValue("Host.TargetDomain");
-			}
+		Definition -For "Target Domain" -Key "Host.TargetDomain" {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {

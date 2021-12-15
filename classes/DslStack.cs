@@ -1,7 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Proviso
 {
+
+    // REFACTOR: Lexicon? Lexer. 
+    // REFACTOR: Orthography. Yeah... that's it. this is the orthography. 
     public class DslStack
     {
         private readonly List<string> _allowedMethods = new List<string>();
@@ -12,22 +16,22 @@ namespace Proviso
         private DslStack()
         {
             this._allowedMethods.Add("With");                       // 0
-            this._allowedMethods.Add("Secured-By");                 // 1
-            this._allowedMethods.Add("Validate");                   // 2
-            this._allowedMethods.Add("Configure");                  // 2
-            this._allowedMethods.Add("Invoke");                     // 2 - wrapper to allow processing of one or more facets... 
-            this._allowedMethods.Add("Process-Facet");              // 3 - CAN be called directly... not sure why anyone would want to... but permitted. 
+            this._allowedMethods.Add("Secured-By");                 //  1
+            this._allowedMethods.Add("Validate");                   //   2
+            this._allowedMethods.Add("Configure");                  //   2
+            this._allowedMethods.Add("Execute");                    //   2 - wrapper to allow processing of one or more facets... 
+            this._allowedMethods.Add("Process-Facet");              //    3 - CAN be called directly... not sure why anyone would want to... but permitted. 
             
 
             this._allowedFacetBlocks.Add("Facet");              // 0
-            this._allowedFacetBlocks.Add("Assertions");         // 1 - child of facet
-            this._allowedFacetBlocks.Add("Assert");             // 2 - child of Assertions
-            this._allowedFacetBlocks.Add("Rebase");             // 1 - child of facet
-            this._allowedFacetBlocks.Add("Definitions");        // 1 - child of facet
-            this._allowedFacetBlocks.Add("Definition");         // 2 - child of definitions
-            this._allowedFacetBlocks.Add("Expect");             // 3 - child of definition
-            this._allowedFacetBlocks.Add("Test");               // 3 - child of definition
-            this._allowedFacetBlocks.Add("Configure");          // 3 - child of definition. 
+            this._allowedFacetBlocks.Add("Assertions");         //  1 - child of facet
+            this._allowedFacetBlocks.Add("Assert");             //   2 - child of Assertions
+            this._allowedFacetBlocks.Add("Rebase");             //  1 - child of facet
+            this._allowedFacetBlocks.Add("Definitions");        //  1 - child of facet
+            this._allowedFacetBlocks.Add("Definition");         //   2 - child of definitions
+            this._allowedFacetBlocks.Add("Expect");             //    3 - child of definition
+            this._allowedFacetBlocks.Add("Test");               //    3 - child of definition
+            this._allowedFacetBlocks.Add("Configure");          //    3 - child of definition. 
             
         }
 
@@ -78,5 +82,15 @@ namespace Proviso
 
             return "";
         }
+
+        //public string MethodParent()
+        //{
+        //    return this._methodsStack.Skip(1).First();
+        //}
+
+        //public string FacetParent()
+        //{
+        //    return this._facetsStack.Skip(1).First();
+        //}
     }
 }

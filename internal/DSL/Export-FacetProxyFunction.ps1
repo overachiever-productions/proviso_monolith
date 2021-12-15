@@ -11,16 +11,23 @@ filter Export-FacetProxyFunction {
 		[switch]$AllowRebase
 	);
 	
+	# NOTE: $script:PVRunbookActive may NOT end up being used... 
 	[string]$template = 'Set-StrictMode -Version 1.0;
 
 function {0}-{1} {{
 	
 	param (
-		[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
+		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config{2}
 	);
 	
 	Limit-ValidProvisoDSL -MethodName "{0}";
+
+	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {{
+		if($null -eq $Config) {{
+			$Config = $global:PVConfig;
+		}}
+	}}
 
 	Process-Facet -FacetName "{1}" -Config $Config {3}{4};
 }}';

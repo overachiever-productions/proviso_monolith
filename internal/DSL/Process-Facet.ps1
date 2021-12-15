@@ -2,14 +2,14 @@
 
 <#
 
-	#Update-TypeData -TypeName Proviso.Processing.FacetProcessingResult -DefaultDisplayPropertySet Facet, ProcessingState, ExecuteConfiguration, AssertionsOutcome, ValidationsFailed;
-
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\proviso.psm1" -DisableNameChecking -Force;
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	
-	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Configure-ServerName -ExecuteRebase -Force;
 	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-FirewallRules;
+	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Configure-ServerName; # -ExecuteRebase -Force;
 
-	$PVContext.LastProcessingResult;
+	#$PVContext.LastProcessingResult; # | Format-List;
+
+	Summarize -All; # -IncludeAssertions;
 
 #>
 
@@ -43,10 +43,11 @@ function Process-Facet {
 		$Context.SetCurrentFacet($facet, $ExecuteRebase, $ExecuteConfiguration, $facetProcessingResult);
 	}
 	
-	process { 
+	process {
 		# --------------------------------------------------------------------------------------
 		# Assertions	
 		# --------------------------------------------------------------------------------------
+		$assertionsFailed = $false;
 		if ($facet.Assertions.Count -gt 0) {
 			
 			$facetProcessingResult.StartAssertions();
@@ -66,7 +67,7 @@ function Process-Facet {
 					}
 					
 					if ($assert.IsNegated) {
-						$output = (!$output);
+						$output = (-not $output);
 					}
 					
 					$assertionResult.Complete($output);
@@ -81,26 +82,35 @@ function Process-Facet {
 						$Context.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Important");
 					}
 					else {
-						$facetProcessingResult.EndAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results)
-						throw "Assertion $($assert.Name) Failed. Error: $($assertionResult.GetErrorMessage())";
+						$assertionsFailed = $true;
+						$Context.WriteLog("FATAL: Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Critical");
 					}
 				}
 			}
 			
-			$facetProcessingResult.EndAssertions($assertionsOutcomes, $results)
+			if ($assertionsFailed) {
+				$facetProcessingResult.EndAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results);
+				
+				$facetProcessingResult.SetProcessingComplete();
+				$Context.CloseCurrentFacet();
+				
+				return; 
+			}
+			else {
+				$facetProcessingResult.EndAssertions($assertionsOutcomes, $results);
+			}
 		}
 		
 		# --------------------------------------------------------------------------------------
 		# Definitions / Testing
 		# --------------------------------------------------------------------------------------	
-		$facetProcessingResult.StartValidations();
 		$validations = @();
+		$facetProcessingResult.StartValidations();
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		foreach ($definition in $facet.Definitions) {
 			
 			[ScriptBlock]$expectedBlock = $definition.Expectation;
-			if (($null -eq $expectedBlock) -and ($null -ne $definition.Key)) {
-				# dynamically CREATE a script-block ... that spits out the config key: 
+			if (($null -eq $expectedBlock) -and ($null -ne $definition.Key)) { 	# dynamically CREATE a script-block ... that spits out the config key: 
 				$script = "return `$Config.GetValue('$($definition.Key)');";
 				$expectedBlock = [scriptblock]::Create($script);
 			}
@@ -108,8 +118,6 @@ function Process-Facet {
 			[ScriptBlock]$testBlock = $definition.Test;
 			
 			$comparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
-			
-			#Write-Host "Comparison for $($definition.Description): $comparison ";
 			
 			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, ($comparison.ExpectedResult), ($comparison.ActualResult), ($comparison.Matched));
 			$validations += $validationResult;
@@ -128,7 +136,7 @@ function Process-Facet {
 			}
 			
 			if ($validationResult.Failed) {
-				$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., not the same as "didn't match", but... exception/failure.
+				$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., exception/failure.
 			}
 		}
 		
@@ -140,6 +148,16 @@ function Process-Facet {
 		if ($ExecuteRebase) {
 			
 			$facetProcessingResult.StartRebase();
+			
+			if ($facetProcessingResult.ValidationsFailed) {
+				$Context.WriteLog("FATAL: Rebase Failure - One or more Validations threw an exception (and could not be properly evaluated). Rebase Processing can NOT continue. Terminating.", "Critical");
+				$facetProcessingResult.EndRebase([Proviso.Enums.RebaseOutcome]::Failure, $null);
+				
+				$facetProcessingResult.SetProcessingComplete();
+				$Context.CloseCurrentFacet();
+				
+				return;
+			}
 			
 			[ScriptBlock]$rebaseBlock = $facet.Rebase.RebaseBlock;
 			$rebaseResult = New-Object Proviso.Processing.RebaseResult(($facet.Rebase));
@@ -159,11 +177,12 @@ function Process-Facet {
 			
 			if($facetProcessingResult.RebaseFailed){
 				$facetProcessingResult.SetProcessingFailed();
-				throw "Rebase Execution Failure: $($rebaseResult.RebaseError). Configuration Processing cannot continue. Terminating.";
-			}
-			
-			if ($Context.RebootRequired) {
-				Write-Host "Doh! a reboot is required in/after processing Rebase Functionality. Reason: $($Context.RebootReason)";
+				$Context.WriteLog("FATAL: Rebase Failure: [$($rebaseResult.RebaseError)].  Configuration Processing can NOT continue. Terminating.", "Critical");
+				
+				$facetProcessingResult.SetProcessingComplete();
+				$Context.CloseCurrentFacet();
+				
+				return;
 			}
 		}
 	
@@ -172,62 +191,60 @@ function Process-Facet {
 		# --------------------------------------------------------------------------------------		
 		if ($ExecuteConfiguration) {
 			
+			$facetProcessingResult.StartConfigurations();
+			
 			if ($facetProcessingResult.ValidationsFailed){
 				# vNEXT: might... strangely, also, make sense to let some comparisons/failures be NON-FATAL (but, assume/default to fatal... in all cases)
+				$Context.WriteLog("FATAL: Configurations Failure - One or more Validations threw an exception (and could not be properly evaluated). Configuration Processing can NOT continue. Terminating.", "Critical");
+				$facetProcessingResult.EndConfigurations([Proviso.Enums.ConfigurationsOutcome]::Failed, $null);
+				
+				$facetProcessingResult.SetProcessingComplete();
 				$Context.CloseCurrentFacet();
-				throw "Unable to process configuration-operations for Facet [$FacetName] - Validations Failed.";
+				
+				return;
 			}
 			
-			$facetProcessingResult.StartConfigurations();
 			$configurations = @();
 			$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Completed;
 			
-			foreach($validation in $facetProcessingResult.GetValidationResults()) {
+			foreach($validation in $facetProcessingResult.ValidationResults) {
 				
-				$configResult = New-Object Proviso.Processing.ConfigurationResult($validation);
-				$configurations += $configResult;
+				$configurationResult = New-Object Proviso.Processing.ConfigurationResult($validation);
+				$configurations += $configurationResult;
 				
 				if ($validation.Matched) {
-					$configResult.SetBypassed();
-					$Context.WriteLog("Bypassing configuration of [$($definition.Description)] - Expected and Actual values already matched.", "Verbose")
+					$configurationResult.SetBypassed();
+					$Context.WriteLog("Bypassing configuration of [$($definition.Description)] - Expected and Actual values already matched.", "Debug");
 				}
 				else {
-					if ($Context.RebootRequired) {
-						# if reboot allowed, spin up a restart operation, log that we're rebooting/restarting and ... restart. 
-						# else... throw an exception that we're pending a reboot? (or maybe there's a way to keep going?)
-						#   i.e., maybe there needs to be a $Context.RebootPendingBehavior of { Continue | Throw | Reboot | RebootAndRestartFacet }
-					}
-					else {
+					
+					try {
+						[ScriptBlock]$configureBlock = $validation.Configure;
 						
+						& $configureBlock;
+						
+						$configurationResult.SetConfigurationSucceeded();
+					}
+					catch {
+						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
+						$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $false);
+						$configurationResult.AddConfigurationError($configurationError);
+					}
+					
+					# Recomparisons:
+					if ($configurationResult.ConfigurationSucceeded) {
 						try {
-							[ScriptBlock]$configureBlock = $validation.Configure;
+							[ScriptBlock]$expectedBlock = $definition.Expectation;
+							[ScriptBlock]$testBlock = $validation.Test;
 							
-							& $configureBlock;
-							$configResult.SetSucceeded();
+							$reComparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+							
+							$configurationResult.SetRecompareCompleted(($reComparison.ExpectedResult), ($reComparison.ActualResult), ($reComparison.Matched));
 						}
 						catch {
-							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
-							$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $false);
-							$configResult.AddConfigurationError($configurationError);
-						}
-						
-						# Recomparisons:
-						if ($configResult.ConfigurationSucceeded) {
-							try {
-								[ScriptBlock]$expectedBlock = $definition.Expectation;
-								[ScriptBlock]$testBlock = $validation.Test;
-								
-								$reComparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
-								
-								if ($reComparison.Matched) {
-									$configResult.SetRecompareSucceeded(($reComparison.ExpectedResult), ($reComparison.ActualResult), ($reComparison.Matched));
-								}
-							}
-							catch {
-								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
-								$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $true);
-								$configResult.AddConfigurationError($configurationError);
-							}
+							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+							$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $true);
+							$configurationResult.AddConfigurationError($configurationError);
 						}
 					}
 				}
@@ -238,127 +255,7 @@ function Process-Facet {
 	}
 	
 	end {
+		$facetProcessingResult.SetProcessingComplete();
 		$Context.CloseCurrentFacet();
-<# 
-		
-	For Reference, here's what the current output looks like:
-		
-Facet                 : Proviso.Models.Facet
-ExecuteConfiguration  : True
-ProcessingStart       : 10/16/2021 4:05:09 PM
-ProcessingEnd         :
-ProcessingState       : AssertsStarted, AssertsEnded, ValidationsStarted, ValidationsEnded, RebaseStarted, RebaseEnded, ConfigurationsStarted
-AssertionsOutcome     : AllPassed
-AssertionResults      : {Proviso.Processing.AssertionResult, Proviso.Processing.AssertionResult, Proviso.Processing.AssertionResult}
-AssertionsFailed      : False
-ValidationsOutcome    : Completed
-ValidationResults     : {Proviso.Processing.ValidationResult, Proviso.Processing.ValidationResult}
-ValidationsFailed     : False
-RebaseOutcome         : Success
-RebaseResult          : Proviso.Processing.RebaseResult
-RebaseFailed          : False
-ConfigurationsOutcome : UnProcessed
-ConfigurationResults  : {}
-ConfigurationsFailed  : False
-		
-		
-		
-	Fodder: 
-		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_format.ps1xml?view=powershell-7.1
-		
-		JACKPOT:
-		- https://docs.microsoft.com/en-us/powershell/scripting/developer/format/formatting-file-overview?view=powershell-7.1
-		
-		DETAILED xml format/schema docs:
-		- https://docs.microsoft.com/en-us/powershell/scripting/developer/format/format-schema-xml-reference?view=powershell-7.1
-		
-		
-		TODO: 
-		Look into the use of 'Property Sets' as outlined near the bottom of this post: 
-		- https://mcpmag.com/articles/2014/05/13/powershell-properties-part-3.aspx
-		
-		
-		
-		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/export-formatdata?view=powershell-7.1
-		- https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/update-formatdata?view=powershell-7.1
-			-prependPath = OVERWRITE any formatting that might already exist. -appendPath = put formatting defs safely 'at end' of all other defs - i.e., don't overwrite. 
-		
-		AWESOME:
-		- https://stackoverflow.com/questions/67990004/is-there-a-way-to-cause-powershell-to-use-a-particular-format-for-a-functions-o
-		
-		MIGHT be useful: 
-		- https://stackoverflow.com/questions/13611380/safe-use-of-update-formatdata 
-		- https://petri.com/using-formatting-files-with-powershell-7
-		
-		
-		
-	Example of Expected/Desired formatting for FacetProcessingResult
-		1. It'll have the following properties: Facet, ProcessingResults, Assertions, Validations, Configurations
-		
-		2. And, each of the above can/should look roughly like the following (in order) 
-		
-FACET 
-	Name: <facetName> 
-	FileName: <filename>
-	[ConfigSection: config key if present]
-	AllowsRebase:
-		
-PROCESSING RESULTS 
-	Execution: <start-timestamp> - <end-timestamp>  (total ms)
-	Reboot Executed: 
-	Reboot Required: 
-	Processing States: AssertsStarted, AssertsEnded, ValidationsStarted, ValidationsEnded, etc.... 
-	Assertions Outcome: AllPassed, etc. 
-	Assertions with Warnings: name1, name2
-	Failed Assertions: name1, name2
-	Failed Validations: name1, name2, etc. 
-	Rebase Executed: true/false (only if a. configure, and b. rebase was present)
-	Rebase Outcome: pass/fail (only if possible AND if executed)
-	
-ASSERTIONS 
-	<assertion-name>: Passed | FailedWithWarning | FailedWithException
-	<assertion-name>: Passed | FailedWithWarning | FailedWithException
-	<assertion-name>: Passed | FailedWithWarning | FailedWithException
-	etc... 
-		
-		
-VALIDATIONS 
-	Definition					 			Matched		Expectation 			Actual
-	------------------------------------	--------	----------------------	--------------------
-	IP Address								TRUE		192.168.1.100			10.20.0.200
-	etc										FALSE		Y						Y	
-	something name here - truncated ... 	EXCEPTION	1234 - 4567				ERROR 1 *
-		
-		
-	VALIDATION ERRORS: 
-	1 - error message here. 
-	2 - error message here ofr error 2 from above, and so on... 
-		
-CONFIGURATIONS 
-	DEFINITION: <name here>
-		Expected: 192.168.1.100
-		Actual: 10.20.0.200
-		Matched: false
-		Processing: <start> - <end> (total MS)
-		New-Actual: 192.168.1.100
-		New-Matched: true
-		Outcome: SUCCESS | FAILURE | ERROR (failure = no error, but didn't match). 
-		[Error Detail]
-			Type: Expected | Actual | Comparison | Re-Actual | Re-Comparison
-			Message: goes here if there was any kind of exception... 
-		[Error Detail] (i.e., another one - if present) 
-			Type: Expected | Actual | Comparison | Re-Actual | Re-Comparison
-			Message: goes here if there was any kind of exception... 
-		
-	DEFINITION: <name here>		
-		Expected: 
-		Actual: 
-		Matched: true 
-		Processing: 0ms 
-		Outcome: SKIPPED (already matched) 
-		
-	DEFINITION: <n...>
-#>		
-		
 	}
 }

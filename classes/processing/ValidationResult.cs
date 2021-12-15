@@ -35,5 +35,10 @@ namespace Proviso.Processing
             this.Failed = true;
             this.ValidationErrors.Add(added);
         }
+
+        public string GetFacetName()
+        {
+            return this.ParentDefinition.Parent.Name;
+        }
     }
 }

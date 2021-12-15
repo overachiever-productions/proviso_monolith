@@ -16,7 +16,7 @@ function Definition {
 	
 	begin {
 		Limit-ValidProvisoDSL -MethodName "Definition" -AsFacet;
-		$definition = New-Object Proviso.Models.Definition($Description);
+		$definition = New-Object Proviso.Models.Definition($facet, $Description);
 		
 		if (-not([string]::IsNullOrEmpty($Key))) {
 			

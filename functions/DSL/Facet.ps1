@@ -3,11 +3,10 @@
 <# 
 	SCOPE: 
 		A Facet is not a 'true function' - it doesn't DO anything. 
-		Instead, it's a container for workflow-ordered script-blocks. 
-		When run/executed, it creates a Proviso.Models.Facet object, which contains a list of hierarchical/ordered code bloxks
+		Instead, it's a container for ordered script-blocks. 
+		When run/executed, it creates a (clr) Proviso.Models.Facet object, which contains a list of hierarchical/ordered code bloxks
 			that, in turn, will eventually be executed by the Process-Facet method via either the Validate-<FacetName> or Configure-<FacetName>
-			proxies that are contained as execution pipelines for the code/definitions within an actual facet. 
-
+			proxies created as wrappers for validate or configure 'calls' against specific facets.
 
 	NOTE: 
 		Facet sub-funcs have been broken out to enable better PrimalSense while authoring. 
@@ -42,7 +41,7 @@ function Facet {
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$Scripts,
-		[Switch]$For, # syntactic sugar only... 
+		[Switch]$For, # syntactic sugar only... i.e., allows a block of script to accompany a facet 'definition' - for increased context/natural-language
 		[ValidateNotNullOrEmpty()]
 		[string]$Key
 	);
@@ -67,6 +66,9 @@ function Facet {
 	}
 	
 	end {
+		
+		# vNEXT: force the facet (that's now, nearly, complete) to .Validate() and throw if it's missing key components (like, say, a Definition is missing a Test or something... etc.);
+		
 		$ProvisoFacetsCatalog.AddFacet($facet);
 	}
 }

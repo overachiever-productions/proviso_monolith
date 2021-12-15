@@ -5,14 +5,16 @@ namespace Proviso.Models
 {
     public class Definition
     {
+        public Facet Parent { get; set; }
         public string Description { get; set; }
         public ScriptBlock Expectation { get; private set; }
         public string Key { get; private set; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
 
-        public Definition(string description)
+        public Definition(Facet parent, string description)
         {
+            this.Parent = parent;
             this.Description = description;
         }
 

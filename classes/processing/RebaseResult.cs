@@ -26,5 +26,24 @@ namespace Proviso.Processing
             this.RebaseError = error;
             this.RebaseOutcome = RebaseOutcome.Failure;
         }
+
+        public string GetFacetName()
+        {
+            return this.Rebase.ParentFacetName;
+        }
+
+        public string GetOutcomeSummary()
+        {
+            switch (this.RebaseOutcome)
+            {
+                case RebaseOutcome.UnProcessed:
+                    return "Configuration Problem. Rebase is listed as UnProcessed. Framework error/problem with Proviso.";
+                //case RebaseOutcome.Success:
+                case RebaseOutcome.Failure:
+                    return "Rebase Exception: " + this.RebaseError.Exception.Message;
+            }
+
+            return "Rebase Succeeded.";
+        }
     }
 }

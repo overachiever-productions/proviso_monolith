@@ -32,6 +32,9 @@ namespace Proviso.Processing
 
         public string GetErrorMessage()
         {
+            if (this.AssertionError == null && !this._assertionPassed)
+                return "Assert Failed. Expected Condition(s) NOT MET.";
+
             if (this.AssertionError != null)
             {
                 if (this.Assertion.FailureMessage != null)
@@ -43,6 +46,20 @@ namespace Proviso.Processing
             }
 
             return this.Assertion.FailureMessage ?? "Unknown Error.";
+        }
+
+        public string GetOutcomeState()
+        {
+            if (this.Passed)
+                return "PASS";
+
+            if (this.Assertion.NonFatal)
+                return "WARN";
+
+            if(this.AssertionError == null)
+                return "FAIL";
+
+            return "FAIL - ERROR: " + this.AssertionError.Exception.Message;
         }
     }
 }

@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\classes\DslStack.cs" Link="DslStack.cs" />
+    <Compile Include="..\..\classes\Formatter.cs" Link="Formatter.cs" />
     <Compile Include="..\..\classes\models\Assertion.cs" Link="Models\Assertion.cs" />
     <Compile Include="..\..\classes\models\Definition.cs" Link="Models\Definition.cs" />
     <Compile Include="..\..\classes\models\Facet.cs" Link="Models\Facet.cs" />
@@ -30,6 +31,11 @@
     <Compile Include="..\..\enums\RebaseOutcome.cs" Link="Enums\RebaseOutcome.cs" />
     <Compile Include="..\..\enums\ValidationErrorType.cs" Link="Enums\ValidationErrorType.cs" />
     <Compile Include="..\..\enums\ValidationsOutcome.cs" Link="Enums\ValidationsOutcome.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Proviso.Format.ps1xml" Link="Proviso.Format.ps1xml" />
+    <None Include="..\..\Proviso.Format_new.ps1xml" Link="Proviso.Format_new.ps1xml" />
   </ItemGroup>
 
   <ItemGroup>

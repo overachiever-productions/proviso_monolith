@@ -19,6 +19,41 @@
 					and asks the PROVIDER for the value ('just in time') for a more secure approach to managing secrets. 
 #>
 
+
+
+<#
+
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+
+	# ultra-bare-bones/simple 'provider' implementation:
+	[PSCustomObject]$Provider = {
+	};
+
+	[ScriptBlock]$getValues = {
+		[System.Collections.Hashtable]$values = @{
+			"SqlServerInstallation.SecuritySetup.SaPassword" = "Pass@word1!!!!"
+			"AdminDb.DatabaseMail.SmtpPassword"			     = "super secret password!"
+		};
+		
+		return $values;
+	}
+	[ScriptBlock]$getCreds = {
+		throw "Not Implemented";
+	}
+
+	Add-Member -InputObject $Provider -MemberType NoteProperty -Name HasDomainCreds -Value $false;
+	Add-Member -InputObject $Provider -MemberType ScriptMethod -Name GetValues -Value $getValues;
+	Add-Member -InputObject $Provider -MemberType ScriptMethod -Name GetCredentials -Value $getCreds;
+	# end implementation.
+
+	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Secured-By $Provider | Validate-FirewallRules;
+
+	Summarize -All;
+
+#>
+
+
+
 function Secured-By {
 	param (
 		[Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]

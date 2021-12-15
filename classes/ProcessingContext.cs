@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Proviso.Models;
 using Proviso.Processing;
 
@@ -7,7 +8,7 @@ namespace Proviso
     public class ProcessingContext
     {
         private Dictionary<string, object> _temporaryFacetState = new Dictionary<string, object>();
-        private readonly Stack<Facet> _facets = new Stack<Facet>();
+        private readonly Stack<Facet> _facets = new Stack<Facet>();  // these never get popped... just using a stack for ordering... 
         private readonly Stack<FacetProcessingResult> _processingResults = new Stack<FacetProcessingResult>();
 
         public bool ExecuteConfiguration { get; private set; }
@@ -26,6 +27,23 @@ namespace Proviso
         private ProcessingContext()
         {
             this.RebootRequired = false;
+        }
+
+        public FacetProcessingResult[] GetAllResults()
+        {
+            return this._processingResults.ToArray()
+                .OrderBy(x => x.ProcessingEnd)
+                .ToArray();
+        }
+
+        public FacetProcessingResult[] GetLatestResults(int latest)
+        {
+            FacetProcessingResult[] copy = this._processingResults.ToArray();
+
+            return copy
+                .OrderBy(x => x.ProcessingEnd)
+                .Take(latest)
+                .ToArray();
         }
 
         public void SetRebootRequired(string reason = null)

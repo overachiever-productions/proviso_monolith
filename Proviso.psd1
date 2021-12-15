@@ -47,7 +47,7 @@
 	TypesToProcess = @()
 	
 	# Format files (.ps1xml) to be loaded when importing this module
-	FormatsToProcess = @('Proviso.Format_New.ps1xml')
+	FormatsToProcess = @('Proviso.Format.ps1xml')
 	
 	# Modules to import as nested modules of the module specified in ModuleToProcess
 	NestedModules = @()

@@ -1,0 +1,244 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+
+  <Controls>
+
+  </Controls>
+
+  <ViewDefinitions>
+
+    <View>
+      <Name>Facet-Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.FacetProcessingResult</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Width>22</Width>
+            <Label>Facet</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>12</Width>
+            <Label>Operation</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>10</Width>
+            <Label>Seconds</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <width>12</width>
+            <Label>Validations</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <width>14</width>
+            <Label>Configurations</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>60</Width>
+            <Label>Outcome</Label>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 21)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$($_.Duration.ToString("ss\.fff"))</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.ValidationsCountSummary()</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.ConfigurationsCountSummary()</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.OutcomeSummary()</ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+
+    <View>
+      <Name>Assertion-Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.AssertionResult</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Width>22</Width>
+            <Label>Facet</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>30</Width>
+            <Label>Assertion</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>40</Width>
+            <Label>Outcome</Label>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Assertion.ParentFacetName, 21)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$($_.GetOutcomeState())</ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+
+    <View>
+      <Name>Validation-Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.ValidationResult</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Width>22</Width>
+            <Label>Facet</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>30</Width>
+            <Label>Validation</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>10</Width>
+            <Label>Match</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>18</Width>
+            <Label>Expected</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>48</Width>
+            <Label>Actual</Label>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.ParentDefinition.Description, 29)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$($_.Matched)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Expected, 17)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$($_.Actual)</ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+
+    <View>
+      <Name>Rebase-Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.RebaseResult</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+          <TableHeaders>
+            <TableColumnHeader>
+              <Width>22</Width>
+              <Label>Facet</Label>
+            </TableColumnHeader>
+            <TableColumnHeader>
+              <Width>90</Width>
+              <Label>Outcome</Label>
+            </TableColumnHeader>
+          </TableHeaders>
+          <TableRowEntries>
+            <TableRowEntry>
+              <TableColumnItems>
+                <TableColumnItem>
+                  <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
+                </TableColumnItem>
+                <TableColumnItem>
+                  <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
+                </TableColumnItem>
+              </TableColumnItems>
+            </TableRowEntry>
+          </TableRowEntries>
+        </TableControl>
+    </View>
+
+    <View>
+      <Name>Configuration-Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.ConfigurationResult</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Width>22</Width>
+            <Label>Facet</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>30</Width>
+            <Label>Configuration</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>10</Width>
+            <Label>Outcome</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>18</Width>
+            <Label>Expected</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>48</Width>
+            <Label>Actual</Label>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Validation.ParentDefinition.Description, 29)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Validation.Expected, 17)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.GetActualSummary()</ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+
+  </ViewDefinitions>
+
+</Configuration>

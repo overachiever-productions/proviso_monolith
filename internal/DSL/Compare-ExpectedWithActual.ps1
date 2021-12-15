@@ -7,6 +7,7 @@ function Compare-ExpectedWithActual {
 	#endregion;
 	
 	param (
+		[Parameter(Mandatory)]
 		[ScriptBlock]$ExpectedBlock,
 		[Parameter(Mandatory)]
 		[ScriptBlock]$TestBlock
@@ -47,17 +48,6 @@ function Compare-ExpectedWithActual {
 		
 		[System.Management.Automation.ErrorRecord]$comparisonError = $null;
 		if (($null -eq $expectedException) -and ($null -eq $actualException)) {
-			# vNEXT: this is UGLY...
-			if (($expectedResult.GetType().Name) -eq 'String') {
-				if ([string]::IsNullOrEmpty($expectedResult)) {
-					$expectedResult = $null;
-				}
-			}
-			if (($actualResult.GetType().Name) -eq 'String') {
-				if ([string]::IsNullOrEmpty($actualResult)) {
-					$actualResult = $null;
-				}
-			}
 			
 			try {
 				$comparedValuesMatch = ($expectedResult -eq $actualResult);

@@ -4,7 +4,7 @@
 	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.3.7'
+	ModuleVersion = '0.3.8'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -47,13 +47,13 @@
 	TypesToProcess = @()
 	
 	# Format files (.ps1xml) to be loaded when importing this module
-	FormatsToProcess = @()
+	FormatsToProcess = @('Proviso.Format_New.ps1xml')
 	
 	# Modules to import as nested modules of the module specified in ModuleToProcess
 	NestedModules = @()
 	
 	# Functions to export from this module
-	FunctionsToExport = @()
+	FunctionsToExport = '*'
 	
 	# Cmdlets to export from this module
 	CmdletsToExport = '*' 

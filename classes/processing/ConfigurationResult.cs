@@ -53,6 +53,12 @@ namespace Proviso.Processing
             return this.Validation.ParentDefinition.Parent.Name;
         }
 
+        public string GetConfigurationName()
+        {
+            return $"{this.Validation.ParentDefinition.Parent.Name}::{this.Validation.ParentDefinition.Description}";
+
+        }
+
         public string GetOutcomeSummary()
         {
             // OUTCOME OPTIONS:
@@ -75,28 +81,19 @@ namespace Proviso.Processing
 
         public string GetActualSummary()
         {
-            // see OUTCOME OPTIONS in .GetOutcomeSummary(); 
-            string output = this.Validation.Actual.ToString().Trim();
-            if (string.IsNullOrEmpty(output))
-                output = "<EMPTY>";
-
             if (this.ConfigurationError != null)
-                return "Exception: " + this.ConfigurationError.Error.Exception.Message;
+                return "ERROR: " + this.ConfigurationError.Error.Exception.Message;
 
+            string output = Formatter.Instance.ToEmptyableString(this.Validation.Actual);
             if (this.ConfigurationBypassed)
-                return output + " (already set)";
+                return output;
 
             if (!this.RecompareMatched)
             {
-                string actual = "<EMPTY>";
-                if (this.RecompareActual != null)
-                {
-                    actual = this.RecompareActual.ToString().Trim();
-                    if (string.IsNullOrEmpty(actual))
-                        actual = "<EMPTY>";
-                }
-                
-                return $"Failure. Recompare (post-configure) failed. Expected: {output}, got: {actual}";
+                string actual = Formatter.Instance.ToEmptyableString(this.RecompareActual);
+                string expected = Formatter.Instance.ToEmptyableString(this.RecompareExpected);
+
+                return actual;
             }
 
             // otherwise, success (i.e., correctly-set) - output the result. 

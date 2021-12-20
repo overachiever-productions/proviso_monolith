@@ -259,7 +259,7 @@ namespace Proviso.Processing
 
                     if (!this.ExecuteConfiguration)
                     {
-                        outcome = "Complete - but one or more Validations Failed.";
+                        outcome = "Complete. (NOTE: One or more validations did not match.)";
                     }
                 }
             }

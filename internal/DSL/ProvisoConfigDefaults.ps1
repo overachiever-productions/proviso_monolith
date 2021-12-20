@@ -31,6 +31,7 @@
 		RequiredPackages    = @{
 			WsfcComponents				     = $false
 			NetFxForPre2016InstancesRequired = $false
+			AdManagementFeaturesforPowershell6PlusRequired = $false
 		}
 		
 		LimitHostTls1dot2Only = $false

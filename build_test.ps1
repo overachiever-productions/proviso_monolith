@@ -1,6 +1,9 @@
 ﻿Set-StrictMode -Version 3.0;
 
 [string]$script:ProvisoScriptRoot = $PSScriptRoot;
+[PSCustomObject]$global:PVConfig = $null;
+$global:PVExecuteActive = $false;
+$global:PVRunBookActive = $false;
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
@@ -24,6 +27,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\processing\FacetProcessingResult.cs"
 	"$ProvisoScriptRoot\classes\DslStack.cs"
 	"$ProvisoScriptRoot\classes\ProcessingContext.cs"
+	"$ProvisoScriptRoot\classes\Formatter.cs"
 );
 Add-Type -Path $classFiles;
 
@@ -84,4 +88,3 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 
 # 6. Export
 $provisoPublicModuleMembers;
-#Export-ModuleMember -Function $script:provisoPublicModuleMembers;

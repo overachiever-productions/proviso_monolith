@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Proviso.Models;
 using Proviso.Processing;
@@ -10,6 +11,7 @@ namespace Proviso
         private Dictionary<string, object> _temporaryFacetState = new Dictionary<string, object>();
         private readonly Stack<Facet> _facets = new Stack<Facet>();  // these never get popped... just using a stack for ordering... 
         private readonly Stack<FacetProcessingResult> _processingResults = new Stack<FacetProcessingResult>();
+        private bool recompareActive = false;
 
         public bool ExecuteConfiguration { get; private set; }
         public bool ExecuteRebase { get; private set; }
@@ -19,6 +21,11 @@ namespace Proviso
         public FacetProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
         public int ProcessedFacetsCount => this._facets.Count;
         public int FacetResultsCount => this._processingResults.Count;
+
+        public object Expected { get; private set; }
+        public object Actual { get; private set; }
+        public object CurrentKeyValue { get; private set; }  // NOTE: this is only set (during Process-Facet operations) for Value-Definitions. Er, well, i might be double-using it for the key-value for groups as well... 
+        public object CurrentKeyGroup { get; private set; }
 
         public Dictionary<string, object> TemporaryFacetState => this._temporaryFacetState;
 
@@ -44,6 +51,56 @@ namespace Proviso
                 .OrderBy(x => x.ProcessingEnd)
                 .Take(latest)
                 .ToArray();
+        }
+
+        public void SetCurrentExpectValue(object value)
+        {
+            this.Expected = value;
+        }
+
+        public void RemoveCurrentExpectValue()
+        {
+            this.Expected = null;
+        }
+
+        public void SetCurrentActualValue(object value)
+        {
+            this.Actual = value;
+        }
+
+        public void RemoveCurrentActualValue()
+        {
+            this.Actual = null;
+        }
+
+        public void SetRecompareActive()
+        {
+            this.recompareActive = true;
+        }
+
+        public void SetRecompareInactive()
+        {
+            this.recompareActive = false;
+        }
+
+        public void SetCurrentKeyValue(object value)
+        {
+            this.CurrentKeyValue = value;
+        }
+
+        public void SetCurrentKeyGroup(object value)
+        {
+            CurrentKeyGroup = value;
+        }
+
+        public void ClearCurrentKeyValue()
+        {
+            this.CurrentKeyValue = null;
+        }
+
+        public void ClearCurrentKeyGroup()
+        {
+            CurrentKeyGroup = null;
         }
 
         public void SetRebootRequired(string reason = null)
@@ -81,7 +138,14 @@ namespace Proviso
 
         public void AddFacetState(string key, object value)
         {
-            this._temporaryFacetState.Add(key, value);
+            // vNEXT: this idea of SETTING state may not be the best approach - i.e., I could see something getting 'lost' or 'stuck open' here... 
+            //      cuz this is a bit 'fiddly'. 
+            //      MIGHT make better sense to simply CHECK to see if the key's value exists and ... if so, simply RESET it to the new value? 
+            //      AND, note: this all exists because of RECOMPARE operations - i.e., imagine we do $PVContext.AddFacetState("myKey", $someVal); within 
+            //          the scope of a test ... well, that's spiffy and all - cuz that value is then available inside of the CONFIGURE operation. 
+            //          BUT: when CONFIGURE is done running, we RE-COMPARE results - meaning that TEST is re-run and ... attempting to add _tempFacetState.Add(keyAlreadyDefined, someVal) obviously ... throws. 
+            if(!this.recompareActive)
+                this._temporaryFacetState.Add(key, value);
         }
 
         public object GetFacetState(string key)

@@ -4,12 +4,13 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	
-	With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Validate-FirewallRules;
-	#With "D:\Dropbox\Desktop\S4 - New\SQL-120-01.psd1" | Configure-ServerName; # -ExecuteRebase -Force;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-FirewallRules;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ServerName; # -ExecuteRebase -Force;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-RequiredPackages;
 
-	$PVContext.LastProcessingResult;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdministrators;
 
-	Summarize -All; # -IncludeAssertions;
+	Summarize -All -IncludeAssertions;
 
 #>
 
@@ -26,7 +27,7 @@ function Process-Facet {
 	);
 	
 	begin {
-		Limit-ValidProvisoDSL -MethodName "Process-Facet";
+		Validate-MethodUsage -MethodName "Process-Facet";
 		
 		$facet = $ProvisoFacetsCatalog.GetFacet($FacetName);
 		if ($null -eq $facet) {
@@ -107,7 +108,89 @@ function Process-Facet {
 		$validations = @();
 		$facetProcessingResult.StartValidations();
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
-		foreach ($definition in $facet.Definitions) {
+		
+		$definitions = $facet.GetSimpleDefinitions();
+		$valueDefs = $facet.GetBaseValueDefinitions();
+		$groupDefs = $facet.GetBaseGroupDefinitions();
+		
+		if ($valueDefs) {
+			$expandedDefs = @();
+			
+			foreach ($definition in $valueDefs) {
+				
+				$values = Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.ParentKey);
+				if ($values.Count -lt 1) {
+					$Context.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+				}
+				
+				foreach ($value in $values) {
+					$newDescription = "$($value).$($definition.Description)";
+					
+					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
+ 					if ($definition.CurrentValueKeyAsExpect) {
+						$script = "return '$value';";
+						$expectedBlock = [scriptblock]::Create($script);
+						
+						$expandedValueDefinition.AddExpect($expectedBlock);
+					}
+					else {
+						$expandedValueDefinition.AddExpect(($definition.Expectation));
+					}
+					
+					$expandedValueDefinition.AddTest(($definition.Test));
+					$expandedValueDefinition.AddConfigure(($definition.Configure));
+					$expandedValueDefinition.AddCurrentKeyValue($value);
+					
+					$expandedDefs += $expandedValueDefinition;
+				}
+			}
+			
+			$definitions += $expandedDefs;
+		}
+		
+		if ($groupDefs) {
+			$expandedDefs = @();
+			
+			foreach ($definition in $groupDefs) {
+				
+				# TODO: Need to standardize on whether I'll use a key value like, say: "DataCollectors.*" or 'just' "DataCollectors". 
+				#   More importantly, pretty sure I can't/won't allow something like "Parent.*.OtherStuffAfterTheDynamicKey" - as I don't want to try 
+				#  		and deal with complexities like that... (i.e., guessing that something like that isn't needed).
+				[string]$trimmedKey = ($definition.ParentKey) -replace ".\*", "";
+				
+				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey;
+				if ($groupNames.Count -lt 1) {
+					$Context.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+				}
+				
+				foreach ($groupName in $groupNames) {
+					$newDescription = "$($value).$($definition.Description)";
+					$fullKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
+					
+					$actualValue = Get-ProvisoConfigValueByKey -Config $Config -Key $fullKey;
+					
+					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
+					
+					$script = "return '$actualValue';";
+					$expectedBlock = [scriptblock]::Create($script);
+					
+					$expandedGroupDefinition.AddExpect($expectedBlock);
+					$expandedGroupDefinition.AddTest(($definition.Test));
+					$expandedGroupDefinition.AddConfigure(($definition.Configure));
+					$expandedGroupDefinition.AddCurrentKeyValue($actualValue);
+					$expandedGroupDefinition.AddCurrentKeyGroup($groupName);
+					
+					$expandedDefs += $expandedGroupDefinition;
+				}
+			}
+			
+			$definitions += $expandedDefs;
+		}
+		
+		foreach ($definition in $definitions) {
+			
+			$validationResult = New-Object Proviso.Processing.ValidationResult($definition); 
+			$validations += $validationResult;			
 			
 			[ScriptBlock]$expectedBlock = $definition.Expectation;
 			if (($null -eq $expectedBlock) -and ($null -ne $definition.Key)) { 	# dynamically CREATE a script-block ... that spits out the config key: 
@@ -115,29 +198,58 @@ function Process-Facet {
 				$expectedBlock = [scriptblock]::Create($script);
 			}
 			
-			[ScriptBlock]$testBlock = $definition.Test;
+			$expectedResult = $null;
+			$expectedException = $null;
 			
-			$comparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+			if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
+				$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
+			}
 			
-			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, ($comparison.ExpectedResult), ($comparison.ActualResult), ($comparison.Matched));
-			$validations += $validationResult;
+			if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Group) {
+				# REFACTOR: this needs to be refactored. I don't MIND using the same func to display 'current value'... but, the name needs to reflect that this is more generic (than the hyper-specific name that was initially created here for VALUEDEF stuff);
+				$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
+				$PVContext.SetCurrentKeyGroup($definition.CurrentKeyGroupForGroupDefinitions);
+			}
 			
-			if ($null -ne $comparison.ExpectedError) {
-				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Expected, ($comparison.ExpectedError));
+			try {
+				$expectedResult = & $expectedBlock;
+			}
+			catch {
+				$expectedException = $_;
+			}
+						
+			if ($null -ne $expectedException) {
+				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Expected, $expectedException);
 				$validationResult.AddValidationError($validationError);
 			}
-			if ($null -ne $comparison.ActualError) {
-				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Actual, ($comparison.ActualError));
-				$validationResult.AddValidationError($validationError);
-			}
-			if($null -ne $comparison.ComparisonError) {
-				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Compare, ($comparison.ComparisonError));
-				$validationResult.AddValidationError($validationError);
+			else {
+				$validationResult.AddExpectedResult($expectedResult);
+				$PVContext.SetCurrentExpectValue($expectedResult);  #temporarily add to PVContext - for scope of Test{} block - i.e., it gets removed at end of this block of code... 
+				
+				[ScriptBlock]$testBlock = $definition.Test;
+				
+				$comparison = Compare-ExpectedWithActual -Expected $expectedResult -TestBlock $testBlock;
+				
+				$validationResult.AddComparisonResults(($comparison.ActualResult), ($comparison.Matched))
+				
+				if ($null -ne $comparison.ActualError) {
+					$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Actual, ($comparison.ActualError));
+					$validationResult.AddValidationError($validationError);
+				}
+				
+				if ($null -ne $comparison.ComparisonError) {
+					$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Compare, ($comparison.ComparisonError));
+					$validationResult.AddValidationError($validationError);
+				}
+				
+				if ($validationResult.Failed) {
+					$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., exception/failure.
+				}
+				
+				$PVContext.RemoveCurrentExpectValue();
 			}
 			
-			if ($validationResult.Failed) {
-				$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., exception/failure.
-			}
+			$PVContext.ClearCurrentKeyValue();
 		}
 		
 		$facetProcessingResult.EndValidations($validationsOutcome, $validations);
@@ -218,7 +330,14 @@ function Process-Facet {
 				}
 				else {
 					
+					if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
+						$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
+					}
+					
 					try {
+						$PVContext.SetCurrentExpectValue($validation.Expected);
+						$PVContext.SetCurrentActualValue($validation.Actual);
+						
 						[ScriptBlock]$configureBlock = $validation.Configure;
 						
 						& $configureBlock;
@@ -232,14 +351,21 @@ function Process-Facet {
 					}
 					
 					# Recomparisons:
+					$PVContext.SetRecompareActive();
 					if ($configurationResult.ConfigurationSucceeded) {
 						try {
-							[ScriptBlock]$expectedBlock = $definition.Expectation;
 							[ScriptBlock]$testBlock = $validation.Test;
 							
-							$reComparison = Compare-ExpectedWithActual -ExpectedBlock $expectedBlock -TestBlock $testBlock;
+							$reComparison = Compare-ExpectedWithActual -Expected $validation.Expected -TestBlock $testBlock;
 							
-							$configurationResult.SetRecompareCompleted(($reComparison.ExpectedResult), ($reComparison.ActualResult), ($reComparison.Matched));
+							if ($null -eq $reComparison.ActualError) {
+								$configurationResult.SetRecompareCompleted($validation.Expected, ($reComparison.ActualResult), ($reComparison.Matched));
+							}
+							else {
+								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+								$configurationError = New-Object Proviso.Processing.ConfigurationError(($reComparison.ActualError), $true);
+								$configurationResult.AddConfigurationError($configurationError);
+							}
 						}
 						catch {
 							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
@@ -247,6 +373,12 @@ function Process-Facet {
 							$configurationResult.AddConfigurationError($configurationError);
 						}
 					}
+					
+					$PVContext.RemoveCurrentExpectValue();
+					$PVContext.RemoveCurrentActualValue();
+					$PVContext.SetRecompareInactive();
+					
+					$PVContext.ClearCurrentKeyValue();
 				}
 			}
 			

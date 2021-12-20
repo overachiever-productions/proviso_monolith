@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Management.Automation;
+using Proviso.Enums;
 
 namespace Proviso.Models
 {
@@ -52,13 +56,30 @@ namespace Proviso.Models
             this.ConfigKey = key;
         }
 
+        public List<Definition> GetSimpleDefinitions()
+        {
+            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Simple).ToList();
+        }
+
+        public List<Definition> GetBaseValueDefinitions()
+        {
+            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Value).ToList();
+        }
+
+        public List<Definition> GetBaseGroupDefinitions()
+        {
+            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Group).ToList();
+        }
+
         private void ValidateDefinition(Definition definition)
         {
             // TODO: need to ensure that each definition's NAME is distinct (i.e., can't have the same definition (name) 2x). 
             // further... can't have the same definition with duplicate .ConfigKey properties either.
 
-            if (definition.Expectation == null && definition.Key == null)
-                throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain either a -Key OR an Expect-Block.");
+            // TODO: yeah, lol: no. this error message is too effing long... possibly just point people to the docs? 
+            // TODO: yeah... also need to revisit these checks. definition.CurrentValueKeyAsExpect and definition.ChildKey can ONLY be used if value or group definitions (respectively) - so I need to add those checks into play too (unless validation during load covers these conditions? probably does ... but yeah).
+            if (definition.Expectation == null && definition.Key == null && !(definition.CurrentValueKeyAsExpect) && (definition.ChildKey == null))
+                throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain either a -Key, an Expect-Block, or use EITHER -ExpectCurrentKeyValue or -ExpectChildKey.");
 
             if(definition.Test == null)
                 throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain a Test-Block");

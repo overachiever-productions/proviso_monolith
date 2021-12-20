@@ -1,20 +1,15 @@
 ﻿Set-StrictMode -Version 1.0;
 
 function Compare-ExpectedWithActual {
-	#region vNEXT
-	# vNEXT: allow for the option to pass in 'ExpectedValue' vs just ExpectedBlock only. 
-	#   that way, we can use either ExpectedValue or ExpectedBlock -> value. 
-	#endregion;
-	
 	param (
 		[Parameter(Mandatory)]
-		[ScriptBlock]$ExpectedBlock,
+		$Expected,
 		[Parameter(Mandatory)]
 		[ScriptBlock]$TestBlock
 	);
 	
 	begin {
-
+		
 	};
 	
 	process {
@@ -25,20 +20,10 @@ function Compare-ExpectedWithActual {
 		# 		and potentially capture those that don't ==.
 		#endregion	
 		
-		$expectedResult = $null;
-		$expectedException = $null;
-		
-		try {
-			$expectedResult = & $expectedBlock;
-		}
-		catch {
-			$expectedException = $_;
-		}
-		
 		$actualResult = $null;
 		$actualException = $null;
 		try {
-			$actualResult = & $testBlock;
+			$actualResult = & $TestBlock;
 		}
 		catch {
 			$actualException = $_;
@@ -47,31 +32,29 @@ function Compare-ExpectedWithActual {
 		[bool]$comparedValuesMatch = $false;
 		
 		[System.Management.Automation.ErrorRecord]$comparisonError = $null;
-		if (($null -eq $expectedException) -and ($null -eq $actualException)) {
+		if ($null -eq $actualException) {
 			
 			try {
-				$comparedValuesMatch = ($expectedResult -eq $actualResult);
+				$comparedValuesMatch = ($Expected -eq $actualResult);
 			}
 			catch {
 				$comparisonError = $_;
 			}
 		}
-		else{
-			try {
-				# yeah... this is a hell of a way to do this... 
-				throw "Cannot compare Expected vs Test/Actual because one or more of the evaluation operations for Expected/Test threw an exception.";
-			}
-			catch {
-				$comparisonError = $_;
-			}
-		}
+#		else{
+#			try {
+#				# yeah... this is a hell of a way to do this... 
+#				throw "Cannot compare Expected vs Actual because one or more of the evaluation operations for Expected/Test threw an exception.";
+#			}
+#			catch {
+#				$comparisonError = $_;
+#			}
+#		}
 		
 	};
 	
 	end {
 		$output = [PSCustomObject]@{
-			'ExpectedResult' = $expectedResult
-			'ExpectedError' = $expectedException
 			'ActualResult' = $actualResult
 			'ActualError' = $actualException
 			'Matched' = $comparedValuesMatch

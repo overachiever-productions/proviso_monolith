@@ -21,7 +21,7 @@ function {0}-{1} {{
 		[PSCustomObject]$Config{2}
 	);
 	
-	Limit-ValidProvisoDSL -MethodName "{0}";
+	Validate-MethodUsage -MethodName "{0}";
 
 	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {{
 		if($null -eq $Config) {{

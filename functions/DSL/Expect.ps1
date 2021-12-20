@@ -1,6 +1,5 @@
 ﻿Set-StrictMode -Version 1.0;
 
-
 #region vNEXT
 # vNEXT: It MAY (or may not) make sense to allow MULTIPLE Expects. 
 # 		for example, TargetDomain ... could be "" or "WORKGROUP". Both answers are acceptable. 
@@ -21,6 +20,20 @@ function Expect {
 		[string]$That   # syntactic sugar
 	);
 	
-	Limit-ValidProvisoDSL -MethodName "Expect" -AsFacet;
-	$definition.AddExpect($ExpectBlock);
+	begin {
+		Validate-FacetBlockUsage -BlockName "Expect";
+		
+		If ($Expect) { # defined in the parent of this func - i.e., within Definition... 
+			# because we're IN here (i.e., within Expect (the verb), we know that there's an Expect{} and that -Expect is also defined)
+			throw "Invalid Argument. Define blocks can use EITHER an Expect{} block OR the -Expect parameter (not both).";
+		}
+	}
+	
+	process{
+		$definition.AddExpect($ExpectBlock);
+	}
+	
+	end {
+		
+	}
 }

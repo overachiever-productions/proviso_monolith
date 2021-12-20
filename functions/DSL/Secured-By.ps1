@@ -64,7 +64,7 @@ function Secured-By {
 	);
 	
 	begin {
-		Limit-ValidProvisoDSL -MethodName "Secured-By";
+		Validate-MethodUsage -MethodName "Secured-By";
 		
 		# verify memember-methods ([.LoadValues], .HasDomainCreds, .GetValues, [.GetCredentials])
 		if (-not ($Provider.PSObject.Properties.Name -eq "HasDomainCreds")) {

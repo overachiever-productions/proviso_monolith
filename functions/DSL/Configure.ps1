@@ -5,6 +5,7 @@ function Configure {
 		[ScriptBlock]$ConfigureBlock
 	);
 	
-	Limit-ValidProvisoDSL -MethodName "Configure" -AsFacet;
-	$definition.AddConfiguration($ConfigureBlock)
+	Validate-FacetBlockUsage -BlockName "Configure";
+	
+	$definition.AddConfigure($ConfigureBlock)
 }

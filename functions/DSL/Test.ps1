@@ -5,6 +5,7 @@ function Test {
 		[ScriptBlock]$TestBlock
 	);
 	
-	Limit-ValidProvisoDSL -MethodName "Test" -AsFacet;
+	Validate-FacetBlockUsage -BlockName "Test";
+	
 	$definition.AddTest($TestBlock);
 }

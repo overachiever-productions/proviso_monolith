@@ -47,7 +47,7 @@ function Facet {
 	);
 	
 	begin {
-		Limit-ValidProvisoDSL -MethodName "Facet" -AsFacet;
+		Validate-FacetBlockUsage -BlockName "Facet";
 		
 		$facetFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
 		if ($null -eq $Name) {

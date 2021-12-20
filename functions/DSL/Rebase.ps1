@@ -5,7 +5,7 @@ function Rebase {
 		[scriptblock]$RebaseBlock
 	);
 	
-	Limit-ValidProvisoDSL -MethodName "Rebase" -AsFacet;
+	Validate-FacetBlockUsage -BlockName "Rebase";
 	
 	$rebase = New-Object Proviso.Models.Rebase($RebaseBlock, $Name);
 	$facet.AddRebase($rebase);

@@ -23,7 +23,7 @@ function With {
 	);
 	
 	begin {
-		Limit-ValidProvisoDSL -MethodName "With";
+		Validate-MethodUsage -MethodName "With";
 		
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {
@@ -126,8 +126,8 @@ function With {
 				# If we haven't found an explicit value, grab a default (which may be null):
 				$output = Get-ProvisoConfigDefault -Key $Key;
 				
+				# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
 				if ($null -eq $output) {
-					# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
 					switch -regex ($Key) {
 						'Host\.NetworkDefinitions\.[^.]+\.AssumableIfNames' {
 							throw "Host.NetworkDefinitions<interfaceName>.AssumableIfNames cannot be null or use defaults.";

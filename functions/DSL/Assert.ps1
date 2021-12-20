@@ -18,7 +18,7 @@ function Assert {
 	);
 	
 	begin {
-		Limit-ValidProvisoDSL -MethodName "Assert" -AsFacet;
+		Validate-FacetBlockUsage -BlockName "Assert";
 		
 		if ($Is -and $IsNot) {
 			# vNEXT: look at using $MyInvocation and/or other meta-data to determine WHICH alias was used and throw with those terms vs generic -Is/-IsNot:

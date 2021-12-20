@@ -28,6 +28,19 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 #		}
 	}
 	
+	Rebase {
+		# this particular facet MIGHT make sense as a case where a Rebase is needed/required before processing stuff. 
+		# and ... the rebase would be to REMOVE all existing Firewall Rules matching the names of the rules defined below? 
+		
+		# either way, what I need to do here is, sigh, 2x things: 
+		#  a. there's NOTHING stopping me from creating a New-NetFirewallRule that's the exact same as the one before - i.e., I can run these 3x lines of 
+		#  		code without ANY problems or errors: 
+		
+		
+		# 		what I'll end up with, though, is 3x rules with the same 'name' (different GUIDs)... which is a friggin mess. 
+		# b. arguably, if the config says: $false for a given rule (e.g., mirroring, or ICMP), then... I want to nuke the rule instead of recreating it as $true (open)
+	}
+	
 	Definitions {
 		
 		Definition "SQL Server" -Key "Host.FirewallRules.EnableFirewallForSqlServer" {
@@ -72,19 +85,21 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 			}
 		}
 		
-		Definition "ICMP" -Key "Host.FirewallRules.EnableICMP" {
-			Test {
-				$rule = Get-NetFirewallRule -DisplayName "FPS-ICMP4-ERQ-In" -ErrorAction SilentlyContinue;
-				if (($null -eq $rule) -or (-not($rule.Enabled))) {
-					return $false;
-				}
-				
-				return $true;
-			}
-			Configure {
-				Set-NetFirewallRule -Name "FPS-ICMP4-ERQ-In" -Enabled true | Out-Null;
-			}
-		}
+		# So... yeah... this thing just does NOT exist... on all Windows Server 2019 instances... 
+		#  need to do a bit more work on figuring out how to deal with this. 
+#		Definition "ICMP" -Key "Host.FirewallRules.EnableICMP" {
+#			Test {
+#				$rule = Get-NetFirewallRule -DisplayName "FPS-ICMP4-ERQ-In" -ErrorAction SilentlyContinue;
+#				if (($null -eq $rule) -or (-not($rule.Enabled))) {
+#					return $false;
+#				}
+#				
+#				return $true;
+#			}
+#			Configure {
+#				Set-NetFirewallRule -Name "FPS-ICMP4-ERQ-In" -Enabled true | Out-Null;
+#			}
+#		}
 		
 	}
 }

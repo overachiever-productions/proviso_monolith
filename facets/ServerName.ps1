@@ -43,21 +43,22 @@ Facet "ServerName" {
 		}
 	}
 	
-	Rebase {
-		#Write-Host "<DO REBASE STUFF HERE>";
-		$PVContext.SetRebootRequired("Rebase Requires Reboot for FULL reset.");
-		
-		#throw "Doh! This is a test of what a rebase failure would look like...";
-	}
-	
 	Definitions {
 		Definition -For "Target Server" -Key "Host.TargetServer" {
 			Test {
+				
+#				Write-Host "Inside [Target Server].TEST and looking for Expected Value of [$($PVContext.Expected)]";
+				
 				$currentHost = [System.Net.Dns]::GetHostName();
 				$PVContext.AddFacetState("CurrentHostName", $currentHost);
+				
 				return $currentHost;
 			}
 			Configure {
+				
+				
+#				Write-Host "Inside [Target Server].CONFIGURE with Expected Value of [$($PVContext.Expected)]";
+#				Write-Host "Inside [Target Server].CONFIGURE with ACTUAL Value of [$($PVContext.Actual)]";
 				
 				# NOTE: this definition is for target server... but if the domain name needs to be changed too, we'll want to tackle that here. 
 				$targetDomainName = $Config.GetValue("Host.TargetDomain");
@@ -81,6 +82,8 @@ Facet "ServerName" {
 				return $domain; 
 			}
 			Configure {
+				
+				Write-Host "In ServerName and ... PVContext.Expected = $($PVContext.Expected) ";
 				
 #				#region example-ish
 #				if ((Context.GetTemporaryFacetValue("CurrentHostName")) -ne ($Config.GetValue("Host.TargetServer"))) {

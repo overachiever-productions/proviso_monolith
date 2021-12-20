@@ -112,16 +112,8 @@
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
-            <Width>22</Width>
-            <Label>Facet</Label>
-          </TableColumnHeader>
-          <TableColumnHeader>
-            <Width>30</Width>
+            <Width>52</Width>
             <Label>Validation</Label>
-          </TableColumnHeader>
-          <TableColumnHeader>
-            <Width>10</Width>
-            <Label>Match</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>18</Width>
@@ -136,19 +128,13 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
-              </TableColumnItem>
-              <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.ParentDefinition.Description, 29)</ScriptBlock>
-              </TableColumnItem>
-              <TableColumnItem>
-                <ScriptBlock>$($_.Matched)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 51)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.Expected, 17)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$($_.Actual)</ScriptBlock>
+                <ScriptBlock>$($_.GetActualSummary())</ScriptBlock>
               </TableColumnItem>
             </TableColumnItems>
           </TableRowEntry>
@@ -195,37 +181,27 @@
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
-            <Width>22</Width>
-            <Label>Facet</Label>
-          </TableColumnHeader>
-          <TableColumnHeader>
-            <Width>30</Width>
+            <Width>52</Width>
             <Label>Configuration</Label>
-          </TableColumnHeader>
-          <TableColumnHeader>
-            <Width>10</Width>
-            <Label>Outcome</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>18</Width>
             <Label>Expected</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>48</Width>
+            <Width>58</Width>
             <Label>Actual</Label>
           </TableColumnHeader>
+          <!--<TableColumnHeader>
+            <Width>10</Width>
+            <Label>Outcome</Label>
+          </TableColumnHeader>-->
         </TableHeaders>
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
-              </TableColumnItem>
-              <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Validation.ParentDefinition.Description, 29)</ScriptBlock>
-              </TableColumnItem>
-              <TableColumnItem>
-                <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 51)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.Validation.Expected, 17)</ScriptBlock>
@@ -233,6 +209,9 @@
               <TableColumnItem>
                 <ScriptBlock>$_.GetActualSummary()</ScriptBlock>
               </TableColumnItem>
+              <!--<TableColumnItem>
+                <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
+              </TableColumnItem>-->
             </TableColumnItems>
           </TableRowEntry>
         </TableRowEntries>

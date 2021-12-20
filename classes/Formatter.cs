@@ -1,5 +1,4 @@
-﻿using System.Dynamic;
-
+﻿
 namespace Proviso
 {
     public class Formatter
@@ -14,6 +13,26 @@ namespace Proviso
             if (output.Length > maxLength)
                 output = output.Substring(0, (maxLength - 1)) + '…';
 
+            if (string.IsNullOrEmpty(output))
+                output = "<EMPTY>";
+
+            return output;
+        }
+
+        public string ToEmpty(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return "<EMPTY>";
+
+            return input;
+        }
+
+        public string ToEmptyableString(object input)
+        {
+            if (input == null)
+                return "<EMPTY>";
+
+            string output = input.ToString().Trim();
             if (string.IsNullOrEmpty(output))
                 output = "<EMPTY>";
 

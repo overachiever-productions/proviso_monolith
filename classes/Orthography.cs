@@ -24,6 +24,7 @@ namespace Proviso
             this._allowedFacetBlocks.Add("Assertions");             //  1 - child of facet
             this._allowedFacetBlocks.Add("Assert");                 //    2 - child of Assertions
             this._allowedFacetBlocks.Add("Rebase");                 //  1 - child of facet
+            this._allowedFacetBlocks.Add("Setup");                 //  1 - child of facet
             this._allowedFacetBlocks.Add("Definitions");            //  1 - child of facet
             this._allowedFacetBlocks.Add("Value-Definitions");      //  1 - child of facet
             this._allowedFacetBlocks.Add("Group-Definitions");      //  1 - child of facet

@@ -46,6 +46,21 @@ function Process-Facet {
 	
 	process {
 		# --------------------------------------------------------------------------------------
+		# Setup	
+		# --------------------------------------------------------------------------------------
+		if ($facet.Setup.SetupBlock) {
+			try {
+				[ScriptBlock]$setupBlock = $facet.Setup.SetupBlock;
+				
+				& $setupBlock;
+			}
+			catch{
+				$Context.WriteLog("FATAL: Facet.Setup FAILED for Facet [$($facet.Name)]. Error Detail: $($_)", "Critical");
+			}
+		}
+		
+		
+		# --------------------------------------------------------------------------------------
 		# Assertions	
 		# --------------------------------------------------------------------------------------
 		$assertionsFailed = $false;
@@ -124,7 +139,7 @@ function Process-Facet {
 				}
 				
 				foreach ($value in $values) {
-					$newDescription = "$($value).$($definition.Description)";
+					$newDescription = "$($definition.Description):$($value)";
 					
 					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
  					if ($definition.CurrentValueKeyAsExpect) {
@@ -153,31 +168,34 @@ function Process-Facet {
 			
 			foreach ($definition in $groupDefs) {
 				
-				# TODO: Need to standardize on whether I'll use a key value like, say: "DataCollectors.*" or 'just' "DataCollectors". 
-				#   More importantly, pretty sure I can't/won't allow something like "Parent.*.OtherStuffAfterTheDynamicKey" - as I don't want to try 
-				#  		and deal with complexities like that... (i.e., guessing that something like that isn't needed).
 				[string]$trimmedKey = ($definition.ParentKey) -replace ".\*", "";
 				
-				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey;
+				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$Context.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames) {
-					$newDescription = "$($value).$($definition.Description)";
-					$fullKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
 					
-					$actualValue = Get-ProvisoConfigValueByKey -Config $Config -Key $fullKey;
+					$newDescription = "$($definition.Description):$($groupName)";
 					
 					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
 					
-					$script = "return '$actualValue';";
-					$expectedBlock = [scriptblock]::Create($script);
+					if (-not ($definition.Expectation)) {
+						$fullKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
+						$actualValue = Get-ProvisoConfigValueByKey -Config $Config -Key $fullKey;
+						$script = "return '$actualValue';";
+						$expectedBlock = [scriptblock]::Create($script);
+						
+						$expandedGroupDefinition.AddExpect($expectedBlock);
+						$expandedGroupDefinition.AddCurrentKeyValue($actualValue);
+					}
+					else {
+						$expandedGroupDefinition.AddExpect(($definition.Expectation));
+					}
 					
-					$expandedGroupDefinition.AddExpect($expectedBlock);
 					$expandedGroupDefinition.AddTest(($definition.Test));
 					$expandedGroupDefinition.AddConfigure(($definition.Configure));
-					$expandedGroupDefinition.AddCurrentKeyValue($actualValue);
 					$expandedGroupDefinition.AddCurrentKeyGroup($groupName);
 					
 					$expandedDefs += $expandedGroupDefinition;

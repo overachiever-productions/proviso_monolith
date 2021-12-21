@@ -16,6 +16,7 @@
     <Compile Include="..\..\classes\models\Facet.cs" Link="Models\Facet.cs" />
     <Compile Include="..\..\classes\models\FacetsCatalog.cs" Link="Models\FacetsCatalog.cs" />
     <Compile Include="..\..\classes\models\Rebase.cs" Link="Models\Rebase.cs" />
+    <Compile Include="..\..\classes\models\Setup.cs" Link="Models\Setup.cs" />
     <Compile Include="..\..\classes\models\Tester.cs" Link="Models\Tester.cs" />
     <Compile Include="..\..\classes\Orthography.cs" Link="Orthography.cs" />
     <Compile Include="..\..\classes\ProcessingContext.cs" Link="ProcessingContext.cs" />

@@ -17,6 +17,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Assertion.cs"
 	"$ProvisoScriptRoot\classes\models\Definition.cs"
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
+	"$ProvisoScriptRoot\classes\models\Setup.cs"
 	"$ProvisoScriptRoot\classes\models\Facet.cs"
 	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"
 	"$ProvisoScriptRoot\classes\models\Tester.cs"

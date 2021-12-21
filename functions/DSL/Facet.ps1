@@ -13,6 +13,9 @@
 		The actual 'structure' or layout of a Facet and its sub-funcs is as follows: 
 
 				function Facet {
+					
+					function Setup {}
+
 					function Assertions {
 						function Assert {
 						}

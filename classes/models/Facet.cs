@@ -19,6 +19,7 @@ namespace Proviso.Models
         public List<Assertion> Assertions { get; private set; }
         public List<Assertion> FailedAssertions { get; private set; }
         public List<Definition> Definitions { get; private set; }
+        public Setup Setup { get; private set; }
         public Rebase Rebase { get; private set; }
 
         public Facet(string name, string fileName, string sourcePath)
@@ -37,6 +38,14 @@ namespace Proviso.Models
             this.Assertions.Add(added);
         }
 
+        public void AddSetup(Setup setup)
+        {
+            if (this.Setup != null)
+                throw new ArgumentException("Setup my ONLY be defined 1x per facet.");
+
+            this.Setup = setup;
+        }
+        
         public void AddRebase(Rebase added)
         {
             if (this.Rebase != null)

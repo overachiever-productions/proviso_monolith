@@ -1,5 +1,11 @@
 ﻿Set-StrictMode -Version 1.0;
 
+
+# REFACTOR: there are a number of 'validations' and other assignments going-on with the 'begin' (validations) and 'process' (assignment) blocks. 
+#  		they're ... haphazard. Instead of various checks/etc... do a  'switch' on the Proviso.Enums.DefinitionType... 
+#   		and do validations per each type, 
+#  		then, in the 'process' block, do a switch as well... and load values as needed. 
+
 function Definition {
 	param (
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
@@ -27,6 +33,12 @@ function Definition {
 		if ($ExpectCurrentKeyValue){
 			if ($defsType -ne [Proviso.Enums.DefinitionType]::Value) {
 				throw "Invalid Argument. -ExpectCurrentKeyValue can ONLY be specified for [Definition] methods within [Value-Definitions] blocks.";
+			}
+		}
+		
+		if ($OrderByChildKey) {
+			if ($defsType -ne [Proviso.Enums.DefinitionType]::Group) {
+				throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Definition] methods within [Group-Definition] blocks.";
 			}
 		}
 		
@@ -67,6 +79,11 @@ function Definition {
 		if ($ExpectChildKey){
 			$definition.SetParentKeyForValueDefinition($GroupKey);
 			$definition.SetChildKeyForGroupDefinition($ExpectChildKey);
+		}
+		
+		if ($OrderByChildKey) {
+			$definition.SetParentKeyForValueDefinition($GroupKey);
+			$definition.AddOrderByChildKey($OrderByChildKey);
 		}
 		
 		& $DefinitionBlock;

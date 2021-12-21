@@ -18,6 +18,11 @@ Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 				return $true;
 			}
 		}
+		
+		Assert "Get-WindowsFeatureExists" {
+			# TODO: see if Get-WindowsFeature is even a 'thing' - and FAIL if not... 
+			return $false;
+		}
 	}
 	
 	Definitions {

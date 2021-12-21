@@ -48,9 +48,7 @@ Facet "DataCollectorSets" {
 				$group = $PVContext.CurrentKeyGroup;
 				
 				#Write-Host "Do whatever is needed to set the Enabled Status of DataCollectorSet: [$group] to [$value];";
-				$keyForXml = "DataCollectorSets.$group.XmlDefinition";
-				
-				$configDataForXmlDef = Get-ProvisoConfigValueByKey -Config $Config -Key $keyForXml;
+				$configDataForXmlDef = $PVConfig.GetValue("DataCollectorSets.$group.XmlDefinition");
 				
 				#Write-Host "If needed, the value for XML def would be: $configDataForXmlDef ";
 				

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Proviso.Models;
 using Proviso.Processing;
@@ -21,6 +20,8 @@ namespace Proviso
         public FacetProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
         public int ProcessedFacetsCount => this._facets.Count;
         public int FacetResultsCount => this._processingResults.Count;
+
+        public int FacetStateObjectsCount => this._temporaryFacetState.Count;
 
         public object Expected { get; private set; }
         public object Actual { get; private set; }

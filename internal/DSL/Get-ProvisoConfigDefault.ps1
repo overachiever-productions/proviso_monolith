@@ -21,15 +21,15 @@ filter Get-ProvisoConfigDefault {
 	if ($null -ne $defaulValue) {
 		return $defaulValue;
 	}
-	
+
 	# Non-SQL-Instance Partials (pattern):
 	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
 	if ($match) {
 		$partialName = $match[0].Groups['partialName'];
-
+		
 		if (-not ([string]::IsNullOrEmpty($partialName))) {
 			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
-			
+		
 			$defaulValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
 			
 			if ($null -ne $defaulValue) {
@@ -37,7 +37,7 @@ filter Get-ProvisoConfigDefault {
 					return $defaulValue;
 				}
 				
-				if ($defaulValue -eq "~{PARENT}~") {
+				if ($defaulValue -eq "{~PARENT~}") {
 					$defaulValue = $partialName;
 				}
 				

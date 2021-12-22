@@ -407,5 +407,11 @@ function Process-Facet {
 	end {
 		$facetProcessingResult.SetProcessingComplete();
 		$Context.CloseCurrentFacet();
+		
+		if ($Context.RebootRequired) {
+			$message = "REBOOT REQUIRED. $($Context.RebootReason)";
+			
+			$Context.WriteLog($message, "CRITICAL");
+		}
 	}
 }

@@ -18,7 +18,8 @@ function Definition {
 		[Alias("Has")]
 		[Switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
 		[ValidateNotNullOrEmpty()]
-		[string]$Key
+		[string]$Key,
+		[int]$ProcessingOrder 		# per facet... 
 	)
 	
 	begin {

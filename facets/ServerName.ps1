@@ -1,5 +1,18 @@
 ﻿Set-StrictMode -Version 1.0;
 
+<#
+	Notes on OUTCOMEs and CONFIGURATION
+	Sadly, optional machine-rename + optional domain-join lead to an ugly number of permutations in terms of outcomes that can happen when configuring machine/domian names: 
+		A. No change to Server-Name or Domain-Name. 
+		B. Change to Server-Name (only). 
+		C. Change to Domain-Name (only) - i.e., machine-name is correct, but we need to join the domain. 
+		D. Change both Server-Name and Domain-Name (i.e., rename box + join domain). 
+
+	In this facet, the "Target Server" Description will handle outcome B and D. Outcome D will be handled by "Target Domain". (And outcome A obviously doesn't need to be handled).
+
+#>
+
+
 Facet "ServerName" {
 	
 	Assertions {
@@ -41,33 +54,44 @@ Facet "ServerName" {
 			# 		along those lines, it'd be way better to have a Facet for 'AD cleanup' if/as needed as a PREDECESSOR to this facet (in a workflow/runbook)
 			return $false; # inverted... 
 		}
+		
+		Assert "TargetServerNameIsNetBiosCompliant" -FailureMessage "TargetServer value specified in config exceeds 15 chars in legth." {
+			$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
+			
+			return ($targetMachineName.Length -le 15);
+		}
 	}
 	
 	Definitions {
 		Definition -For "Target Server" -Key "Host.TargetServer" {
 			Test {
 				
-#				Write-Host "Inside [Target Server].TEST and looking for Expected Value of [$($PVContext.Expected)]";
-				
-				$currentHost = [System.Net.Dns]::GetHostName();
-				$PVContext.AddFacetState("CurrentHostName", $currentHost);
-				
-				return $currentHost;
+				return [System.Net.Dns]::GetHostName();
 			}
 			Configure {
+				$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
 				
+				# see notes on Outcomes/configuration in comments at the top of this facet:
+				# since we're in here, we already KNOW that the current HostName doesn't match the Desired (Target) host-name. 
+				#  so, we've already achieved 'at least' outcome B. Question is, did we achieve outcome D (server-rename AND domain-join)?
+				$currentDomain = $PVContext.GetFacetState("CurrentDomain");
+				$targetDomainName = $PVConfig.GetValue("Host.TargetDomain");
 				
-#				Write-Host "Inside [Target Server].CONFIGURE with Expected Value of [$($PVContext.Expected)]";
-#				Write-Host "Inside [Target Server].CONFIGURE with ACTUAL Value of [$($PVContext.Actual)]";
-				
-				# NOTE: this definition is for target server... but if the domain name needs to be changed too, we'll want to tackle that here. 
-				$targetDomainName = $Config.GetValue("Host.TargetDomain");
-				$currentDomainName = $PVContext.GetFacetState("CurrentDomain");
-				
-				#Write-Host "Configuration Example: TargetDomain: $targetDomainName => Current DomainName: $currentDomainName ";
-				
-				# assuming domain-join and rename went fine: 
-				$PVContext.AddFacetState("JoinedToDomain", $true);  # which we can check down below... 
+				if ($targetDomainName -ne $currentDomain) {
+					# OUTCOME D
+					$PVContext.AddFacetState("JoiningDomainAsPartOfRename", $true);
+					
+					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName] and joining the [$targetDomainName] Domain.", "Important");
+					#Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false;
+				}
+				else {
+					# OUTCOME B (we just need to change the host name):
+					
+					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName].", "Important");
+					#Rename-Computer -NewName $targetMachineName -Force -Restart:$false;
+				}
+						
+				$PVContext.SetRebootRequired("Host-Name Change Requires Reboot.");
 			}
 		}
 		
@@ -79,21 +103,34 @@ Facet "ServerName" {
 				}
 				
 				$PVContext.AddFacetState("CurrentDomain", $domain);
+				
 				return $domain; 
 			}
 			Configure {
 				
-				Write-Host "In ServerName and ... PVContext.Expected = $($PVContext.Expected) ";
+				# see notes on Outcomes/configuration in comments at the top of this facet:
+				#   We're either dealing with Outcome C or D. But D will be handled by "Target Server"
+				$currentHostName = [System.Net.Dns]::GetHostName();
+				$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
 				
-#				#region example-ish
-#				if ((Context.GetTemporaryFacetValue("CurrentHostName")) -ne ($Config.GetValue("Host.TargetServer"))) {
-#					#at this point, we know that ... domain-join isn't THE only thing we need. 
-#					# we need both DOMAIN-JOIN _AND_ a name-change. 
-#				}
-#				#endregion				
+				if ($targetMachineName -ne $currentHostName){
+					# Outcome D - should be getting handled in "Target Machine": 
+					$handled = $PVContext.GetFacetState("JoiningDomainAsPartOfRename");
+					
+					if ($handled){
+						throw "Exception processing Host-Name Change and/or Domain-Name Join... ";
+					}
+				}
+				else {
+					# Outcome C - domain-name change only - handled here: 
+					
+					$targetDomainName = $PVConfig.GetValue("Host.TargetDomain");
+					
+					$PVContext.WriteLog("Adding Host [$currentHostName] to Domain [$targetDomainName].", "Important");
+					#Add-Computer -DomainName $targetDomainName -Credential $credentials -Restart:$false;
+				}
 				
-				#assuming it's needed..: 
-				$Context.SetRebootRequired("Computer Name Change from [old-name] to [new-name].");
+				$PVContext.SetRebootRequired("Host-Name Change Requires Reboot.");
 			}
 		}
 	}

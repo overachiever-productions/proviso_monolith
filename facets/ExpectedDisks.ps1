@@ -1,6 +1,14 @@
 ﻿Set-StrictMode -Version 1.0;
-#
+
 #Facet "ExpectedDisks" {
+#	
+#	Setup {
+#		
+#		$volumes = Get-ExistingVolumeLetters;
+#		
+#		$PVContext.AddFacetState("CurrentVolumes", $volumes);
+#	}
+#	
 #	Assertions {
 #		
 #	}

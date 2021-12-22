@@ -73,12 +73,12 @@
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
-          <TableColumnHeader>
+          <!--<TableColumnHeader>
             <Width>22</Width>
             <Label>Facet</Label>
-          </TableColumnHeader>
+          </TableColumnHeader>-->
           <TableColumnHeader>
-            <Width>30</Width>
+            <Width>52</Width>
             <Label>Assertion</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -89,11 +89,12 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
-              <TableColumnItem>
+              <!--<TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.Assertion.ParentFacetName, 21)</ScriptBlock>
-              </TableColumnItem>
+              </TableColumnItem>-->
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 51)</ScriptBlock>
+                <!--<ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>-->
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$($_.GetOutcomeState())</ScriptBlock>

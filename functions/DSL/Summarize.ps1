@@ -56,7 +56,7 @@ function Summarize {
 		
 		foreach ($result in $targets) {
 			
-			if ($IncludeAssertions) {
+			if ($IncludeAssertions -or ($result.AssertionsFailed)) {
 				foreach ($assert in $result.AssertionResults) {
 					$asserts += $assert;
 				}
@@ -93,7 +93,8 @@ function Summarize {
 			$targets | Format-Table -View Facet-Summary -Wrap:(-not $Terse);
 		}
 		
-		if ($IncludeAssertions) {
+		# yeah... this logic is kind of odd... but the idea is to show assertion outcomes IF they set via -IncludeAssertions OR... if there was a critical failure of an assertion in 1 or more Facets... 
+		if ($IncludeAssertions -or $asserts.Count -gt 0) {
 			if ($asserts.Count -gt 0) {
 				"-------------------------------------------------------------------------------------------------------------------------------";
 				"ASSERTION SUMMARIES:";

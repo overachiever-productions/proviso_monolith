@@ -30,6 +30,11 @@ namespace Proviso.Processing
             this.AssertionError = errorRecord;
         }
 
+        public string GetAssertionName()
+        {
+            return $"{this.Assertion.ParentFacetName}::{this.Assertion.Name}";
+        }
+
         public string GetErrorMessage()
         {
             if (this.AssertionError == null && !this._assertionPassed)

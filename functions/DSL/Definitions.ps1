@@ -25,8 +25,8 @@ function Definitions {
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-DataCollectorSets;
 
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ServerName;
-	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-NetworkAdapters;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ServerName;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-NetworkAdapters;
 
 	Summarize -All -IncludeAllValidations; # -IncludeAssertions;
 

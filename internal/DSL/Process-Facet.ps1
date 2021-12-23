@@ -344,12 +344,11 @@ function Process-Facet {
 				
 				if ($validation.Matched) {
 					$configurationResult.SetBypassed();
-					$Context.WriteLog("Bypassing configuration of [$($definition.Description)] - Expected and Actual values already matched.", "Debug");
+					$Context.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
 				else {
-					
-					if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
-						$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
+					if ($validation.ParentDefinition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
+						$PVContext.SetCurrentKeyValue($validation.ParentDefinition.CurrentKeyValueForValueDefinitions);
 					}
 					
 					try {

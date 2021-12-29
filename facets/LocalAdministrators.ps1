@@ -1,69 +1,57 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Facet "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
+Facet "LocalAdmins" -For -Key "Host.LocalAdministrators" {
+	
+	Setup {
+		$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
+		$PVContext.AddFacetState("CurrentAdmins", $admins);
+	}
 	
 	Assertions {
-		Assert -Is "Adminstrator" -FailureMessage "Current User is not a Member of the Administrators Group" {
-			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-			$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-			
-			if ($admins.Name -notcontains $currentUser) {
-				return $false;
-			}
-		}
+		Assert-UserIsAdministrator;
 		
-		Assert -Is "WindowsServer" {
-			$os = (Get-ChildItem -Path Env:\POWERSHELL_DISTRIBUTION_CHANNEL).Value;
-			if ($os -notlike "*Windows Server*") {
-				return $true;
-			}
-		}
+		Assert-HostIsWindows;
 	}
 	
 	Value-Definitions -ValueKey "Host.LocalAdministrators" {
 		
 		Definition "AccountExists" -ExpectCurrentKeyValue {
-			# NOTE: this 'test' is currently using -ExpectCurrentKeyValue ... that'd be used in a scenario like, say, where we were looking for a specific IP
-			#   or some other 'scalar' (non-true/false) value ... instead of just wanting true/false/etc. 
 			Test {
+				$expectedAccount = $PVContext.CurrentKeyValue;
 				
-				$actualStateOfCurrentValue = "Some String here";
-				if (($PVContext.CurrentKeyValue) -eq "OA\mike-c") {
-					$actualStateOfCurrentValue = $PVContext.CurrentKeyValue;
+				$exists = ConvertTo-WindowsSecurityIdentifier -Name $expectedAccount;
+				if ($exists) {
+					return $expectedAccount;
 				}
 				
-				#return (($PVContext.Expected) -eq $actualStateOfCurrentValue);
-				return $actualStateOfCurrentValue;
+				return "";
 			}
 			Configure {
-				Write-Host "making xxx exist... ";
+				$expectedAccount = $PVContext.CurrentKeyValue;
+				throw "Unable to CREATE AD or LOCAL user [$expectedAccount]. Proviso can't/won't know the password or other critical detaiils. Make sure this user EXISTS before continuing.";
 			}
 		}
 		
-		Definition "IsMemberOfLocalAdmins" { 
-			Expect {
-				# NOTE: this is currently just a weak-ass simulation:  
-				# NOTE: even more importantly... I THINK i really just need to hard-code this crap to be $true. 
-				# 		as in, the BIZ LOGIC here is that for each 'entry' in Host.LocalAdministrators... we're EXPECTING them to be members of LocalAdmins. 
-				# 			i.e., that's the EXPECTATION... evaluation (and then possible configuration) is another story... 
-				#   which means... that I think I can change this Definition to => Definition "IsMemberOfLocalAdmins" -Expect $true { etc... }
-				$currentAccountName = $PVContext.CurrentKeyValue;
+		Definition "IsLocalAdmin" -Expect $true { 
+			Test {
+				$expectedAccount = $PVContext.CurrentKeyValue;
+				$currentAdmins = $PVContext.GetFacetState("CurrentAdmins");
 				
-				if ($currentAccountName -eq "OA\mike-c") {
-					return $true; # i.e., pretend that the account currently being evaluated IS a member of local admins... 
+				if ($currentAdmins.Name -contains $expectedAccount) {
+					return $true;
 				}
 				
 				return $false;
 			}
-			Test {
-				# whatever code is needed to see if <currentKey> is a member of LocalAdmins - i..e, return $true or $false. 
-				#Write-Host "Inside of LocalAdmins.IsAdmin... looking for info on $($PVContext.CurrentKeyValue) ";
-				
-				return $false;
-			}
 			Configure {
-				# code to push <currentKey> into/as a member of LocalAdmins. 
-				Write-Host "Adding $($PVContext.CurrentKeyValue) to local admins...";
+				$expectedAccount = $PVContext.CurrentKeyValue;
+				
+				Add-LocalGroupMember -Group Administrators -Member $expectedAccount;
+				$PVContext.WriteLog("Added [$expectedAccount] to Local Administrators Group...", "Verbose");
+				
+				# reset/reload local admins: 
+				$newAdmins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
+				$PVContext.OverwriteFacetState("CurrentAdmins", $newAdmins);
 			}
 		}
 	}

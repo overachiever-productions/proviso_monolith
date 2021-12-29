@@ -3,15 +3,17 @@
 Facet -For "NetworkAdapters" {
 	
 	Setup {
-		$adapters = Get-ExistingNetAdapters;
-		$ipConfigs = Get-ExistingIpConfigurations;
+		# NOTE: I was 'caching' values and then trying to evict/update cache during config... but it was too much of a pain. 
+		# 		opting, instead, to 'take the hit' on lookups against interfaces and IPconfigs each time they're needed (i.e., do EVERYTHING in 'real time').
 		
-		$PVContext.AddFacetState("AvailableAdapters", $adapters);
-		$PVContext.AddFacetState("CurrentIpConfigurations", $ipConfigs);
+#		$adapters = Get-ExistingNetAdapters;
+#		$ipConfigs = Get-ExistingIpConfigurations;
 	}
 	
 	Assertions {
+		Assert-UserIsAdministrator;
 		
+		Assert-HostIsWindows;
 	}
 	
 	Group-Definitions -GroupKey "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
@@ -23,11 +25,9 @@ Facet -For "NetworkAdapters" {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$availableAdapters = $PVContext.GetFacetState("AvailableAdapters");
-				$matchedAdapter = $availableAdapters | Where-Object { $_.Name -eq $expectedInterfaceName };
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object { $_.Name -eq $expectedInterfaceName };
 				
 				if ($matchedAdapter -and ($matchedAdapter.Status -eq "Up")) {
-					$PVContext.AddFacetState("$($expectedAdapterKey).matchedAdapter", $matchedAdapter);
 					return $true;
 				}
 				
@@ -35,11 +35,9 @@ Facet -For "NetworkAdapters" {
 			}
 			Configure {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
-				
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				$assumableAdapters = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.AssumableIfNames");
-								
-				$availableAdapters = $PVContext.GetFacetState("AvailableAdapters");
+				$availableAdapters = Get-ExistingNetAdapters;
 				
 				$matchedAdapter = $null;
 				foreach ($assumableTarget in $assumableAdapters) {
@@ -60,7 +58,7 @@ Facet -For "NetworkAdapters" {
 					$matchedAdapterName = $matchedAdapter.Name;
 					
 					$PVContext.WriteLog("Renaming [$matchedAdapterName] to [$expectedInterfaceName].", "Important");
-					Rename-NetAdapter -Name $matchedAdapterName -NewName $expectedInterfaceName;
+					Rename-NetAdapter -Name $matchedAdapterName -NewName $expectedInterfaceName;					
 				}
 				catch {
 					throw "Unexpected error attempting to rename network interface $matchedAdapterName to $interfaceAlias. ERROR: $_ ";
@@ -72,16 +70,18 @@ Facet -For "NetworkAdapters" {
 		Definition "IpAddress" -ExpectChildKey "IpAddress" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
+				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Check the cached interface from the "Interface.Exists" test. If the interface wasn't found, we don't need to check the IP
-				$physicalAdapter = $PVContext.GetFacetState("$($expectedAdapterKey).matchedAdapter");
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+					$_.Name -eq $expectedInterfaceName
+				};
 				
-				if ($null -eq $physicalAdapter){
-					return ""; # previous definition.test couldn't find the adapter in question - so the IP is moot. 
+				if ($null -eq $matchedAdapter){
+					return ""; 
 				}
 				
-				$targetConfig = $PVContext.GetFacetState("CurrentIpConfigurations") | Where-Object {
-					$_.Index -eq ($physicalAdapter.Index)
+				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
 				$actualIp = "$($targetConfig.IPv4Address.IPAddress)/$($targetConfig.IPv4Address.PrefixLength)";  # cidr notation... 
@@ -92,7 +92,6 @@ Facet -For "NetworkAdapters" {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Don't used cached adpter info - we MAY have just renamed/changed an adapter - i.e., start 'fresh':
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
@@ -101,7 +100,6 @@ Facet -For "NetworkAdapters" {
 					throw "Expected Adapter [$expectedAdapterKey] was NOT FOUND and/or failed to be configured as expected. Unable to Set IP Address.";
 				}
 				
-				# Don't used cached IpConfig info anymore ... i.e., use 'live' - even if that means things take a few seconds: 
 				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
 					$_.Index -eq ($targetAdapterToConfigure.Index);
 				};
@@ -110,7 +108,7 @@ Facet -For "NetworkAdapters" {
 				
 				# re-check, small chance that the IP is ALREADY what is expected (and we merely renamed interfaces... )
 				$configSpecifiedIp = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.IpAddress");
-				$ipChanged = $false;  # need to track this due to a goofy issue with DNS setup/configuration in some cases... 
+
 				if ($realTimeCurrentIp -ne $configSpecifiedIp){
 					
 					$configSpecifiedGateway = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.Gateway");
@@ -124,6 +122,8 @@ Facet -For "NetworkAdapters" {
 						$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
 						$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
 						Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+						
+						Start-Sleep -Milliseconds 1200; # Let network settings 'take' (especially for domain joins) before continuing... 
 					}
 					catch {
 						throw "Unexpected error attempting to change IP address for [$expectedInterfaceName]. ERROR: $_ ";
@@ -136,32 +136,32 @@ Facet -For "NetworkAdapters" {
 		Definition "Gateway" -ExpectChildKey "Gateway" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
+				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Check the cached interface from the "Interface.Exists" test. If the interface wasn't found, we don't need to check the IP
-				$physicalAdapter = $PVContext.GetFacetState("$($expectedAdapterKey).matchedAdapter");
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+					$_.Name -eq $expectedInterfaceName
+				};
 				
-				if ($null -eq $physicalAdapter) {
-					return ""; # previous definition.test couldn't find the adapter in question - so the IP is moot. 
+				if ($null -eq $matchedAdapter) {
+					return "";
 				}
 				
-				$targetConfig = $PVContext.GetFacetState("CurrentIpConfigurations") | Where-Object {
-					$_.Index -eq ($physicalAdapter.Index)
+				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
 				if ($null -eq $targetConfig) {
 					return "";
 				}
 				
-				$gateway = $targetConfig.IPv4DefaultGateway.NextHop; # seems an odd way to do this... but, this is the correct way. 
+				$gateway = $targetConfig.IPv4DefaultGateway.NextHop; # nexthop is... the correct way to get the gateway.
 				
 				return $gateway;
 			}
 			Configure {
-				# if we weren't able to SET the adapter from previous steps, don't 'bother' trying to set the gateway:
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Don't used cached adpter info - we MAY have just renamed/changed an adapter - i.e., start 'fresh':
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
@@ -189,6 +189,8 @@ Facet -For "NetworkAdapters" {
 						$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
 						$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
 						Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+						
+						Start-Sleep -Milliseconds 1200; # Let network settings 'take' (especially for domain joins) before continuing... 
 					}
 					catch {
 						catch {
@@ -203,16 +205,14 @@ Facet -For "NetworkAdapters" {
 		Definition "PrimaryDns" -ExpectChildKey "PrimaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
+				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Check the cached interface from the "Interface.Exists" test. If the interface wasn't found, we don't need to check the IP
-				$physicalAdapter = $PVContext.GetFacetState("$($expectedAdapterKey).matchedAdapter");
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+					$_.Name -eq $expectedInterfaceName
+				};
 				
-				if ($null -eq $physicalAdapter) {
-					return ""; # previous definition.test couldn't find the adapter in question - so the IP is moot. 
-				}
-				
-				$targetConfig = $PVContext.GetFacetState("CurrentIpConfigurations") | Where-Object {
-					$_.Index -eq ($physicalAdapter.Index)
+				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
 				if ($null -eq $targetConfig) {
@@ -228,7 +228,6 @@ Facet -For "NetworkAdapters" {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Don't used cached adpter info - we MAY have just renamed/changed an adapter AND possibly just set/reset DNS entries due to IP address changes/etc. 
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
@@ -259,16 +258,14 @@ Facet -For "NetworkAdapters" {
 		Definition "SecondaryDns" -ExpectChildKey "SecondaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
+				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Check the cached interface from the "Interface.Exists" test. If the interface wasn't found, we don't need to check the IP
-				$physicalAdapter = $PVContext.GetFacetState("$($expectedAdapterKey).matchedAdapter");
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+					$_.Name -eq $expectedInterfaceName
+				};
 				
-				if ($null -eq $physicalAdapter) {
-					return ""; # previous definition.test couldn't find the adapter in question - so the IP is moot. 
-				}
-				
-				$targetConfig = $PVContext.GetFacetState("CurrentIpConfigurations") | Where-Object {
-					$_.Index -eq ($physicalAdapter.Index)
+				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
 				if ($null -eq $targetConfig) {
@@ -280,28 +277,24 @@ Facet -For "NetworkAdapters" {
 				return $dnsServers[1];
 			}
 			Configure {
-				# if we weren't able to SET the adapter from previous steps, don't 'bother' trying to set the gateway:
 				$expectedAdapterKey = $PVContext.CurrentKeyGroup;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				# Don't used cached adpter info - we MAY have just renamed/changed an adapter - i.e., start 'fresh':
-				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
-				if ($null -eq $targetAdapterToConfigure) {
+				if ($null -eq $matchedAdapter) {
 					throw "Expected Adapter [$expectedAdapterKey] was NOT FOUND and/or failed to be configured as expected. Unable to Set Secondary DNS.";
 				}
 				
 				# NOTE: Set-AdapterDnsAddresses will REMOVE the secondary DNS if it's "" (or change it to whaver is specified in the config if not empty):
 				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
-					$_.Index -eq ($targetAdapterToConfigure.Index);
+					$_.Index -eq ($matchedAdapter.Index);
 				};
 				
 				[string[]]$dnsServers = $targetIpConfig.DNSServer.ServerAddresses;
 				$currentRealTimeSecondaryDns = $dnsServers[1];
-				
-				# TODO: account for secondary DNS being EMPTY/NULL/NOT-SET... 
 				
 				$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
 				
@@ -310,7 +303,7 @@ Facet -For "NetworkAdapters" {
 					$PVContext.WriteLog("Changing Secondary DNS to [$configSpecifiedSecondaryDns] on [$expectedInterfaceName].", "Important");
 					
 					$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
-					Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+					Set-AdapterDnsAddresses -AdapterIndex ($matchedAdapter.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
 				}
 			}
 		}

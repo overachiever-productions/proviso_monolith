@@ -17,55 +17,39 @@ Facet "ServerName" {
 	
 	Assertions {
 		
-		Assert -Is "Adminstrator" -FailureMessage "Current User is not a Member of the Administrators Group" {
-			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-			$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-			
-			if ($admins.Name -contains $currentUser) {
-				return $true;
-			}
-			
-			return $false;
-		}
+		Assert-UserIsAdministrator -FailureMessage "Server Rename operations require User to be Administrator.";
 		
-		Assert -Has "Domain Admin Creds" {
-#			if ($Config.GetValue("Host.TargetDomain") -ne $null) {
-#				
-#				# make sure we've got $Config.Secrets.DomainAdminCreds or whatever... 
-#				# othrwise, throw or return $false... 
-#				return $false;
-#			}
-			
-			return $true;
-		}
+		Assert-HostIsWindows -FailureMessage "Facet [ServerName] is currently only configured to execute against Windows Server instances";
 		
-		Assert -DoesNotExist "Target Domain Machine" {
-			# if Host.TargetDomain & Host.TargetServer <> current values... 
-			#   since we should, now, have domain creds... 
-			#   use those to ensure that the <targteMachine>.<targetDomain> doesn't already exist... 
-			#    i.e., sometimes when provisioning a new server - it's a REPAVE of an existing box - 
-			# 			and if said 'box' already has been registered in AD (but the VM has been destroyed) we'll run into an error.
-			
-			# ARGUABLY: 
-			#   an assert COULD detect the above an then TRY to drop the offending object from AD (i.e., do some automated cleanup)
-			#   but there are TWO big/ugly things about that that I don't like:
-			# 	1. Automating the REMOVAL of a machine from AD seems sketchy/dumb - i.e., I'd much rather get an alert: "Doh. Can rename xyz1234 to sql27.mydomain as sql27.mydomain already exists."
-			#   2. Asserts are ... assertions, not places to 'do work'
-			# 		along those lines, it'd be way better to have a Facet for 'AD cleanup' if/as needed as a PREDECESSOR to this facet (in a workflow/runbook)
-			return $false; # inverted... 
-		}
+		Assert-HasDomainCreds -ForDomainJoin;
 		
 		Assert "TargetServerNameIsNetBiosCompliant" -FailureMessage "TargetServer value specified in config exceeds 15 chars in legth." {
 			$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
 			
 			return ($targetMachineName.Length -le 15);
 		}
+		
+		Assert -DoesNotExist "Target Domain Machine" {
+			
+			$targetDomain = $PVConfig.GetValue("Host.TargetDomain");
+			
+			$currentMachineName = [System.Net.Dns]::GetHostName();
+			$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
+			
+			if ($currentMachineName -ne $targetMachineName) {
+				if ($targetDomain -ne "") {
+					# https://overachieverllc.atlassian.net/browse/PRO-83
+					# Write-Host "TODO: CHECK against [$targetDomain] to see if [$targetMachineName] already exists...";
+				}
+			}
+
+			return $false; # inverted... 
+		}
 	}
 	
 	Definitions {
-		Definition -For "Target Server" -Key "Host.TargetServer" {
+		Definition -For "Target Server" -Key "Host.TargetServer" -RequiresReboot {
 			Test {
-				
 				return [System.Net.Dns]::GetHostName();
 			}
 			Configure {
@@ -82,20 +66,31 @@ Facet "ServerName" {
 					$PVContext.AddFacetState("JoiningDomainAsPartOfRename", $true);
 					
 					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName] and joining the [$targetDomainName] Domain.", "Important");
-					#Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false;
+					try {
+						Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false | Out-Null;
+					}
+					catch {
+						throw "Fatal Exception during Renaming Host [$([System.Net.Dns]::GetHostName())] during Domain-Join Operation: $_ `r`t$($_.ScriptStackTrace) ";
+					}
 				}
 				else {
 					# OUTCOME B (we just need to change the host name):
-					
 					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName].", "Important");
-					#Rename-Computer -NewName $targetMachineName -Force -Restart:$false;
+					
+					try {
+						Rename-Computer -NewName $targetMachineName -Force -Restart:$false | Out-Null;
+					}
+					catch {
+						throw "Fatal Exception while Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetDomainName]: $_ `r`t$($_.ScriptStackTrace) ";
+					}
 				}
-						
+				
+				# if we got here, there were no exceptions:
 				$PVContext.SetRebootRequired("Host-Name Change Requires Reboot.");
 			}
 		}
 		
-		Definition -For "Target Domain" -Key "Host.TargetDomain" {
+		Definition -For "Target Domain" -Key "Host.TargetDomain" -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {
@@ -127,7 +122,13 @@ Facet "ServerName" {
 					$targetDomainName = $PVConfig.GetValue("Host.TargetDomain");
 					
 					$PVContext.WriteLog("Adding Host [$currentHostName] to Domain [$targetDomainName].", "Important");
-					#Add-Computer -DomainName $targetDomainName -Credential $credentials -Restart:$false;
+					
+					try {
+						Add-Computer -DomainName $targetDomainName -Credential $credentials -Restart:$false | Out-Null;
+					}
+					catch {
+						throw "Fatal Exception while During Domain-Join of Host [$([System.Net.Dns]::GetHostName())] to [$targetDomainName]: $_ `r`t$($_.ScriptStackTrace) ";
+					}
 				}
 				
 				$PVContext.SetRebootRequired("Host-Name Change Requires Reboot.");

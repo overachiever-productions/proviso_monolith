@@ -3,33 +3,21 @@
 Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 	
 	Assertions {
-		Assert -Is "Adminstrator" -FailureMessage "Current User is not a Member of the Administrators Group" {
-			$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-			$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-			
-			if ($admins.Name -notcontains $currentUser) {
-				return $false;
-			}
-		}
 		
-		Assert -Is "WindowsServer" {
-			$os = (Get-ChildItem -Path Env:\POWERSHELL_DISTRIBUTION_CHANNEL).Value;
-			if ($os -notlike "*Windows Server*") {
-				return $true;
-			}
-		}
+		Assert-UserIsAdministrator;
 		
-		Assert "Get-WindowsFeatureExists" {
-			# TODO: see if Get-WindowsFeature is even a 'thing' - and FAIL if not... 
-			return $false;
-		}
+		Assert-HostIsWindows #-Server;
+		
+		Assert-ProvisoResourcesRootDefined;
 	}
 	
 	Definitions {
-		Definition "WSFCRequired" -For -Key "Host.RequiredPackages.WsfcComponents" {
+		Definition "WSFCRequired" -For -Key "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
 			Test {
 				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 				
+				# TODO: figure out how to tweak the 'Expected' to show "Installed" if config is $true
+				#   then... show actual state of WSFC components ("Available", "Installed", "Install Pending" etc... in here... )
 				if ($installed -eq "Installed") {
 					return $true;
 				}
@@ -38,37 +26,67 @@ Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 			}
 			
 			Configure {
-				# Hmm. This one's a bit odd. we only want to install it if it's REQUIRED. 
-				# And we never want to UNINSTALL it. 
-				if ($Config.GetValue("Host.RequiredPackages.WsfcComponents")) {
-					$processingError = $null;
-					$outcome = Install-WindowsFeature Failover-Clustering -IncludeManagementTools -ErrorVariable processingError;
+				
+				if ($PVConfig.GetValue("Host.RequiredPackages.WsfcComponents")) {
+					
+					$rebootRequired = Install-WsfcComponents;
+					
+					if ($rebootRequired) {
+						$PVContext.SetRebootRequired("WSFC Component installation requires reboot.");
+					}
+				}
+				else {
+					# it's actually, currently, installed ... and the config value is that it doesn't NEED to be installed
+					$PVContext.WriteLog("WSFC Components Installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall WSFC components. Manually use [Uninstall-WindowsFeature Failover-Clustering] if needed.", "Important");
 				}
 			}
 		}
 		
 		Definition "NetFXRequired" -For -Key "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
 			Test {
-				throw "Not Implemented";
+				# check to see if v3.5 is installed: 
+				$allInstalled = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -recurse |	Get-ItemProperty -name Version, Release -EA 0 | Where-Object {	$_.PSChildName -match '^(?!S)\p{L}' } | Select-Object PSChildName, Version;
+				$installed = $allInstalled | Where-Object { $_.PSChildName -eq "v3.5 " };
+				
+				if ($installed) {
+					return $true;
+				}
+				
+				return $false;
 			}
 			
 			Configure {
-				throw "Not Implemented";
+				if ($PVConfig.GetValue("Host.RequiredPackages.NetFxForPre2016InstancesRequired")) {
+					$windowsVersion = Get-WindowsServerVersion -Version ([System.Environment]::OSVersion.Version);
+					
+					Install-NetFx35ForPre2016Instances -WindowsServerVersion $windowsVersion -NetFxSxsRootPath (Join-Path -Path $script:resourcesRoot -ChildPath "binaries\net3.5_sxs");
+				}
+				else {
+					# it's currently installed, but not REQUIRED... 
+					$PVContext.WriteLog(".NET 3.5 is currently installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall.", "Important");
+				}
 			}
 		}
 		
 		Definition "ADManagementFeaturesForPoshRequired" -Key "Host.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired" {
 			Test {
 				$state = (Get-WindowsFeature RSAT-AD-Powershell).InstallState;
-				if ($state -eq "installed") {
+				
+				if ($state -eq "Installed") {
 					return $true;
 				}
+				
 				return $false;
 			}
 			
 			Configure {
-				# again, only want to install this if it's REQUIRED.
-				Install-WindowsFeature RSAT-AD-Powershell;
+				
+				if ($PVConfig.GetValue("Host.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired")) {
+					Install-WindowsFeature RSAT-AD-Powershell;
+				}
+				else {
+					$PVContext.WriteLog("AD Management Features installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall.", "Important");
+				}
 			}
 		}
 	}

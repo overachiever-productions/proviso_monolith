@@ -3,21 +3,7 @@
 Facet "TestingFacet" {
 	
 	Assertions  {
-#		Assert -Has "Domain Admin Creds" -NonFatal {
-#			return $false;
-#		}
-#		
-#		Assert "Something Impossible" -FailureMessage "Dare to Dream?" {
-#			return $false;
-#		}
-#		
-#		Assert "Fake Test" -NotFatal -Ignored {
-#			throw "Test Exception."; # simple test of non-fatal assertions... 
-#		}
-#		
-#		Assert "Thrown Around" {
-#			throw "ouch!";
-#		}
+
 	}
 	
 	Definitions {
@@ -26,13 +12,17 @@ Facet "TestingFacet" {
 				return "Tuesday";
 			}
 			Test {
+				
+				if ($PVContext.GetFacetState("Tuesday.PostConfig")){
+					return $PVContext.GetFacetState("Tuesday.PostConfig");
+				}
+				
 				return [System.DateTime]::Now.DayOfWeek.ToString();
 			}
 			Configure {
-				# Don't do anything.
-				# It's either tuesday, or it's not - in which case, there won't be an error/exception
-				#  during 'config',  but the 'configuration' won't actually work and will be reported as such.
-				#return $true;
+				
+				$faked = (Get-Date -Year 2021 -Month 12 -Day 28).DayOfWeek.ToString();
+				$PVContext.AddFacetState("Tuesday.PostConfig", $faked);
 			}
 		}
 
@@ -41,13 +31,15 @@ Facet "TestingFacet" {
 				return "Saturday";
 			}
 			Test {
+				if ($PVContext.GetFacetState("Saturday.PostConfig")) {
+					return $PVContext.GetFacetState("Saturday.PostConfig");
+				}
 				return [System.DateTime]::Now.DayOfWeek.ToString();
 			}
 			Configure {
-				# Don't do anything.
-				# It's either tuesday, or it's not - in which case, there won't be an error/exception
-				#  during 'config',  but the 'configuration' won't actually work and will be reported as such.
-				#return $true;
+				
+				$faked = (Get-Date -Year 2021 -Month 12 -Day 25).DayOfWeek.ToString();
+				$PVContext.AddFacetState("Saturday.PostConfig", $faked);
 			}
 		}
 		
@@ -56,10 +48,16 @@ Facet "TestingFacet" {
 				return [System.DateTime]::Now.DayOfWeek.ToString();
 			}
 			Configure {
-				# Don't do anything.
-				# It's either tuesday, or it's not - in which case, there won't be an error/exception
-				#  during 'config',  but the 'configuration' won't actually work and will be reported as such.
-				#return $true;
+				# Don't do anything... 
+			}
+		}
+		
+		Definition "It is Sunday" -Expect "Sunday" -RequiresReboot {
+			Test {
+				return [System.DateTime]::Now.DayOfWeek.ToString();
+			}
+			Configure {
+				# don't do anything... and see if ... <PENDING> pops up as result/outcome... 
 			}
 		}
 	}

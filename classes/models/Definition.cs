@@ -14,6 +14,7 @@ namespace Proviso.Models
         public string ParentKey { get; private set; }  // can be used for BOTH value-definitions and group-definitions.
         public string ChildKey { get; private set; }  // used for GROUP-definitions - i.e., this is the sub-key within a key-block/group.
         public string OrderByChildKey { get; set; }   // this is the child key (for Group-Definitions) to order by - e.g., NetworkAdapters.xxx.ProvisioningPriority would use -OrderByChildKey = "ProvisioningPriority"
+        public bool RequiresReboot { get; private set; }
         public bool CurrentValueKeyAsExpect { get; private set; }
         public object CurrentKeyValueForValueDefinitions { get; private set; }
         public object CurrentKeyGroupForGroupDefinitions { get; private set; }
@@ -27,6 +28,7 @@ namespace Proviso.Models
             this.DefinitionType = type;
 
             this.CurrentValueKeyAsExpect = false;
+            this.RequiresReboot = false;
         }
 
         public void AddExpect(ScriptBlock expectation)
@@ -64,6 +66,11 @@ namespace Proviso.Models
         public void AddCurrentKeyGroup(object value)
         {
             this.CurrentKeyGroupForGroupDefinitions = value;
+        }
+
+        public void SetRequiresReboot()
+        {
+            this.RequiresReboot = true;
         }
 
         public void UseCurrentValueKeyAsExpect(string parentKey)

@@ -16,10 +16,10 @@ function Definition {
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$DefinitionBlock,
 		[Alias("Has")]
-		[Switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
+		[switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
+		[switch]$RequiresReboot = $false,
 		[ValidateNotNullOrEmpty()]
-		[string]$Key,
-		[int]$ProcessingOrder 		# per facet... 
+		[string]$Key
 	)
 	
 	begin {
@@ -91,6 +91,10 @@ function Definition {
 	}
 	
 	end {
+		if ($RequiresReboot) {
+			$definition.SetRequiresReboot();
+		}
+		
 		
 		# -Expect is just 'syntactic sugar':
 		if ($Expect -and ($null -eq $definition.Expectation)) {
@@ -99,6 +103,8 @@ function Definition {
 			
 			$definition.AddExpect($ExpectBlock);
 		}
+		
+		
 		
 		$facet.AddDefinition($definition);
 	}

@@ -1,10 +1,10 @@
 ﻿@{
 	
 	# Script module or binary module file associated with this manifest
-	RootModule = 'Proviso.psm1'
+	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.2.8'
+	ModuleVersion = '0.4.0'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -16,7 +16,7 @@
 	CompanyName = 'OverAchiever Productions, LLC.'
 	
 	# Copyright statement for this module
-	Copyright = '(c) 2019+. All rights reserved.'
+	Copyright = '(c) 2017+. All rights reserved.'
 	
 	# Description of the functionality provided by this module
 	Description = 'SQL Server Provisioning Tools'
@@ -33,9 +33,11 @@
 	# Processor architecture (None, X86, Amd64, IA64) required by this module
 	ProcessorArchitecture = 'None'
 	
-	# Modules that must be imported into the global environment prior to importing
-	# this module
-	RequiredModules = @()
+	# Modules that must be imported into the global environment prior to importing this module
+	RequiredModules	       = @(
+		@{ModuleName = "PSFramework"; RequiredVersion = "1.0.19";}	
+	)
+	#RequiredModules	       = @("MyModule", @{ModuleName = "MyDependentModule"; RequiredVersion = "1.5"; GUID = "cfc45206-1e49-459d-a8ad-5b571ef94857"})
 	
 	# Assemblies that must be loaded prior to importing this module
 	RequiredAssemblies = @()
@@ -48,14 +50,13 @@
 	TypesToProcess = @()
 	
 	# Format files (.ps1xml) to be loaded when importing this module
-	FormatsToProcess = @()
+	FormatsToProcess = @('Proviso.Format.ps1xml')
 	
-	# Modules to import as nested modules of the module specified in
-	# ModuleToProcess
+	# Modules to import as nested modules of the module specified in ModuleToProcess
 	NestedModules = @()
 	
 	# Functions to export from this module
-	FunctionsToExport = '*' #For performance, list functions explicitly
+	FunctionsToExport = '*'
 	
 	# Cmdlets to export from this module
 	CmdletsToExport = '*' 

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <Controls>
+
+    <!--
+      Note, I really don't NEED a control for Config-Key Name... just wanted to test out 2x things here: 
+        a. it's my first 'test' to see what using a control vs 'inline' definitions look like ... (worked well)
+        b. I wanted to test out 'programatically' using <NewLine /> as PART of the control.. 
+            
+            Only... while part a worked well (i.e., I got the control to render WHERE and AS I expected it to)... 
+                it didn't work entirely as desired: as in, it's NOT displaying CONDITIONALLY. 
+                      i've made some notes down in/below about this... 
+    
+          Arguably, I also don't need to have a control for Execute-Config either... that could just be 'yes or no' as well (i.e., ALWAYS present
+              just like Config-Key Name could ALWAYS be a 'list' entry and the value could either be "string key name here" or "" (i.e., blank/empty)).
+    
+    --> 
+    <Control>
+      <Name>ConfigKey-Name</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <CustomItem>
+                  <Text>Config-key          : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>$($_.Facet.ConfigKey)</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+
+    <!--<Control>
+      <Name>Reboot-Summary</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <CustomItem>
+                  <Text>Reboot Stuff Here...:</Text>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>-->
+
+    <Control>
+      <Name>Execute-Config</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <CustomItem>
+                  <!--<Text>Run-Configuration   : True</Text>-->
+                  <ExpressionBinding>
+                    <ScriptBlock>"$($_.Facet.ExecuteConfiguration)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <ExpressionBinding>
+                    <ScriptBlock>"Allows-Rebase       : $($_.Facet.RebasePresent)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+
+    <Control>
+      <Name>Assert-Summary</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>5</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <ScriptBlock>$($_.Assertion.Name)</ScriptBlock>
+                  </ExpressionBinding>
+                  <Text> - </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>$_.GetOutcomeState()</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+
+    <Control>
+      <Name>Validation-Summary</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>5</LeftIndent>
+                <CustomItem>
+                  <Text>DEFINITION : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>$($_.ParentDefinition.Description)</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <Frame>
+                    <LeftIndent>5</LeftIndent>
+                    <CustomItem>
+                      <Text>CONFIG-KEY     : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>"$($_.ParentDefinition.Key)"</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+                      <Text>FAILED         : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>"$($_.Failed)"</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+                      <Text>EXPECTED       : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>"$($_.Expected)"</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+                      <Text>ACTUAL         : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.Actual)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+                      <Text>MATCHED        : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.Matched)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+                      <NewLine />
+                    </CustomItem>
+                  </Frame>
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+
+    <Control>
+      <Name>Configure-Summary</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Frame>
+                <LeftIndent>5</LeftIndent>
+                <CustomItem>
+                  <Text>DEFINITION : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>$($_.Validation.ParentDefinition.Description)</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <Frame>
+                    <LeftIndent>5</LeftIndent>
+                    <CustomItem>
+
+                      <Text>CONFIG-KEY    : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.Validation.ParentDefinition.Key)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>BYPASSED      : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.ConfigurationBypassed)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>SUCCEEDED     : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.ConfigurationSucceeded)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>RECOMP EXPECT : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.RecompareExpected)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>RECOMP ACTUAL : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.RecompareActual)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>RECOMP MATCH  : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.RecompareMatched)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <Text>EXCEPTION     : </Text>
+                      <ExpressionBinding>
+                        <ScriptBlock>$($_.ConfigurationError)</ScriptBlock>
+                      </ExpressionBinding>
+                      <NewLine />
+
+                      <NewLine />
+                    </CustomItem>
+                  </Frame>
+                </CustomItem>
+              </Frame>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+
+  </Controls>  
+
+  <ViewDefinitions>
+    <View>
+      <Name>Summary</Name>
+      <ViewSelectedBy>
+        <TypeName>Proviso.Processing.FacetProcessingResult</TypeName>
+      </ViewSelectedBy>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text>FACET SUMMARY</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>5</LeftIndent>
+                <CustomItem>
+                  <Text>Facet-Name          : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>"$($_.Facet.Name)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <ExpressionBinding>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$null -ne $_.Facet.ConfigKey</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <CustomControlName>ConfigKey-Name</CustomControlName>
+                  </ExpressionBinding>
+                  <Text>Source-File         : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>"$($_.Facet.SourcePath)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  
+                  <!--
+                  see comment below - i.e., this isn't working as it needs to... 
+                  <ExpressionBinding>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$_.ExecuteConfiguration -eq $true</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <CustomControlName>Execute-Config</CustomControlName>
+                  </ExpressionBinding>-->
+
+                  <!--
+                  so... the above isn't working... i.e., <CustomControlname> is being shown regardless of the OUTCOME of <ScriptBlock>. 
+                    I tried pushing <CustomControl> into the <ItemSelectionCondition> block/element - but that's a no-go. 
+                    Looking at the docs, looks like the hierarchy would actually be: 
+                          <CustomEntry> => <EntrySelectedBy> => <SelectionCondition> => <ScriptBlock>... and then... ???? 
+                          look at this for more info: 
+                              
+                              https://docs.microsoft.com/en-us/powershell/scripting/developer/format/entryselectedby-element-for-customentry-for-controls-for-view-format?view=powershell-7.2
+                              https://docs.microsoft.com/en-us/powershell/scripting/developer/format/defining-conditions-for-displaying-data?view=powershell-7.2
+                              
+                  <ExpressionBinding>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$_.ExecuteConfiguration</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <ScriptBlock>"Run-Configuration   : True"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <ExpressionBinding>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$_.ExecuteConfiguration</ScriptBlock>
+                    </ItemSelectionCondition>
+                    <ScriptBlock>"     Allows-Rebase  : $($_.Facet.RebasePresent)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />-->
+                </CustomItem>
+              </Frame>
+              <NewLine />
+              <Text>PROCESSING SUMMARY</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>5</LeftIndent>
+                <CustomItem>
+                  <Text>Operation           :</Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>if($_.ExecuteConfiguration) { " CONFIGURE"} else { " VALIDATE" }</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <Text>Execution Time      : </Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>"$($_.Duration) "</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                  <!-- TODO: need to integrate REBOOT Required and Reboot Executed data into both a) this format view (i.e., vNEXT) and b) into ... the FacetProcessingResult object itself... -->
+
+                  <!--
+                      TODO: Look at throwing this into a custom control. Basically, though, what I want is a set of 'paired' operations. e.g.,: 
+                            AssertsStarted ... AssertsEnded
+                            ValidationStarted ... ValidationsEnded
+                            RebootStarted ... Reboot ended? 
+                            ConfigurationStarted ...  ConfigurationsFailed
+                            
+                            i.e., the start/end of each 'set' of operations... where 'end' is either xxxEnd or xxxFailed. 
+                            further, it might make sense to 'wrap' or 'nest'/left-align all of these into something like: 
+                                Initialized ... 
+                                    xxxStarted ... xxxEnded 
+                                    yyyStarted ... yyyEnded 
+                                Completed | Failed 
+                            Yeah - that's exactly what I want/need. 
+                            
+                  <Text>     Processing States:</Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>"$($_.ProcessingState)"</ScriptBlock>
+                  </ExpressionBinding>-->
+                  <Text>Final State         :</Text>
+                  <ExpressionBinding>
+                    <ScriptBlock>" $($_.LatestState)"</ScriptBlock>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+              <NewLine />
+              <!--
+                In theory, this 'frame' and, more importantly: it's CustomItem SHOULD work.
+                  And, in fact, it 'does work' in the sense that there are no ERRORS thrown on 'compile' for this setup. 
+                  BUT... even when the <ScriptBlock> is ... $false... the stupid CustomItem STILL renders. So. 
+                    vNEXT will address a rewrite to address this...
+                      https://overachieverllc.atlassian.net/browse/PRO-112
+              <Frame>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <CustomControlName>Reboot-Summary</CustomControlName>
+                    <ItemSelectionCondition>
+                      <ScriptBlock>$false</ScriptBlock>
+                    </ItemSelectionCondition>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>-->
+              <Text>ASSERTIONS SUMMARY</Text>
+              <NewLine />
+              <Frame>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <EnumerateCollection />
+                    <CustomControlName>Assert-Summary</CustomControlName>
+                    <ScriptBlock>$_.AssertionResults</ScriptBlock>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+              <NewLine />
+
+              <Text>VALIDATIONS SUMMARY</Text>
+              <NewLine />
+              <Frame>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <EnumerateCollection />
+                    <CustomControlName>Validation-Summary</CustomControlName>
+                    <ScriptBlock>$_.ValidationResults</ScriptBlock>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+              <NewLine />
+
+              <Text>CONFIGURATIONS SUMMARY</Text>
+              <NewLine />
+              <Frame>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <EnumerateCollection />
+                    <CustomControlName>Configure-Summary</CustomControlName>
+                    <ScriptBlock>$_.ConfigurationResults</ScriptBlock>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+              <NewLine />
+
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </View>
+	</ViewDefinitions>
+</Configuration>

@@ -1,6 +1,13 @@
 ﻿@{
 	# NOTE: This is the DSL/New Schema
 	Host = @{
+		Compute = @{
+			CoreCount	  	= 2
+			NumaNodes		= 1
+			RamGBs	 		= 8
+			TargetOS  		= "Windows Server 2019"
+		}
+		
 		TargetServer	   = "AWS-SQL-1A"
 		TargetDomain	   = ""
 		

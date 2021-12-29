@@ -13,7 +13,8 @@ namespace Proviso
         private Orthography()
         {
             this._allowedMethods.Add("With");                       // 0
-            this._allowedMethods.Add("Secured-By");                 //  1
+            this._allowedMethods.Add("Secured-By");                 //  1   will be replaced by Assign (i.e., Assign is a verb vs a phrase...)
+            this._allowedMethods.Add("Assign");                     //  1
             this._allowedMethods.Add("Validate");                   //    2
             this._allowedMethods.Add("Configure");                  //    2
             this._allowedMethods.Add("Execute");                    //    2 - wrapper to allow processing of one or more facets... 
@@ -42,7 +43,7 @@ namespace Proviso
         public string AddFacetBlock(string block)
         {
             if (!this._allowedFacetBlocks.Contains(block))
-                return "Invalid Proviso Facet Operation: [{block}] is not a valid Facet member.";
+                return $"Invalid Proviso Facet Operation: [{block}] is not a valid Facet member.";
 
             // TODO: verify that usage of the syntax is correct.... 
             //      which'll actually be semi-difficult. 

@@ -257,10 +257,11 @@ namespace Proviso.Processing
                 {
                     outcome = "Complete. ";
 
-                    if (!this.ExecuteConfiguration)
-                    {
-                        outcome = "Complete. (NOTE: One or more validations did not match.)";
-                    }
+                    // Yeah... this is tedious (removing it for now):
+                    //if (!this.ExecuteConfiguration)
+                    //{
+                    //    outcome = "Complete. (NOTE: One or more validations did not match.)";
+                    //}
                 }
             }
 
@@ -301,7 +302,7 @@ namespace Proviso.Processing
                 return "NOT RUN";
 
             if (this.ExecuteConfiguration)
-                return $"{this.ConfigurationResults.Count(c => c.RecompareSucceeded)}/{this.ConfigurationResults.Count} Set";
+                return $"{this.ConfigurationResults.Count(c => c.ConfigurationFailed == false)}/{this.ConfigurationResults.Count} Set";
 
             return " - ";
         }

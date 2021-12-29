@@ -145,7 +145,17 @@ namespace Proviso
             //      AND, note: this all exists because of RECOMPARE operations - i.e., imagine we do $PVContext.AddFacetState("myKey", $someVal); within 
             //          the scope of a test ... well, that's spiffy and all - cuz that value is then available inside of the CONFIGURE operation. 
             //          BUT: when CONFIGURE is done running, we RE-COMPARE results - meaning that TEST is re-run and ... attempting to add _tempFacetState.Add(keyAlreadyDefined, someVal) obviously ... throws. 
-            if(!this.recompareActive)
+
+            //  THE ABOVE SAID: I've added an explicit: void OverwriteFacetState... which addresses SOME concerns - but not all. 
+            if (!this.recompareActive)
+                this._temporaryFacetState.Add(key, value);
+        }
+
+        public void OverwriteFacetState(string key, object value)
+        {
+            if (this._temporaryFacetState.ContainsKey(key))
+                this._temporaryFacetState[key] = value;
+            else 
                 this._temporaryFacetState.Add(key, value);
         }
 

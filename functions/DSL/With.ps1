@@ -17,6 +17,8 @@ function With {
 		[Hashtable]$ConfigData,
 		[Parameter(Position = 0, ParameterSetName = "File")]
 		[string]$ConfigFile,
+		[Parameter(Position = 0, ParameterSetName = "CurrentHost")]
+		[switch]$CurrentHost = $false,
 		[switch]$Force = $false, # causes/forces a reload... 
 		[switch]$Strict = $false,
 		[switch]$AllowGlobalDefaults = $false
@@ -24,7 +26,7 @@ function With {
 	
 	begin {
 		Validate-MethodUsage -MethodName "With";
-		
+	
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {
 				throw "Specified -ConfigFile path of $ConfigFile does not exist.";
@@ -43,20 +45,51 @@ function With {
 			$Config = [PSCustomObject]$ConfigData;
 		}
 		
+		if ($CurrentHost) {
+			if (-not ($PVResources.RootSet)) {
+				throw "Switch [-CurrentHost] cannot be used when ProvisoResources.Root has not been set. Use Assign -ProvisoRoot to set.";
+			}
+			
+			$Strict = $true; # force -Strict if/when $CurrentHost switch is in use... 
+			
+			$targetDir = Join-Path $PVResources.ProvisoRoot -ChildPath "definitions\servers";
+			$matches = Find-MachineDefinition -RootDirectory $targetDir -MachineName ([System.Net.Dns]::GetHostName());
+			
+			switch ($matches.Count) {
+				0 {
+					throw "Switch [-CurrentHost] could not locate a definition file for host: [$([System.Net.Dns]::GetHostName())].";
+				}
+				1 {
+					try {
+						$data = Import-PowerShellDataFile ($matches[0].Name);
+						
+						$Config = [PSCustomObject]$data;
+					}
+					catch {
+						throw "Exception Loading Proviso Config File at $($matches[0].Name) via [-CurrentHost]. $_  `r$($_.ScriptStackTrace) ";
+					}
+				}
+				default {
+					# > 1 ... and not zero - i.e., multiple matches. 
+					throw "Switch [-CurrentHost] detected > MULTIPLE definition files for host: [$([System.Net.Dns]::GetHostName())].";
+				}
+			}
+		}
+		
 		if ($null -eq $Config) {
-			throw "Invalid -Config, -ConfigData, or -ConfigFile inputs specified. Proviso Config value is NULL.";
+			throw "Invalid -Config, -ConfigData, -ConfigFile, or -CurrentHost(switch) inputs specified. Proviso Config value is NULL.";
 		}
 	}
 	
 	process {
 		if ($strict) {
-			if ($null -eq $Config.TargetServer) {
-				throw "-Strict set to TRUE, but Configuration.TargetServer value not set or found.";
+			if ($null -eq $Config.Host.TargetServer) {
+				throw "-Strict set to TRUE, but Configuration.Host.TargetServer value not set or found.";
 			}
 			
 			$currentHostName = [System.Net.Dns]::GetHostName();
-			if ($currentHostName -ne $Config.TargetServer) {
-				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] <> [$($Config.TargetServer)].";
+			if ($currentHostName -ne $Config.Host.TargetServer) {
+				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] <> [$($Config.Host.TargetServer)].";
 			}
 		}
 		

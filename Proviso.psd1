@@ -4,7 +4,7 @@
 	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.3.8'
+	ModuleVersion = '0.4.0'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -34,7 +34,10 @@
 	ProcessorArchitecture = 'None'
 	
 	# Modules that must be imported into the global environment prior to importing this module
-	RequiredModules = @()
+	RequiredModules	       = @(
+		@{ModuleName = "PSFramework"; RequiredVersion = "1.0.19";}	
+	)
+	#RequiredModules	       = @("MyModule", @{ModuleName = "MyDependentModule"; RequiredVersion = "1.5"; GUID = "cfc45206-1e49-459d-a8ad-5b571ef94857"})
 	
 	# Assemblies that must be loaded prior to importing this module
 	RequiredAssemblies = @()

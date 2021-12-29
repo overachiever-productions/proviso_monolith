@@ -190,13 +190,13 @@
             <Label>Expected</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>58</Width>
+            <Width>18</Width>
             <Label>Actual</Label>
           </TableColumnHeader>
-          <!--<TableColumnHeader>
-            <Width>10</Width>
+          <TableColumnHeader>
+            <Width>40</Width>
             <Label>Outcome</Label>
-          </TableColumnHeader>-->
+          </TableColumnHeader>
         </TableHeaders>
         <TableRowEntries>
           <TableRowEntry>
@@ -208,11 +208,11 @@
                 <ScriptBlock>$Formatter.Abridge($_.Validation.Expected, 17)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$_.GetActualSummary()</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetRecompareSummary(), 17)</ScriptBlock>
               </TableColumnItem>
-              <!--<TableColumnItem>
+              <TableColumnItem>
                 <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
-              </TableColumnItem>-->
+              </TableColumnItem>
             </TableColumnItems>
           </TableRowEntry>
         </TableRowEntries>

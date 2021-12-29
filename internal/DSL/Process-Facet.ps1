@@ -2,15 +2,29 @@
 
 <#
 
+# intermediate dev/testing against target VMs:
+	#Register-PSRepository -Name Pro2 -SourceLocation "\\storage\lab\proviso\repo2" -InstallationPolicy Trusted;
+Install-Module -Name Proviso -Repository Pro2 -Force;
+Import-Module -Name Proviso -Force -DisableNameChecking;
+Assign -ProvisoRoot "\\storage\Lab\proviso\";
+With -CurrentHost | Do-Something;
+
+
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	
+	#Assign -ProvisoRoot "\\storage\Lab\proviso\";
+
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ServerName;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-NetworkAdapters;
+
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-FirewallRules;
-	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ServerName; # -ExecuteRebase -Force;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-RequiredPackages;
 
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdministrators;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdmins;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
+	 With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingFacet;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-DataCollectorSets;
 
-	Summarize -All -IncludeAssertions;
+	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
 
 #>
 
@@ -41,7 +55,7 @@ function Process-Facet {
 		}
 		
 		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $ExecuteConfiguration);
-		$Context.SetCurrentFacet($facet, $ExecuteRebase, $ExecuteConfiguration, $facetProcessingResult);
+		$PVContext.SetCurrentFacet($facet, $ExecuteRebase, $ExecuteConfiguration, $facetProcessingResult);
 	}
 	
 	process {
@@ -55,10 +69,9 @@ function Process-Facet {
 				& $setupBlock;
 			}
 			catch{
-				$Context.WriteLog("FATAL: Facet.Setup FAILED for Facet [$($facet.Name)]. Error Detail: $($_)", "Critical");
+				$PVContext.WriteLog("FATAL: Facet.Setup FAILED for Facet [$($facet.Name)]. Error Detail: $($_)", "Critical");
 			}
 		}
-		
 		
 		# --------------------------------------------------------------------------------------
 		# Assertions	
@@ -95,11 +108,11 @@ function Process-Facet {
 				if ($assertionResult.Failed) {
 					if ($assert.NonFatal) {
 						$assertionsOutcomes = [Proviso.Enums.AssertionsOutcome]::Warning;
-						$Context.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Important");
+						$PVContext.WriteLog("WARNING: Non-Fatal Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Important");
 					}
 					else {
 						$assertionsFailed = $true;
-						$Context.WriteLog("FATAL: Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Critical");
+						$PVContext.WriteLog("FATAL: Assertion [$($assert.Name)] Failed. Error Detail: $($assertionResult.GetErrorMessage())", "Critical");
 					}
 				}
 			}
@@ -108,7 +121,7 @@ function Process-Facet {
 				$facetProcessingResult.EndAssertions([Proviso.Enums.AssertionsOutcome]::HardFailure, $results);
 				
 				$facetProcessingResult.SetProcessingComplete();
-				$Context.CloseCurrentFacet();
+				$PVContext.CloseCurrentFacet();
 				
 				return; 
 			}
@@ -135,7 +148,7 @@ function Process-Facet {
 				
 				$values = Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.ParentKey);
 				if ($values.Count -lt 1) {
-					$Context.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
 				foreach ($value in $values) {
@@ -172,7 +185,7 @@ function Process-Facet {
 				
 				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$Context.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames) {
@@ -241,11 +254,10 @@ function Process-Facet {
 				$validationResult.AddValidationError($validationError);
 			}
 			else {
+				$PVContext.SetCurrentExpectValue($expectedResult);
+				
 				$validationResult.AddExpectedResult($expectedResult);
-				$PVContext.SetCurrentExpectValue($expectedResult);  #temporarily add to PVContext - for scope of Test{} block - i.e., it gets removed at end of this block of code... 
-				
 				[ScriptBlock]$testBlock = $definition.Test;
-				
 				$comparison = Compare-ExpectedWithActual -Expected $expectedResult -TestBlock $testBlock;
 				
 				$validationResult.AddComparisonResults(($comparison.ActualResult), ($comparison.Matched))
@@ -280,11 +292,11 @@ function Process-Facet {
 			$facetProcessingResult.StartRebase();
 			
 			if ($facetProcessingResult.ValidationsFailed) {
-				$Context.WriteLog("FATAL: Rebase Failure - One or more Validations threw an exception (and could not be properly evaluated). Rebase Processing can NOT continue. Terminating.", "Critical");
+				$PVContext.WriteLog("FATAL: Rebase Failure - One or more Validations threw an exception (and could not be properly evaluated). Rebase Processing can NOT continue. Terminating.", "Critical");
 				$facetProcessingResult.EndRebase([Proviso.Enums.RebaseOutcome]::Failure, $null);
 				
 				$facetProcessingResult.SetProcessingComplete();
-				$Context.CloseCurrentFacet();
+				$PVContext.CloseCurrentFacet();
 				
 				return;
 			}
@@ -307,10 +319,10 @@ function Process-Facet {
 			
 			if($facetProcessingResult.RebaseFailed){
 				$facetProcessingResult.SetProcessingFailed();
-				$Context.WriteLog("FATAL: Rebase Failure: [$($rebaseResult.RebaseError)].  Configuration Processing can NOT continue. Terminating.", "Critical");
+				$PVContext.WriteLog("FATAL: Rebase Failure: [$($rebaseResult.RebaseError)].  Configuration Processing can NOT continue. Terminating.", "Critical");
 				
 				$facetProcessingResult.SetProcessingComplete();
-				$Context.CloseCurrentFacet();
+				$PVContext.CloseCurrentFacet();
 				
 				return;
 			}
@@ -325,11 +337,11 @@ function Process-Facet {
 			
 			if ($facetProcessingResult.ValidationsFailed){
 				# vNEXT: might... strangely, also, make sense to let some comparisons/failures be NON-FATAL (but, assume/default to fatal... in all cases)
-				$Context.WriteLog("FATAL: Configurations Failure - One or more Validations threw an exception (and could not be properly evaluated). Configuration Processing can NOT continue. Terminating.", "Critical");
+				$PVContext.WriteLog("FATAL: Configurations Failure - One or more Validations threw an exception (and could not be properly evaluated). Configuration Processing can NOT continue. Terminating.", "Critical");
 				$facetProcessingResult.EndConfigurations([Proviso.Enums.ConfigurationsOutcome]::Failed, $null);
 				
 				$facetProcessingResult.SetProcessingComplete();
-				$Context.CloseCurrentFacet();
+				$PVContext.CloseCurrentFacet();
 				
 				return;
 			}
@@ -344,7 +356,7 @@ function Process-Facet {
 				
 				if ($validation.Matched) {
 					$configurationResult.SetBypassed();
-					$Context.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
+					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
 				else {
 					if ($validation.ParentDefinition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
@@ -358,8 +370,6 @@ function Process-Facet {
 						[ScriptBlock]$configureBlock = $validation.Configure;
 						
 						& $configureBlock;
-						
-						$configurationResult.SetConfigurationSucceeded();
 					}
 					catch {
 						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
@@ -369,25 +379,22 @@ function Process-Facet {
 					
 					# Recomparisons:
 					$PVContext.SetRecompareActive();
-					if ($configurationResult.ConfigurationSucceeded) {
+					if (-not ($configurationResult.ConfigurationFailed)) {
+						
 						try {
 							[ScriptBlock]$testBlock = $validation.Test;
 							
 							$reComparison = Compare-ExpectedWithActual -Expected $validation.Expected -TestBlock $testBlock;
 							
-							if ($null -eq $reComparison.ActualError) {
-								$configurationResult.SetRecompareCompleted($validation.Expected, ($reComparison.ActualResult), ($reComparison.Matched));
-							}
-							else {
-								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
-								$configurationError = New-Object Proviso.Processing.ConfigurationError(($reComparison.ActualError), $true);
-								$configurationResult.AddConfigurationError($configurationError);
-							}
+							$configurationResult.SetRecompareValues(($validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
 						}
 						catch {
-							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
 							$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $true);
 							$configurationResult.AddConfigurationError($configurationError);
+						}
+						
+						if ($configurationResult.RecompareFailed) {
+							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
 						}
 					}
 					
@@ -405,12 +412,12 @@ function Process-Facet {
 	
 	end {
 		$facetProcessingResult.SetProcessingComplete();
-		$Context.CloseCurrentFacet();
+		$PVContext.CloseCurrentFacet();
 		
-		if ($Context.RebootRequired) {
-			$message = "REBOOT REQUIRED. $($Context.RebootReason)";
+		if ($PVContext.RebootRequired) {
+			$message = "REBOOT REQUIRED. $($PVContext.RebootReason)";
 			
-			$Context.WriteLog($message, "CRITICAL");
+			$PVContext.WriteLog($message, "CRITICAL");
 		}
 	}
 }

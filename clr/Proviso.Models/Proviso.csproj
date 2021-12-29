@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ComparisonFailure.cs" />
+    <Compile Remove="DslStack.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\classes\DomainCredential.cs" Link="DomainCredential.cs" />
+    <Compile Include="..\..\classes\Formatter.cs" Link="Formatter.cs" />
+    <Compile Include="..\..\classes\models\Assertion.cs" Link="Models\Assertion.cs" />
+    <Compile Include="..\..\classes\models\Definition.cs" Link="Models\Definition.cs" />
+    <Compile Include="..\..\classes\models\Facet.cs" Link="Models\Facet.cs" />
+    <Compile Include="..\..\classes\models\FacetsCatalog.cs" Link="Models\FacetsCatalog.cs" />
+    <Compile Include="..\..\classes\models\Rebase.cs" Link="Models\Rebase.cs" />
+    <Compile Include="..\..\classes\models\Setup.cs" Link="Models\Setup.cs" />
+    <Compile Include="..\..\classes\models\Tester.cs" Link="Models\Tester.cs" />
+    <Compile Include="..\..\classes\Orthography.cs" Link="Orthography.cs" />
+    <Compile Include="..\..\classes\ProcessingContext.cs" Link="ProcessingContext.cs" />
+    <Compile Include="..\..\classes\processing\AssertionResult.cs" Link="Processing\AssertionResult.cs" />
+    <Compile Include="..\..\classes\processing\ConfigurationError.cs" Link="Processing\ConfigurationError.cs" />
+    <Compile Include="..\..\classes\processing\ConfigurationResult.cs" Link="Processing\ConfigurationResult.cs" />
+    <Compile Include="..\..\classes\processing\FacetProcessingResult.cs" Link="Processing\FacetProcessingResult.cs" />
+    <Compile Include="..\..\classes\processing\RebaseResult.cs" Link="Processing\RebaseResult.cs" />
+    <Compile Include="..\..\classes\processing\ValidationError.cs" Link="Processing\ValidationError.cs" />
+    <Compile Include="..\..\classes\processing\ValidationResult.cs" Link="Processing\ValidationResult.cs" />
+    <Compile Include="..\..\enums\AssertionsOutcome.cs" Link="Enums\AssertionsOutcome.cs" />
+    <Compile Include="..\..\enums\ConfigurationsOutcome.cs" Link="Enums\ConfigurationsOutcome.cs" />
+    <Compile Include="..\..\enums\CredentialsType.cs" Link="Enums\CredentialsType.cs" />
+    <Compile Include="..\..\enums\DefinitionType.cs" Link="Enums\DefinitionType.cs" />
+    <Compile Include="..\..\enums\FacetProcessingState.cs" Link="Enums\FacetProcessingState.cs" />
+    <Compile Include="..\..\enums\RebaseOutcome.cs" Link="Enums\RebaseOutcome.cs" />
+    <Compile Include="..\..\enums\ValidationErrorType.cs" Link="Enums\ValidationErrorType.cs" />
+    <Compile Include="..\..\enums\ValidationsOutcome.cs" Link="Enums\ValidationsOutcome.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Proviso.Format.ps1xml" Link="Proviso.Format.ps1xml" />
+    <None Include="..\..\Proviso.Format_new.ps1xml" Link="Proviso.Format_new.ps1xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management.Automation" Version="7.1.4" />
+  </ItemGroup>
+
+</Project>

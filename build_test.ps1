@@ -9,8 +9,6 @@ $global:PVRunBookActive = $false;
 $classFiles = @(
 	"$ProvisoScriptRoot\enums\AssertionsOutcome.cs"
 	"$ProvisoScriptRoot\enums\ConfigurationsOutcome.cs"
-	"$ProvisoScriptRoot\enums\DefinitionType.cs"
-	"$ProvisoScriptRoot\enums\CredentialsType.cs"
 	"$ProvisoScriptRoot\enums\FacetProcessingState.cs"
 	"$ProvisoScriptRoot\enums\RebaseOutcome.cs"
 	"$ProvisoScriptRoot\enums\ValidationErrorType.cs"
@@ -18,10 +16,8 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Assertion.cs"
 	"$ProvisoScriptRoot\classes\models\Definition.cs"
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
-	"$ProvisoScriptRoot\classes\models\Setup.cs"
 	"$ProvisoScriptRoot\classes\models\Facet.cs"
 	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"
-	"$ProvisoScriptRoot\classes\models\Tester.cs"
 	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationResult.cs"
@@ -29,8 +25,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\processing\ValidationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ValidationResult.cs"
 	"$ProvisoScriptRoot\classes\processing\FacetProcessingResult.cs"
-	"$ProvisoScriptRoot\classes\Orthography.cs"
-	"$ProvisoScriptRoot\classes\DomainCredential.cs"
+	"$ProvisoScriptRoot\classes\DslStack.cs"
 	"$ProvisoScriptRoot\classes\ProcessingContext.cs"
 	"$ProvisoScriptRoot\classes\Formatter.cs"
 );
@@ -92,5 +87,4 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 }
 
 # 6. Export
-Export-ModuleMember -Function $provisoPublicModuleMembers;
-Export-ModuleMember -Alias * -Function *;
+$provisoPublicModuleMembers;

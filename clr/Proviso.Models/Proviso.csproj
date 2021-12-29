@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\classes\DomainCredential.cs" Link="DomainCredential.cs" />
     <Compile Include="..\..\classes\Formatter.cs" Link="Formatter.cs" />
     <Compile Include="..\..\classes\models\Assertion.cs" Link="Models\Assertion.cs" />
     <Compile Include="..\..\classes\models\Definition.cs" Link="Models\Definition.cs" />
@@ -29,6 +30,7 @@
     <Compile Include="..\..\classes\processing\ValidationResult.cs" Link="Processing\ValidationResult.cs" />
     <Compile Include="..\..\enums\AssertionsOutcome.cs" Link="Enums\AssertionsOutcome.cs" />
     <Compile Include="..\..\enums\ConfigurationsOutcome.cs" Link="Enums\ConfigurationsOutcome.cs" />
+    <Compile Include="..\..\enums\CredentialsType.cs" Link="Enums\CredentialsType.cs" />
     <Compile Include="..\..\enums\DefinitionType.cs" Link="Enums\DefinitionType.cs" />
     <Compile Include="..\..\enums\FacetProcessingState.cs" Link="Enums\FacetProcessingState.cs" />
     <Compile Include="..\..\enums\RebaseOutcome.cs" Link="Enums\RebaseOutcome.cs" />

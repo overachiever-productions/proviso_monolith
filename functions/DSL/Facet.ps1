@@ -19,6 +19,11 @@
 					function Assertions {
 						function Assert {
 						}
+
+						# optional, pre-defined assertions: 
+						function Assert-UserIsAdminstrator{}
+						function Assert-HostIsRunningWindows{}
+						etc.
 					}
 
 					function Rebase {}

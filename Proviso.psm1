@@ -10,6 +10,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\enums\AssertionsOutcome.cs"
 	"$ProvisoScriptRoot\enums\ConfigurationsOutcome.cs"
 	"$ProvisoScriptRoot\enums\DefinitionType.cs"
+	"$ProvisoScriptRoot\enums\CredentialsType.cs"
 	"$ProvisoScriptRoot\enums\FacetProcessingState.cs"
 	"$ProvisoScriptRoot\enums\RebaseOutcome.cs"
 	"$ProvisoScriptRoot\enums\ValidationErrorType.cs"
@@ -29,6 +30,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\processing\ValidationResult.cs"
 	"$ProvisoScriptRoot\classes\processing\FacetProcessingResult.cs"
 	"$ProvisoScriptRoot\classes\Orthography.cs"
+	"$ProvisoScriptRoot\classes\DomainCredential.cs"
 	"$ProvisoScriptRoot\classes\ProcessingContext.cs"
 	"$ProvisoScriptRoot\classes\Formatter.cs"
 );

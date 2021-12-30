@@ -13,6 +13,8 @@ function Get-ProvisoConfigGroupNames {
 	
 	begin {
 		# do validations/etc. 
+		
+		$decrementKey = [int]::MaxValue;
 	};
 	
 	process {
@@ -25,7 +27,12 @@ function Get-ProvisoConfigGroupNames {
 			
 			foreach ($key in $keys) {
 				$orderingKey = "$GroupKey.$key.$OrderByKey";
+				
 				$priority = Get-ProvisoConfigValueByKey -Key $orderingKey -Config $Config;
+				if (-not ($priority)) {
+					$decrementKey = $decrementKey - 1;
+					$priority = $decrementKey;
+				}
 				
 				$prioritizedKeys.Add($priority, $key);
 			}

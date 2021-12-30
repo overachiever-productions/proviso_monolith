@@ -93,6 +93,7 @@
 					RawSize    = "30GB"
 					DiskNumber = "3"
 					DeviceId   = "xvdd"
+					VolumeId   = "000000001532"
 				}
 			}
 		}

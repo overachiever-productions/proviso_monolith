@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Proviso.Enums;
 using Proviso.Models;
 using Proviso.Processing;
 
@@ -23,11 +25,15 @@ namespace Proviso
 
         public int FacetStateObjectsCount => this._temporaryFacetState.Count;
 
+        public string CurrentKey { get; private set; }
+        public object CurrentKeyValue { get; private set; }
+
+        public string CurrentChildKey { get; private set; }
+        public object CurrentChildKeyValue { get; private set; }
+
         public object Expected { get; private set; }
         public object Actual { get; private set; }
-        public object CurrentKeyValue { get; private set; }  // NOTE: this is only set (during Process-Facet operations) for Value-Definitions. Er, well, i might be double-using it for the key-value for groups as well... 
-        public object CurrentKeyGroup { get; private set; }
-
+        
         public Dictionary<string, object> TemporaryFacetState => this._temporaryFacetState;
 
         public static ProcessingContext Instance => new ProcessingContext();
@@ -59,20 +65,10 @@ namespace Proviso
             this.Expected = value;
         }
 
-        public void RemoveCurrentExpectValue()
-        {
-            this.Expected = null;
-        }
-
-        public void SetCurrentActualValue(object value)
-        {
-            this.Actual = value;
-        }
-
-        public void RemoveCurrentActualValue()
-        {
-            this.Actual = null;
-        }
+        //public void SetCurrentActualValue(object value)
+        //{
+        //    this.Actual = value;
+        //}
 
         public void SetRecompareActive()
         {
@@ -84,24 +80,78 @@ namespace Proviso
             this.recompareActive = false;
         }
 
-        public void SetCurrentKeyValue(object value)
+        public void SetValidationState(Definition current)
         {
-            this.CurrentKeyValue = value;
+            switch (current.DefinitionType)
+            {
+                case DefinitionType.Simple:
+                    this.CurrentKey = current.Key;
+                    this.CurrentKeyValue = current.KeyValue;
+                    break;
+                case DefinitionType.Value:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+                    break;
+                case DefinitionType.Group:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+
+                    this.CurrentChildKey = current.CurrentIteratorChildKey;
+                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
+                    break;
+            }
         }
 
-        public void SetCurrentKeyGroup(object value)
+        public void ClearValidationState()
         {
-            CurrentKeyGroup = value;
-        }
-
-        public void ClearCurrentKeyValue()
-        {
+            this.CurrentKey = null;
             this.CurrentKeyValue = null;
+            this.CurrentChildKey = null;
+            this.CurrentChildKeyValue = null;
+
+            this.Expected = null;  // can/will be set after SetValidationState() is called...
         }
 
-        public void ClearCurrentKeyGroup()
+        public void SetConfigurationState(ValidationResult currentValidation)
         {
-            CurrentKeyGroup = null;
+            Definition current = currentValidation.ParentDefinition;
+            if (current == null)
+                throw new Exception("Proviso Framework Exception. ValidationResult's Parent [Definition] was/is null. ");
+
+            // REFACTOR: this is/was a copy/paste of SetValidationState - i.e., create an internal/private method that assigns state based on def-types... 
+            switch (current.DefinitionType)
+            {
+                case DefinitionType.Simple:
+                    this.CurrentKey = current.Key;
+                    this.CurrentKeyValue = current.KeyValue;
+                    break;
+                case DefinitionType.Value:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+                    break;
+                case DefinitionType.Group:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+
+                    this.CurrentChildKey = current.CurrentIteratorChildKey;
+                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
+                    break;
+            }
+
+            this.Expected = currentValidation.Expected;
+            this.Actual = currentValidation.Actual;
+        }
+
+        public void ClearConfigurationState()
+        {
+            // REFACTOR ... this is damned near the same as ClearValidationState... the the point where I probably don't need 2x methods... 
+            this.CurrentKey = null;
+            this.CurrentKeyValue = null;
+            this.CurrentChildKey = null;
+            this.CurrentChildKeyValue = null;
+
+            this.Expected = null;
+            this.Actual = null;
         }
 
         public void SetRebootRequired(string reason = null)
@@ -111,16 +161,16 @@ namespace Proviso
                 this.RebootReason = reason;
         }
 
-        public void SetCurrentRunbook(string runbookName)
-        {
-            // just a place-holder. i.e., I'll probably end up having a full-blown Runbook object
-            // which'll have properties for various details... well, properties for various switches... 
-        }
+        //public void SetCurrentRunbook(string runbookName)
+        //{
+        //    // just a place-holder. i.e., I'll probably end up having a full-blown Runbook object
+        //    // which'll have properties for various details... well, properties for various switches... 
+        //}
 
-        public void CloseCurrentRunbook()
-        {
+        //public void CloseCurrentRunbook()
+        //{
 
-        }
+        //}
 
         public void SetCurrentFacet(Facet added, bool executeRebase, bool executeConfiguration, FacetProcessingResult processingResult)
         {
@@ -134,6 +184,7 @@ namespace Proviso
 
         public void CloseCurrentFacet()
         {
+            this.ClearConfigurationState();
             this._temporaryFacetState = new Dictionary<string, object>();
         }
 

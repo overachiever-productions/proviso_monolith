@@ -9,19 +9,18 @@ Import-Module -Name Proviso -Force -DisableNameChecking;
 Assign -ProvisoRoot "\\storage\Lab\proviso\";
 With -CurrentHost | Do-Something;
 
-
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	#Assign -ProvisoRoot "\\storage\Lab\proviso\";
 
-	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ServerName;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-NetworkAdapters;
-
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ServerName;	
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-FirewallRules;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-RequiredPackages;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-HostTls;
 
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdmins;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
-	 With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingFacet;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingFacet;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-DataCollectorSets;
 
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
@@ -144,30 +143,33 @@ function Process-Facet {
 		if ($valueDefs) {
 			$expandedDefs = @();
 			
+			# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 			foreach ($definition in $valueDefs) {
 				
-				$values = Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.ParentKey);
+				$values = $PVConfig.GetValue($definition.IterationKey); #Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.IterationKey);
 				if ($values.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
 				foreach ($value in $values) {
 					$newDescription = "$($definition.Description):$($value)";
 					
 					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
- 					if ($definition.CurrentValueKeyAsExpect) {
+					
+					$expandedValueDefinition.SetTest(($definition.Test));
+					$expandedValueDefinition.SetConfigure(($definition.Configure));
+					
+ 					if ($definition.ExpectCurrentIterationKey) {
 						$script = "return '$value';";
 						$expectedBlock = [scriptblock]::Create($script);
 						
-						$expandedValueDefinition.AddExpect($expectedBlock);
+						$expandedValueDefinition.SetExpect($expectedBlock);
 					}
 					else {
-						$expandedValueDefinition.AddExpect(($definition.Expectation));
+						$expandedValueDefinition.SetExpect(($definition.Expect));
 					}
 					
-					$expandedValueDefinition.AddTest(($definition.Test));
-					$expandedValueDefinition.AddConfigure(($definition.Configure));
-					$expandedValueDefinition.AddCurrentKeyValue($value);
+					$expandedValueDefinition.SetCurrentIteratorDetails($definition.IterationKey, $value);
 					
 					$expandedDefs += $expandedValueDefinition;
 				}
@@ -181,11 +183,11 @@ function Process-Facet {
 			
 			foreach ($definition in $groupDefs) {
 				
-				[string]$trimmedKey = ($definition.ParentKey) -replace ".\*", "";
+				[string]$trimmedKey = ($definition.IterationKey) -replace ".\*", "";
 				
 				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.ParentKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames) {
@@ -194,22 +196,38 @@ function Process-Facet {
 					
 					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
 					
-					if (-not ($definition.Expectation)) {
-						$fullKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
-						$actualValue = Get-ProvisoConfigValueByKey -Config $Config -Key $fullKey;
-						$script = "return '$actualValue';";
+					$expandedGroupDefinition.SetTest(($definition.Test));
+					$expandedGroupDefinition.SetConfigure(($definition.Configure));
+					
+					$currentIteratorKey = "$($trimmedKey).$($groupName)";
+					$currentIteratorKeyValue = $groupName;
+					
+					$currentIteratorChildKey = $null;
+					$currentIteratorChildKeyValue = $null;
+					
+					if ($definition.ExpectCurrentIterationKey) {
+						$script = "return '$currentIteratorKeyValue';";
 						$expectedBlock = [scriptblock]::Create($script);
 						
-						$expandedGroupDefinition.AddExpect($expectedBlock);
-						$expandedGroupDefinition.AddCurrentKeyValue($actualValue);
+						$expandedGroupDefinition.SetExpect($expectedBlock);
 					}
 					else {
-						$expandedGroupDefinition.AddExpect(($definition.Expectation));
+						if ($definition.ExpectGroupChildKey){
+							$currentIteratorChildKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
+							$currentIteratorChildKeyValue = $PVConfig.GetValue($currentIteratorChildKey);
+							
+							$script = "return '$currentIteratorKeyChildValue';";
+							$expectedBlock = [scriptblock]::Create($script);
+							
+							$expandedGroupDefinition.SetExpect($expectedBlock);
+						}
+						else {
+							# then it's 'just' a normal expect: 
+							$expandedGroupDefinition.SetExpect(($definition.Expect));
+						}
 					}
 					
-					$expandedGroupDefinition.AddTest(($definition.Test));
-					$expandedGroupDefinition.AddConfigure(($definition.Configure));
-					$expandedGroupDefinition.AddCurrentKeyGroup($groupName);
+					$expandedGroupDefinition.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
 					
 					$expandedDefs += $expandedGroupDefinition;
 				}
@@ -221,26 +239,23 @@ function Process-Facet {
 		foreach ($definition in $definitions) {
 			
 			$validationResult = New-Object Proviso.Processing.ValidationResult($definition); 
-			$validations += $validationResult;			
+			$validations += $validationResult;
 			
-			[ScriptBlock]$expectedBlock = $definition.Expectation;
-			if (($null -eq $expectedBlock) -and ($null -ne $definition.Key)) { 	# dynamically CREATE a script-block ... that spits out the config key: 
-				$script = "return `$Config.GetValue('$($definition.Key)');";
-				$expectedBlock = [scriptblock]::Create($script);
+			[ScriptBlock]$expectedBlock = $definition.Expect;
+			if ($null -eq $expectedBlock) {
+				if ($definition.ExpectStaticKey) {
+					$script = "return `$Config.GetValue('$($definition.Key)');";
+					$expectedBlock = [scriptblock]::Create($script);
+				}
+				else {
+					throw "Proviso Framework Error. Expect block should be loaded (via various options) - but is NOT.";	
+				}
 			}
 			
 			$expectedResult = $null;
 			$expectedException = $null;
 			
-			if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
-				$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
-			}
-			
-			if ($definition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Group) {
-				# REFACTOR: this needs to be refactored. I don't MIND using the same func to display 'current value'... but, the name needs to reflect that this is more generic (than the hyper-specific name that was initially created here for VALUEDEF stuff);
-				$PVContext.SetCurrentKeyValue($definition.CurrentKeyValueForValueDefinitions);
-				$PVContext.SetCurrentKeyGroup($definition.CurrentKeyGroupForGroupDefinitions);
-			}
+			$PVContext.SetValidationState($definition);
 			
 			try {
 				$expectedResult = & $expectedBlock;
@@ -249,18 +264,19 @@ function Process-Facet {
 				$expectedException = $_;
 			}
 						
-			if ($null -ne $expectedException) {
+			if ($expectedException) {
 				$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Expected, $expectedException);
 				$validationResult.AddValidationError($validationError);
 			}
 			else {
 				$PVContext.SetCurrentExpectValue($expectedResult);
-				
 				$validationResult.AddExpectedResult($expectedResult);
+				
 				[ScriptBlock]$testBlock = $definition.Test;
+				
 				$comparison = Compare-ExpectedWithActual -Expected $expectedResult -TestBlock $testBlock;
 				
-				$validationResult.AddComparisonResults(($comparison.ActualResult), ($comparison.Matched))
+				$validationResult.AddComparisonResults(($comparison.ActualResult), ($comparison.Matched));
 				
 				if ($null -ne $comparison.ActualError) {
 					$validationError = New-Object Proviso.Processing.ValidationError([Proviso.Enums.ValidationErrorType]::Actual, ($comparison.ActualError));
@@ -275,11 +291,9 @@ function Process-Facet {
 				if ($validationResult.Failed) {
 					$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Failed; # i.e., exception/failure.
 				}
-				
-				$PVContext.RemoveCurrentExpectValue();
 			}
 			
-			$PVContext.ClearCurrentKeyValue();
+			$PVContext.ClearValidationState();
 		}
 		
 		$facetProcessingResult.EndValidations($validationsOutcome, $validations);
@@ -359,28 +373,22 @@ function Process-Facet {
 					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
 				else {
-					if ($validation.ParentDefinition.DefinitionType -eq [Proviso.Enums.DefinitionType]::Value) {
-						$PVContext.SetCurrentKeyValue($validation.ParentDefinition.CurrentKeyValueForValueDefinitions);
-					}
+					$PVContext.SetConfigurationState($validation);
 					
 					try {
-						$PVContext.SetCurrentExpectValue($validation.Expected);
-						$PVContext.SetCurrentActualValue($validation.Actual);
-						
 						[ScriptBlock]$configureBlock = $validation.Configure;
 						
 						& $configureBlock;
 					}
 					catch {
 						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
-						$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $false);
+						$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 						$configurationResult.AddConfigurationError($configurationError);
 					}
 					
 					# Recomparisons:
 					$PVContext.SetRecompareActive();
 					if (-not ($configurationResult.ConfigurationFailed)) {
-						
 						try {
 							[ScriptBlock]$testBlock = $validation.Test;
 							
@@ -389,7 +397,7 @@ function Process-Facet {
 							$configurationResult.SetRecompareValues(($validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
 						}
 						catch {
-							$configurationError = New-Object Proviso.Processing.ConfigurationError($_, $true);
+							$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 							$configurationResult.AddConfigurationError($configurationError);
 						}
 						
@@ -397,12 +405,9 @@ function Process-Facet {
 							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
 						}
 					}
-					
-					$PVContext.RemoveCurrentExpectValue();
-					$PVContext.RemoveCurrentActualValue();
 					$PVContext.SetRecompareInactive();
 					
-					$PVContext.ClearCurrentKeyValue();
+					$PVContext.ClearConfigurationState();
 				}
 			}
 			

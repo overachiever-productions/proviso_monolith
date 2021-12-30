@@ -83,10 +83,8 @@ namespace Proviso.Models
             // TODO: need to ensure that each definition's NAME is distinct (i.e., can't have the same definition (name) 2x). 
             // further... can't have the same definition with duplicate .ConfigKey properties either.
 
-            // TODO: yeah, lol: no. this error message is too effing long... possibly just point people to the docs? 
-            // TODO: yeah... also need to revisit these checks. definition.CurrentValueKeyAsExpect and definition.ChildKey can ONLY be used if value or group definitions (respectively) - so I need to add those checks into play too (unless validation during load covers these conditions? probably does ... but yeah).
-            if (definition.Expectation == null && definition.Key == null && !(definition.CurrentValueKeyAsExpect) && (definition.ChildKey == null))
-                throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain either a -Key, an Expect-Block, or use EITHER -ExpectCurrentKeyValue or -ExpectChildKey.");
+            if(!definition.ExpectIsSet)
+                throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
 
             if(definition.Test == null)
                 throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain a Test-Block");

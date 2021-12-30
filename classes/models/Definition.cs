@@ -1,25 +1,35 @@
-﻿using System;
-using System.Management.Automation;
+﻿using System.Management.Automation;
 using Proviso.Enums;
 
 namespace Proviso.Models
 {
     public class Definition
     {
-        public Facet Parent { get; set; }
+        public Facet Parent { get; private set; }
         public DefinitionType DefinitionType { get; private set; }
-        public string Description { get; set; }
-        public ScriptBlock Expectation { get; private set; }
-        public string Key { get; private set; }
-        public string ParentKey { get; private set; }  // can be used for BOTH value-definitions and group-definitions.
-        public string ChildKey { get; private set; }  // used for GROUP-definitions - i.e., this is the sub-key within a key-block/group.
-        public string OrderByChildKey { get; set; }   // this is the child key (for Group-Definitions) to order by - e.g., NetworkAdapters.xxx.ProvisioningPriority would use -OrderByChildKey = "ProvisioningPriority"
-        public bool RequiresReboot { get; private set; }
-        public bool CurrentValueKeyAsExpect { get; private set; }
-        public object CurrentKeyValueForValueDefinitions { get; private set; }
-        public object CurrentKeyGroupForGroupDefinitions { get; private set; }
+        public string Description { get; private set; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
+
+        public ScriptBlock Expect { get; private set; }
+        public bool ExpectStaticKey { get; private set; }
+        public bool ExpectCurrentIterationKey { get; private set; }
+        public bool ExpectGroupChildKey { get; private set; }
+        public bool ExpectIsSet { get; private set; }
+
+        public bool RequiresReboot { get; private set; }
+        public string Key { get; private set; }                 // 'static' key sent in via -Key "xxx" argument... (for simple/scalar Definitions).
+        public object KeyValue { get; private set; }
+        
+        public string IterationKey { get; private set; }        // Key used for 'looping' over Value(Array) keys or Group keys... 
+        public string ChildKey { get; private set; }            // used ONLY for/by Group keys ... 
+        public string OrderByChildKey { get; private set; }     //      ONLY used for Group Keys... 
+        public bool OrderDescending { get; private set; }       //      ONLY used for Array/Value keys
+
+        public string CurrentIteratorKey { get; private set; }
+        public object CurrentIteratorKeyValue { get; private set; }
+        public string CurrentIteratorChildKey { get; private set; }
+        public object CurrentIteratorChildKeyValue { get; private set; }
 
         public Definition(Facet parent, string description, DefinitionType type)
         {
@@ -27,45 +37,59 @@ namespace Proviso.Models
             this.Description = description;
             this.DefinitionType = type;
 
-            this.CurrentValueKeyAsExpect = false;
             this.RequiresReboot = false;
+            this.OrderDescending = false;
+            this.ExpectIsSet = false;
         }
 
-        public void AddExpect(ScriptBlock expectation)
+        public void SetIterationKeyForValueAndGroupDefinitions(string iterationKey)
         {
-            if (this.Key != null)
-                throw new InvalidOperationException("A -Key for this Definition has already been provided.");
-            
-            if(this.CurrentValueKeyAsExpect)
-                throw new InvalidOperationException("The -ExpectCurrentKeyValue switch has been provided for this Value-Definition.");
-
-            this.Expectation = expectation;
+            this.IterationKey = iterationKey;
+        }
+       
+        public void SetExpect(ScriptBlock expectation)
+        {
+            this.Expect = expectation;
+            this.ExpectIsSet = true;
         }
 
-        public void AddKeyAsExpect(string key)
+        public void SetTest(ScriptBlock testBlock)
         {
-            if (this.Expectation != null)
-                throw new InvalidOperationException("An Expect-block has already been provided.");
+            this.Test = testBlock;
+        }
 
-            if (this.CurrentValueKeyAsExpect)
-                throw new InvalidOperationException("The -ExpectCurrentKeyValue switch has been provided for this Value-Definition.");
+        public void SetConfigure(ScriptBlock configurationBlock)
+        {
+            this.Configure = configurationBlock;
+        }
 
+        public void SetExpectAsStaticKeyValue()
+        {
+            this.ExpectStaticKey = true;
+            this.ExpectIsSet = true;
+        }
+
+        public void SetExpectAsCurrentIterationKeyValue()
+        {
+            this.ExpectCurrentIterationKey = true;
+            this.ExpectIsSet = true;
+        }
+
+        public void SetExpectAsCurrentChildKeyValue(string childKey)
+        {
+            this.ExpectGroupChildKey = true;
+            this.ChildKey = childKey;
+            this.ExpectIsSet = true;
+        }
+
+        public void SetStaticKey(string key)
+        {
             this.Key = key;
         }
 
-        public void AddCurrentKeyValue(object value)
+        public void SetStaticKeyValue(object value)
         {
-            this.CurrentKeyValueForValueDefinitions = value;
-        }
-
-        public void AddOrderByChildKey(string key)
-        {
-            this.OrderByChildKey = key;
-        }
-
-        public void AddCurrentKeyGroup(object value)
-        {
-            this.CurrentKeyGroupForGroupDefinitions = value;
+            this.KeyValue = value;
         }
 
         public void SetRequiresReboot()
@@ -73,36 +97,31 @@ namespace Proviso.Models
             this.RequiresReboot = true;
         }
 
-        public void UseCurrentValueKeyAsExpect(string parentKey)
+        public void AddOrderByChildKey(string key)
         {
-            if (this.Key != null)
-                throw new InvalidOperationException("A -Key for this Definition has already been provided.");
-
-            if (this.Expectation != null)
-                throw new InvalidOperationException("An Expect-block has already been provided.");
-
-            this.CurrentValueKeyAsExpect = true;
-            this.ParentKey = parentKey;
+            this.OrderByChildKey = key;
         }
 
-        public void SetParentKeyForValueDefinition(string parentKey)
+        public void AddOrderDescending()
         {
-            this.ParentKey = parentKey;
+            this.OrderDescending = true;
         }
 
-        public void SetChildKeyForGroupDefinition(string childKey)
+        #region Processing-Details
+        public void SetCurrentIteratorDetails(string currentIteratorKey, object currentIteratorValue)
         {
-            this.ChildKey = childKey;
+            this.CurrentIteratorKey = currentIteratorKey;
+            this.CurrentIteratorKeyValue = currentIteratorValue;
         }
 
-        public void AddTest(ScriptBlock testBlock)
+        public void SetCurrentIteratorDetails(string currentIteratorKey, string currentIteratorValue, string currentIteratorChildKey, object currentIteratorChildValue)
         {
-            this.Test = testBlock;
-        }
+            this.CurrentIteratorKey = currentIteratorKey;
+            this.CurrentIteratorKeyValue = currentIteratorValue;
 
-        public void AddConfigure(ScriptBlock configurationBlock)
-        {
-            this.Configure = configurationBlock;
+            this.CurrentIteratorChildKey = currentIteratorChildKey;
+            this.CurrentIteratorChildKeyValue = currentIteratorChildValue;
         }
+        #endregion
     }
 }

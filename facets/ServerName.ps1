@@ -48,7 +48,7 @@ Facet "ServerName" {
 	}
 	
 	Definitions {
-		Definition -For "Target Server" -Key "Host.TargetServer" -RequiresReboot {
+		Definition -For "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();
 			}
@@ -90,7 +90,7 @@ Facet "ServerName" {
 			}
 		}
 		
-		Definition -For "Target Domain" -Key "Host.TargetDomain" -RequiresReboot {
+		Definition -For "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {

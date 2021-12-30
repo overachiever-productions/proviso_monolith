@@ -12,7 +12,7 @@ Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 	}
 	
 	Definitions {
-		Definition "WSFCRequired" -For -Key "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
+		Definition -For "WSFCRequired" -ExpectKeyValue "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
 			Test {
 				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 				
@@ -42,7 +42,7 @@ Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 			}
 		}
 		
-		Definition "NetFXRequired" -For -Key "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
+		Definition -For "NetFXRequired" -ExpectKeyValue "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
 			Test {
 				# check to see if v3.5 is installed: 
 				$allInstalled = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -recurse |	Get-ItemProperty -name Version, Release -EA 0 | Where-Object {	$_.PSChildName -match '^(?!S)\p{L}' } | Select-Object PSChildName, Version;
@@ -68,7 +68,7 @@ Facet "RequiredPackages" -For -Key "Host.RequiredPackages" {
 			}
 		}
 		
-		Definition "ADManagementFeaturesForPoshRequired" -Key "Host.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired" {
+		Definition "ADManagementFeaturesForPoshRequired" -ExpectKeyValue "Host.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired" {
 			Test {
 				$state = (Get-WindowsFeature RSAT-AD-Powershell).InstallState;
 				

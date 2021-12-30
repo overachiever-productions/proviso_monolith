@@ -34,7 +34,7 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 	
 	Definitions {
 		
-		Definition "SQL Server" -Key "Host.FirewallRules.EnableFirewallForSqlServer" {
+		Definition "SQL Server" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServer" {
 			Test {
 				if (-not ($PVContext.GetFacetState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -70,7 +70,7 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 			}
 		}
 		
-		Definition "SQL Server - DAC" -Key "Host.FirewallRules.EnableFirewallForSqlServerDAC" {
+		Definition "SQL Server - DAC" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerDAC" {
 			Test {
 				if (-not ($PVContext.GetFacetState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -107,7 +107,7 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 			}
 		}
 		
-		Definition "SQL Server - Mirroring" -Key "Host.FirewallRules.EnableFirewallForSqlServerMirroring" {
+		Definition "SQL Server - Mirroring" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerMirroring" {
 			Test {
 				if (-not ($PVContext.GetFacetState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -146,7 +146,7 @@ Facet "FirewallRules" -For -Key "Host.FirewallRules" {
 		
 		# TODO: verify that this rule (name) works on instances of WIndows Server OTHER than 2019... 
 		# NOTE: ACTUAL name (vs display name) for this rule is: "FPS-ICMP4-ERQ-In"
-		Definition "ICMP" -For -Key "Host.FirewallRules.EnableICMP" {
+		Definition "ICMP" -For -ExpectKeyValue "Host.FirewallRules.EnableICMP" {
 			Test {
 				$rule = Get-NetFirewallRule -DisplayName "File and Printer Sharing (Echo Request - ICMPv4-In)" -ErrorAction SilentlyContinue;
 				if (($null -eq $rule) -or (-not ($rule.Enabled))) {

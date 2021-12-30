@@ -24,8 +24,7 @@ Facet "HostTls" -For -Key "Host.LimitHostTls1dot2Only" {
 	
 	
 	Definitions {
-		
-		Definition "Restrict Host to TLS 1.2 Only" -Key "Host.LimitHostTls1dot2Only" {
+		Definition "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
 			
 			Test {
 				try {

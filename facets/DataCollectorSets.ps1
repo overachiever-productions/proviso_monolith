@@ -27,26 +27,26 @@ Facet "DataCollectorSets" {
 #>
 	
 	Group-Definitions -GroupKey "DataCollectorSets.*" {
-		Definition "IsEnabled" -ExpectChildKey "Enabled" {
+		Definition "IsEnabled" -ExpectValueForChildKey "Enabled" {
 			Test {
-				# is xxx enabled? 
-				$value = $PVContext.CurrentKeyValue;
-				$group = $PVContext.CurrentKeyGroup;
 				
-				#Write-Host "This would be a test for Group: $group with a value of $value ";
+#	Write-Host "Collectors:Current Key: $($PVContext.CurrentKey)"
+#	Write-Host "Collectors:Current Key VALUE: $($PVContext.CurrentKeyValue)"
+#	Write-Host "Collectors:Current _CHILD_ Key: $($PVContext.CurrentChildKey)"
+#	Write-Host "Collectors:Current _CHILD_ Key VALUE: $($PVContext.CurrentChildKeyValue)"
+				
+				# is xxx enabled? 
 				
 				# simulated results: 
-				if ($group -eq "Consolidated") {
-					return $false;
-				}
-				
-				return $false;
+#				if ($group -eq "Consolidated") {
+#					return $false;
+#				}
+#				
+#				return $false;
 			}
 			Configure {
 				# do whatever it takes to turn xxx on... 
-				$value = $PVContext.CurrentKeyValue;
-				$group = $PVContext.CurrentKeyGroup;
-				
+
 				#Write-Host "Do whatever is needed to set the Enabled Status of DataCollectorSet: [$group] to [$value];";
 				$configDataForXmlDef = $PVConfig.GetValue("DataCollectorSets.$group.XmlDefinition");
 				

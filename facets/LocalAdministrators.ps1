@@ -15,7 +15,7 @@ Facet "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 	
 	Value-Definitions -ValueKey "Host.LocalAdministrators" {
 		
-		Definition "AccountExists" -ExpectCurrentKeyValue {
+		Definition "AccountExists" -ExpectValueForCurrentKey {
 			Test {
 				$expectedAccount = $PVContext.CurrentKeyValue;
 				
@@ -35,8 +35,8 @@ Facet "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 		Definition "IsLocalAdmin" -Expect $true { 
 			Test {
 				$expectedAccount = $PVContext.CurrentKeyValue;
-				$currentAdmins = $PVContext.GetFacetState("CurrentAdmins");
 				
+				$currentAdmins = $PVContext.GetFacetState("CurrentAdmins");
 				if ($currentAdmins.Name -contains $expectedAccount) {
 					return $true;
 				}

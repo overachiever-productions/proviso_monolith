@@ -9,8 +9,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 	}
 	
 	Definitions {
-		
-		Definition "DvdDriveToZ" -For -Key "Host.WindowsPreferences.DvdDriveToZ" {
+		Definition -For "DvdDriveToZ" -ExpectKeyValue "Host.WindowsPreferences.DvdDriveToZ" {
 			Test {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
 				if ($dvdDrive) {
@@ -49,7 +48,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition "OptimizeWindowsExplorer" -For -Key "Host.WindowsPreferences.OptimizeExplorer" {
+		Definition -For "OptimizeWindowsExplorer" -ExpectKeyValue "Host.WindowsPreferences.OptimizeExplorer" {
 			Test {
 				$key = Get-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\";
 				$launchTo = $null;
@@ -90,7 +89,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition "DisableServerManager" -For -Key "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
+		Definition -For "DisableServerManager" -ExpectKeyValue "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
 			Test {
 				$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon";
 				
@@ -113,7 +112,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition "HighPerfPowerConfig" -For -Key "Host.WindowsPreferences.SetPowerConfigHigh" {
+		Definition -For "HighPerfPowerConfig" -ExpectKeyValue "Host.WindowsPreferences.SetPowerConfigHigh" {
 			Test {
 				$current = powercfg -GETACTIVESCHEME;
 				if (!($current -contains "(High performance)")) {
@@ -134,7 +133,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition "DisableMonitorTimeout" -For -Key "Host.WindowsPreferences.DisableMonitorTimeout" {
+		Definition -For "DisableMonitorTimeout" -ExpectKeyValue "Host.WindowsPreferences.DisableMonitorTimeout" {
 			Test {
 				$output = powercfg /Query;
 				$block = [regex]::split($output, 'VIDEOIDLE')[1];
@@ -164,7 +163,7 @@ Facet "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition "EnableDiskPerfCounters" -For -Key "Host.WindowsPreferences.EnableDiskPerfCounters" {
+		Definition -For "EnableDiskPerfCounters" -ExpectKeyValue "Host.WindowsPreferences.EnableDiskPerfCounters" {
 			Test {
 				$state = diskperf;
 				if ($state -match "[(Both)(are automatically enabled)]{2}") {

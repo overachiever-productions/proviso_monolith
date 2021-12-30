@@ -7,5 +7,5 @@ function Configure {
 	
 	Validate-FacetBlockUsage -BlockName "Configure";
 	
-	$definition.AddConfigure($ConfigureBlock)
+	$definition.SetConfigure($ConfigureBlock)
 }

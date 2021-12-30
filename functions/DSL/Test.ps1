@@ -7,5 +7,5 @@ function Test {
 	
 	Validate-FacetBlockUsage -BlockName "Test";
 	
-	$definition.AddTest($TestBlock);
+	$definition.SetTest($TestBlock);
 }

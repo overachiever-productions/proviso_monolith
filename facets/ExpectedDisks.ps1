@@ -28,15 +28,22 @@ Facet "ExpectedDisks" {
 		
 		Assert-UserIsAdministrator;
 		
-		Assert -IsNot "C Drive Specified" {
-			# TODO: iterate over all disks in Hosts.Expected disks ... 
-			#  and, make sure that NONE of them is set to use a volumeName of C:\... 
+		Assert "C Drive Is NOT Specified" {
 			
-			# if so, throw a ginormous exception... 
-			
-			# inverted: 
-			return $false;
+			Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
+				if (($_.VolumeName -eq "C:\") -or ($_.VolumeName -eq "C")) {
+					throw "Invalid Expected Disk Specification. Proviso can NOT define an expected disk for System (i.e., C:\). Use [Host.Compute.SystemVolumeSize] to define size of C:\ drive instead.";
+				}
+			}
 		}
+		
+#		Assert "Config Is -Strict" { 
+#			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
+#			$currentHostName = [System.Net.Dns]::GetHostName();
+#			if ($targetHostName -ne $currentHostName) {
+#				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure disks on systems where Host/TargetServer names do NOT match.";
+#			}
+#		}
 	}
 	
 	Group-Definitions -GroupKey "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
@@ -61,7 +68,7 @@ Facet "ExpectedDisks" {
 				};
 				
 				# NOTE: I could also drop the object itself ? into the config? (might need format rules/details?)
-				$PVContext.WriteLog("Match for [$expectedDiskKey] was Partition [$($partition.PartitionNumber)] (with a size of [$($partition.PartitionSize)]GB) on Disk [$($existingDisk.DiskNumber)] with a total size of [$($existingDisk.SizeInGBs)]GB.", "Important");
+				$PVContext.WriteLog("Match for [$expectedDiskKey] was Partition [$($partition.PartitionNumber)] (with a size of [$($partition.PartitionSize)]GB) on Disk [$($existingDisk.DiskNumber)] with a total size of [$($existingDisk.SizeInGBs)]GB.", "Verbose");
 				
 				# TODO: IF we've got any OTHER physical identifiers in the .config... then, compare those and if any fail ... return false and writeLog("why it's not a match", "Important")
 				
@@ -72,55 +79,33 @@ Facet "ExpectedDisks" {
 				$expectedDiskKey = $PVContext.CurrentKeyValue;
 				[PSCustomObject]$targetDiskPhysicalIdentifiers = [PSCustomObject]$PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.PhysicalDiskIdentifiers");
 				
-				$nonInitializedDisks = $PVContext.GetFacetState("CurrentPhysicalDisks") | Where-Object {
-					(-not ($_.IsInitialized))
+				# don't use cached disks for determination of which disks are available: 
+				$nonInitializedDisks = Get-ExistingPhysicalDisks | Where-Object {
+					(-not ($_.IsInitialized))  # only disks without a VOLUME LETTER assigned can/will be considered for use. 
 				};
 				
-Write-Host "Non-initialized: $($nonInitializedDisks.Count) for $expectedDiskKey ";
-				
-				$matchedDiskToConfigure = Match-NonInitializedDisksWithTargetDisk -NonInitializedDisks $nonInitializedDisks -TargetDisk $targetDiskPhysicalIdentifiers;
+				$matchedDiskToConfigure = Match-NonInitializedDisksWithTargetDisk -NonInitializedDisks $nonInitializedDisks -TargetDiskIdentifiers $targetDiskPhysicalIdentifiers -ExpectedDiskName $expectedDiskKey;
 				
 				if ($null -eq $matchedDiskToConfigure) {
-					throw "not able to find a matching disk for $expectedDiskKey ";
+					throw "Could not find an available disk on host matching one or more [PhysicalDiskIdentifiers] for [Host.ExpectedDisks.$expectedDiskKey].";
 				}
 				
-				Write-Host "Found a match for $expectedDiskKey ";
+				if ($matchedDiskToConfigure.SizeMatchOnly) {
+					$rawSize = $PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.PhysicalDiskIdentifiers.RawSize");
+					$PVContext.WriteLog("Physical Disk #[$($matchedDiskToConfigure.DiskNumber)] was a match for [$expectedDiskKey] - matching ONLY on a RawSize of [$rawSize].", "Important");
+				}
+				else {
+					$PVContext.WriteLog("Physical Disk #[$($matchedDiskToConfigure.DiskNumber)] was a match for [$expectedDiskKey] with $($matchedDiskToConfigure.MatchCount) matched attribute(s}: [$($matchedDiskToConfigure.MatchedAttributes)]", "Verbose");
+				}
 				
-				$expectedDiskLetter = ($PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeName") -split "\:")[0];
-				$expectedVolumeName = $PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeLabel");
+				$volumeName = $PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeName");
+				$volumeLabel = $PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeLabel");
+				Initialize-TargetDisk -DiskNumber ($matchedDiskToConfigure.DiskNumber) -DiskName $expectedDiskKey -VolumeName $volumeName -VolumeLabel $volumeLabel;
 				
-				
-				
-				
-				# instead, 
-				#  	go back up to the TEST and add in a few other comparisons if/when possible... 
-				# 		i.e., try to discriminate like crazy... 
-				
-				# otherwise... 
-				#  IF the disk SHOULD exist and doesn't: 
-				#  		get a list of non-initialized disks that I can use. 
-				#   	if there's a match... 
-				#   		bring the disk online, init, format, and ... create a volume, etc. 
-				#   	then refresh disks data... so that recompare can/will work. 
-				# ON the odd chance that we somehow get here to where the disk exists and doesn't need to? 
-				# 		then... doesn't matter, write/notify that PROVISO will NOT destroy disks. 
-				# 		though, honestly, I can't think that we'd ever get into this 'branch' of logic... 
-				
-				
+				# Re-set CACHED disk info now that we've changed details: 
+				$PVContext.OverwriteFacetState("CurrentPhysicalDisks", (Get-ExistingPhysicalDisks));
+				$PVContext.OverwriteFacetState("CurrentVolumes", (Get-ExistingVolumeLetters));
 			}
-		}
-	}
-}
-
-function Match-NonInitializedDisksWithTargetDisk {
-	param (
-		[Proviso.Models.Disk[]]$NonInitializedDisks,
-		[PSCustomObject]$TargetDisk
-	);
-	
-	begin {
-		if ($null -eq $NonInitializedDisks) {
-			return $null;  # COULD make this a required parameter, but this lets me bypass null-checks within callers... 
 		}
 	}
 }

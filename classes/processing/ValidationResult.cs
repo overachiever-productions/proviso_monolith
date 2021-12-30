@@ -14,7 +14,7 @@ namespace Proviso.Processing
         public object Expected { get; private set; }
         public object Actual { get; private set; }
         public bool Matched { get; private set; }
-        public ScriptBlock Expectation => this.ParentDefinition.Expectation;
+        public ScriptBlock Expectation => this.ParentDefinition.Expect;
         public ScriptBlock Configure => this.ParentDefinition.Configure;
         public ScriptBlock Test => this.ParentDefinition.Test;
         public bool Failed { get; private set; }  // not the same as matched vs not-matched... but failed (i.e., an exception somewhere).

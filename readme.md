@@ -75,7 +75,7 @@ For example, the following code snippet will use the a machine's configuration f
 
 ```powershell
 
-Definition "SQL Server" -Key "Host.FirewallRules.EnableFirewallForSqlServer" {
+Definition "SQL Server" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServer" {
 	Test {...} # i.e., figure out if the firewall rule in question is enabled ($true or $false)
 	Configure {...} # set the firewall rule if/as needed... 
 }

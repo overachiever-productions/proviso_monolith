@@ -7,8 +7,12 @@ function Definitions {
 	);
 	
 	Validate-FacetBlockUsage -BlockName "Definitions";
-	$defsType = [Proviso.Enums.DefinitionType]::Simple;
+	$definitionType = [Proviso.Enums.DefinitionType]::Simple;
+	$ValueKey = $null;
+	$GroupKey = $null;
+	$ExpectBlock = $null;
 	$OrderByChildKey = $null;
+	$OrderDescending = $false;
 	
 	& $Definitions;
 }
@@ -19,11 +23,14 @@ function Value-Definitions {
 		[Parameter(Mandatory)]
 		[ScriptBlock]$Definitions,
 		[Parameter(Mandatory)]
-		[string]$ValueKey
+		[string]$ValueKey,
+		[switch]$OrderDescending = $false
 	);
 	
 	Validate-FacetBlockUsage -BlockName "Value-Definitions";
-	$defsType = [Proviso.Enums.DefinitionType]::Value;
+	$definitionType = [Proviso.Enums.DefinitionType]::Value;
+	$GroupKey = $null;
+	$ExpectBlock = $null;
 	$OrderByChildKey = $null;
 	
 	& $Definitions;
@@ -36,12 +43,14 @@ function Group-Definitions {
 		[ScriptBlock]$Definitions,
 		[Parameter(Mandatory)]
 		[string]$GroupKey,
-		# REFACTOR: this needs to be called: -OrderConfigurationGroupsByChildKey			YEAH. that's a MOUTH-FUL. BUT. each definition will also have a -Priority or -OrderBy value itself... 
 		[string]$OrderByChildKey
 	);
 	
 	Validate-FacetBlockUsage -BlockName "Group-Definitions";
-	$defsType = [Proviso.Enums.DefinitionType]::Group;
+	$definitionType = [Proviso.Enums.DefinitionType]::Group;
+	$ValueKey = $null;
+	$ExpectBlock = $null;
+	$OrderDescending = $false;
 	
 	& $Definitions;
 }

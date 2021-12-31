@@ -37,13 +37,13 @@ Facet "ExpectedDisks" {
 			}
 		}
 		
-#		Assert "Config Is -Strict" { 
-#			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
-#			$currentHostName = [System.Net.Dns]::GetHostName();
-#			if ($targetHostName -ne $currentHostName) {
-#				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure disks on systems where Host/TargetServer names do NOT match.";
-#			}
-#		}
+		Assert "Config Is -Strict" { 
+			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
+			$currentHostName = [System.Net.Dns]::GetHostName();
+			if ($targetHostName -ne $currentHostName) {
+				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure disks on systems where Host/TargetServer names do NOT match.";
+			}
+		}
 	}
 	
 	Group-Definitions -GroupKey "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{

@@ -2,8 +2,7 @@
 
 function Compare-ExpectedWithActual {
 	param (
-		[Parameter(Mandatory)]
-		$Expected,
+		$Expected,		# This is actually NULLable... 
 		[Parameter(Mandatory)]
 		[ScriptBlock]$TestBlock
 	);
@@ -41,16 +40,6 @@ function Compare-ExpectedWithActual {
 				$comparisonError = $_;
 			}
 		}
-#		else{
-#			try {
-#				# yeah... this is a hell of a way to do this... 
-#				throw "Cannot compare Expected vs Actual because one or more of the evaluation operations for Expected/Test threw an exception.";
-#			}
-#			catch {
-#				$comparisonError = $_;
-#			}
-#		}
-		
 	};
 	
 	end {

@@ -27,33 +27,18 @@
 Runbook -Name "Initialize-Server" -RequiresDomainCreds {
 	
 	With "xyz as config" | Secured-By $secureThingy | Invoke {
-		Configure-NetworkAdapters; # foreach [networkAdapter] in Host.NetworkDefinition... make sure we've got what we need.
-		Configure-IpAddress; # for each [networkAdapter]... ensure that the IP, subnet, and gateway are set as expected. 
-		Confgure-DNS; # foreach [networkAdapter]... ensure that DNS is set for primary/secondary as needed. 
-		
-		Configure-ServerName -ExecuteRebase -Force;
+		Provision-NetworkAdapters;
+		Provision-ServerName;
 	}
 	
 	Summarize -All;
 	
 	if ($PVContext.RebootRequired) {
+		Wait-For 40 -seconds;
 		# figure out if ... there's a next Runbook... and set up a job to run that. 
 		# otherwise, assuming we're allowed to reboot... do so (either with or without a 'next job')
 		
 		# if we're NOT allowed to reboot, throw an error and/or write a critical output.
-	}
-}
-
-
-Runbook -For "Prep-Host-For-SQLServer" {
-	
-	With $configPassedIn -Strict | Secured-By $securedThingyPassedIn | Invoke -AllowReboot -NextRunBook $null {
-		Configure-WindowsServerPreferences;
-		Configure-RequiredPackages -AllowReboot;
-		Configure-FirewallRules; # includes hostTls1dot2 only... 
-		
-		Configure-ExpectedDisks;
-		Configure-SqlDirectories;
 	}
 }
 
@@ -62,33 +47,47 @@ Runbook -For "Ephemeral-Disks"  {
 	With "C:\Scripts\ephemeral_disks.psd1" -Strict | Configure-EphmeralDisks;
 	
 	if (-not ($PVContext.LastProcessingResult.Succeded)) {
-		Send-AlertEmail -NotUsingSql -Subject "Oh ship! drives down... " -Etc;
-	} 
+		Send-AlertEmail -NotUsingSql -Subject "Oh snap! drives down... " -Etc;
+	}
+}
+
+Runbook -For "Prep-Host-For-SQLServer" {
+	
+	With $configPassedIn -Strict | Secured-By $securedThingyPassedIn | Invoke -AllowReboot -NextRunBook $null {
+		Provision-LocalAdministrators;
+		Provision-WindowsServerPreferences;
+		Provision-RequiredPackages -AllowReboot;
+		Provision-HostTls;
+		Provision-FirewallRules;
+		
+		Provision-ExpectedDisks;
+	}
 }
 
 Runbook -For "Install-SqlServer" {
 	
 	With $configPassedIn | Secured-By $dynamicSecurityThingy | Invoke {
-		Verify-SqlServerPrerequisites -Fatal; # verify stuff like... passwords available (in config/secured-by), and that anything/everything else needed prior to installation (except .binaries) has been configured as expected. machine-name, network, required packages, etc.
-		Verify-SqlBinaryResources -Fatal; # using the config... make sure that SqlSetup.exe, SqlIniFile, Sqlpatches, and SSMS, etc. are all accessible... 
+		#Verify-SqlServerPrerequisites -Fatal; # verify stuff like... passwords available (in config/secured-by), and that anything/everything else needed prior to installation (except .binaries) has been configured as expected. machine-name, network, required packages, etc.
+		#Verify-SqlBinaryResources -Fatal; # using the config... make sure that SqlSetup.exe, SqlIniFile, Sqlpatches, and SSMS, etc. are all accessible... 
 		# arguably, the above could also be Configure-SqlBinaryResources - i.e., and contain "Config" blocks that copy/move stuff around as needed (or try to). 
+		Validate-SqlServerBinaryResources -Fatal;
 		
-		Configure-SqlServerInstallation; # core installation stuff.... 
-		Configure-ExpectedSqlDirectoriesAndPermissions; # post install tweak/check for folders + perms and shares + perms. 
-		Configure-SqlServerPowerShellModule; # make sure it's installed... and up to date... 
+		Provision-SqlServerInstallation; # core installation stuff.... 
+		Provision-ExpectedSqlDirectoriesAndPermissions; # post install tweak/check for folders + perms and shares + perms. 
+		Provision-SqlServerPowerShellModule; # make sure it's installed... and up to date... 
 		
-		Configure-SqlServerInstance; # disable-sa, set SPN, limit TLS only, UserRightsAssignments, and TraceFlags (this puppy is busy... )
-		Configure-ContingencySpace;
+		Provision-SqlServerInstance; # disable-sa, set SPN, limit TLS only, UserRightsAssignments, and TraceFlags (this puppy is busy... )
+		Provision-ContingencySpace;
 		
-		Configure-AdminDb; # install, enable-advanced, setup email, and ... run dbo.configure_instance. 
-		Configure-AdminDbAlerts; # IO/corruption, severity, disk-space alerts. 
-		Configure-AdminDbJobs; # create all of the various jobs and such. (history cleanup, ix maint, stats defrag, consistency checks, backups, restore-tests)
+		Provision-AdminDb; # install, enable-advanced, setup email, and ... run dbo.configure_instance. 
+		Provision-AdminDbAlerts; # IO/corruption, severity, disk-space alerts. 
+		Provision-AdminDbJobs; # create all of the various jobs and such. (history cleanup, ix maint, stats defrag, consistency checks, backups, restore-tests)
 		
-		Configure-ExtendedEventsSessions; # disable sqltelemetry/etc. 
+		Provision-ExtendedEventsSessions; # disable sqltelemetry/etc. 
 		
-		Configure-DataCollectorSets;
+		Provision-DataCollectorSets;
 		
-		Configure-SSMS;
+		Provision-SSMS;
 	}
 }
 

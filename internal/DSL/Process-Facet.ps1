@@ -19,8 +19,8 @@ With -CurrentHost | Do-Something;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-HostTls;
 
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdmins;
-	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
-	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingFacet;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingFacet;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-DataCollectorSets;
 
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
@@ -34,9 +34,9 @@ function Process-Facet {
 		[string]$FacetName,
 		[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config,
-		[Switch]$ExecuteRebase = $false,
-		[Switch]$Force = $false,
-		[Switch]$ExecuteConfiguration = $false
+		[switch]$Provision = $false,
+		[switch]$ExecuteRebase = $false,
+		[switch]$Force = $false
 	);
 	
 	begin {
@@ -53,8 +53,8 @@ function Process-Facet {
 			}
 		}
 		
-		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $ExecuteConfiguration);
-		$PVContext.SetCurrentFacet($facet, $ExecuteRebase, $ExecuteConfiguration, $facetProcessingResult);
+		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $Provision);
+		$PVContext.SetCurrentFacet($facet, $ExecuteRebase, $Provision, $facetProcessingResult);
 	}
 	
 	process {
@@ -157,7 +157,7 @@ function Process-Facet {
 					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
 					
 					$expandedValueDefinition.SetTest(($definition.Test));
-					$expandedValueDefinition.SetConfigure(($definition.Configure));
+					$expandedValueDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
 					
  					if ($definition.ExpectCurrentIterationKey) {
 						$script = "return '$value';";
@@ -197,7 +197,7 @@ function Process-Facet {
 					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
 					
 					$expandedGroupDefinition.SetTest(($definition.Test));
-					$expandedGroupDefinition.SetConfigure(($definition.Configure));
+					$expandedGroupDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
 					
 					$currentIteratorKey = "$($trimmedKey).$($groupName)";
 					$currentIteratorKeyValue = $groupName;
@@ -212,11 +212,12 @@ function Process-Facet {
 						$expandedGroupDefinition.SetExpect($expectedBlock);
 					}
 					else {
-						if ($definition.ExpectGroupChildKey){
+						if ($definition.ExpectGroupChildKey) {
+							
 							$currentIteratorChildKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
 							$currentIteratorChildKeyValue = $PVConfig.GetValue($currentIteratorChildKey);
-							
-							$script = "return '$currentIteratorKeyChildValue';";
+									
+							$script = "return '$currentIteratorChildKeyValue';";
 							$expectedBlock = [scriptblock]::Create($script);
 							
 							$expandedGroupDefinition.SetExpect($expectedBlock);
@@ -345,7 +346,7 @@ function Process-Facet {
 		# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
-		if ($ExecuteConfiguration) {
+		if ($Provision) {
 			
 			$facetProcessingResult.StartConfigurations();
 			
@@ -370,7 +371,10 @@ function Process-Facet {
 				
 				if ($validation.Matched) {
 					$configurationResult.SetBypassed();
-					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
+					$PVContext.WriteLog("Bypassing _configuration_ of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
+				}
+				elseif ($null -ne ($validation.ParentDefinition.ConfiguredBy)) {
+					Write-Host "Bypassing Configuration for $($validation.Description) cuz it's been forwarded to: $($validation.ParentDefinition.ConfiguredBy) "
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);

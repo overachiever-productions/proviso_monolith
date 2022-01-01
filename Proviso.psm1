@@ -23,7 +23,6 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Setup.cs"
 	"$ProvisoScriptRoot\classes\models\Facet.cs"
 	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"
-	"$ProvisoScriptRoot\classes\models\Tester.cs"
 	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationResult.cs"
@@ -61,7 +60,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
-# 4. Import/Build Facets and dynamically create Verify|Configure-<FacetName> funcs. 
+# 4. Import/Build Facets and dynamically create Validate|Provision|Document-<FacetName> funcs. 
 Clear-FacetProxies -RootDirectory $ProvisoScriptRoot;
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'facets/*.ps1') -ErrorAction Stop))) {
 	try {
@@ -73,7 +72,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 			$allowsRebase = $currentFacet.RebasePresent;
 			
 			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName;
-			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName -ExecuteConfiguration -AllowRebase:$allowsRebase;
+			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName -Provision -AllowRebase:$allowsRebase;
 		}
 	}
 	catch {

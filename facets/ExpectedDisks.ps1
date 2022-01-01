@@ -5,7 +5,7 @@
 Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 
 #With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ExpectedDisks;
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ExpectedDisks;
+With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-ExpectedDisks;
 
 Summarize -Latest;
 

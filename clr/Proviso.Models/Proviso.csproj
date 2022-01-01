@@ -20,7 +20,6 @@
     <Compile Include="..\..\classes\models\Partition.cs" Link="Models\Partition.cs" />
     <Compile Include="..\..\classes\models\Rebase.cs" Link="Models\Rebase.cs" />
     <Compile Include="..\..\classes\models\Setup.cs" Link="Models\Setup.cs" />
-    <Compile Include="..\..\classes\models\Tester.cs" Link="Models\Tester.cs" />
     <Compile Include="..\..\classes\Orthography.cs" Link="Orthography.cs" />
     <Compile Include="..\..\classes\ProcessingContext.cs" Link="ProcessingContext.cs" />
     <Compile Include="..\..\classes\processing\AssertionResult.cs" Link="Processing\AssertionResult.cs" />

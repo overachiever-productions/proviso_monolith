@@ -16,7 +16,7 @@ namespace Proviso
             this._allowedMethods.Add("Secured-By");                 //  1   will be replaced by Assign (i.e., Assign is a verb vs a phrase...)
             this._allowedMethods.Add("Assign");                     //  1
             this._allowedMethods.Add("Validate");                   //    2
-            this._allowedMethods.Add("Configure");                  //    2
+            this._allowedMethods.Add("Provision");                  //    2
             this._allowedMethods.Add("Execute");                    //    2 - wrapper to allow processing of one or more facets... 
             this._allowedMethods.Add("Process-Facet");              //      3 - CAN be called directly... not sure why anyone would want to... but permitted. 
             
@@ -70,7 +70,7 @@ namespace Proviso
         public string AddDslMethod(string method)
         {
             if (!this._allowedMethods.Contains(method))
-                return "Invalid Proviso DSL: [{method}] is not a valid Proviso DSL method.";
+                return $"Invalid Proviso DSL: [{method}] is not a valid Proviso DSL method.";
 
             // TODO: actually spend some time defining the rules for each element/method. 
             //      i.e., with HAS to be first. 

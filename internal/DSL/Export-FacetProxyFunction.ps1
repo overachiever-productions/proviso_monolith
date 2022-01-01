@@ -7,7 +7,7 @@ filter Export-FacetProxyFunction {
 		[string]$RootDirectory,
 		[Parameter(Mandatory)]
 		[string]$FacetName,
-		[switch]$ExecuteConfiguration = $false,
+		[switch]$Provision = $false,
 		[switch]$AllowRebase
 	);
 	
@@ -35,9 +35,9 @@ function {0}-{1} {{
 	
 	$rebaseParamDef = "";
 	$rebaseOutput = "";
-	$executeConfig = "";
-	if ($ExecuteConfiguration) {
-		$executeConfig = "-ExecuteConfiguration";
+	$provisionDirective = "";
+	if ($Provision) {
+		$provisionDirective = "-Provision";
 		
 		if ($AllowRebase) {
 			$rebaseParamDef = ",`r`t`t[Switch]`$ExecuteRebase = `$false, `r`t`t[Switch]`$Force = `$false ";
@@ -46,15 +46,15 @@ function {0}-{1} {{
 	}
 	
 	$methodType = "Validate";
-	if ($ExecuteConfiguration) {
-		$methodType = "Configure";
+	if ($Provision) {
+		$methodType = "Provision";
 	}
 	
-	$body = [string]::Format($template, $methodType, $FacetName, $rebaseParamDef, $rebaseOutput, $executeConfig);
+	$body = [string]::Format($template, $methodType, $FacetName, $rebaseParamDef, $rebaseOutput, $provisionDirective);
 	
 	try {
 		$filePath = Join-Path -Path $RootDirectory -ChildPath "\facets\generated";
-		$filePath = Join-Path -Path $filePath -ChildPath "$MethodType-$FacetName.ps1";
+		$filePath = Join-Path -Path $filePath -ChildPath "$methodType-$FacetName.ps1";
 		
 		Set-Content -Path $filePath -Value $body -NoNewline -Confirm:$false -Force;
 	}

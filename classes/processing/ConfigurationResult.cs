@@ -8,6 +8,8 @@ namespace Proviso.Processing
     {
         public ValidationResult Validation { get; }
         public bool ConfigurationBypassed { get; private set; }
+        public bool ConfigurationDeferred { get; private set; }
+        public string ConfigurationDeferredTo { get; private set; }
         public bool ConfigurationFailed => this.ConfigurationErrors.Count > 0;
 
         public object RecompareExpected { get; private set; }
@@ -22,7 +24,9 @@ namespace Proviso.Processing
         {
             this.Validation = validation;
             this.ConfigurationBypassed = false;
-            
+            this.ConfigurationDeferred = false;
+            this.ConfigurationDeferredTo = null;
+
             this.RecompareMatched = false;
 
             this.ConfigurationErrors = new List<ConfigurationError>();
@@ -32,6 +36,12 @@ namespace Proviso.Processing
         public void SetBypassed()
         {
             this.ConfigurationBypassed = true;
+        }
+
+        public void SetDeferred(string handledBy)
+        {
+            this.ConfigurationDeferred = true;
+            this.ConfigurationDeferredTo = handledBy;
         }
 
         public void SetRecompareValues(object expected, object actual, bool matched, ErrorRecord actualError, ErrorRecord comparisonError)

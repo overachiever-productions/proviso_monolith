@@ -12,8 +12,8 @@ namespace Proviso
         private Dictionary<string, object> _temporaryFacetState = new Dictionary<string, object>();
         private readonly Stack<Facet> _facets = new Stack<Facet>();  // these never get popped... just using a stack for ordering... 
         private readonly Stack<FacetProcessingResult> _processingResults = new Stack<FacetProcessingResult>();
-        private bool recompareActive = false;
-
+        
+        public bool RecompareActive { get; private set; }
         public bool ExecuteConfiguration { get; private set; }
         public bool ExecuteRebase { get; private set; }
         public bool RebootRequired { get; private set; }
@@ -41,6 +41,7 @@ namespace Proviso
         private ProcessingContext()
         {
             this.RebootRequired = false;
+            this.RecompareActive = false;
         }
 
         public FacetProcessingResult[] GetAllResults()
@@ -72,12 +73,12 @@ namespace Proviso
 
         public void SetRecompareActive()
         {
-            this.recompareActive = true;
+            this.RecompareActive = true;
         }
 
         public void SetRecompareInactive()
         {
-            this.recompareActive = false;
+            this.RecompareActive = false;
         }
 
         public void SetValidationState(Definition current)
@@ -198,7 +199,7 @@ namespace Proviso
             //          BUT: when CONFIGURE is done running, we RE-COMPARE results - meaning that TEST is re-run and ... attempting to add _tempFacetState.Add(keyAlreadyDefined, someVal) obviously ... throws. 
 
             //  THE ABOVE SAID: I've added an explicit: void OverwriteFacetState... which addresses SOME concerns - but not all. 
-            if (!this.recompareActive)
+            if (!this.RecompareActive)
                 this._temporaryFacetState.Add(key, value);
         }
 

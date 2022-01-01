@@ -5,6 +5,7 @@ function Definition {
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
 		[string]$Description,
 		$Expect,
+		$ConfiguredBy,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$DefinitionBlock,
 		[string]$ExpectKeyValue = $null,
@@ -213,6 +214,11 @@ function Definition {
 			$ExpectBlock = [scriptblock]::Create($script);
 			
 			$definition.SetExpect($ExpectBlock);
+		}
+		
+		if ($ConfiguredBy -and ($null -eq $definition.Configure)) {
+			$facet.VerifyConfiguredBy($Description, $ConfiguredBy);	# throws if the name isn't valid (i.e., found (already) within the current facet)
+			$definition.SetConfiguredBy($ConfiguredBy);
 		}
 		
 		$facet.AddDefinition($definition);

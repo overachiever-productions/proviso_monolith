@@ -5,7 +5,20 @@ function Configure {
 		[ScriptBlock]$ConfigureBlock
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Configure";
+	begin {
+		Validate-FacetBlockUsage -BlockName "Configure";
+		
+		if ($ConfiguredBy) {
+			throw "Invalid Argument. Define blocks can use EITHER a Configure{} block OR the -ConfiguredBy parameter (not both).";
+		}
+	}
 	
-	$definition.SetConfigure($ConfigureBlock)
+	process {
+		$definition.SetConfigure($ConfigureBlock);
+	}
+	
+	end {
+		
+	}
+	
 }

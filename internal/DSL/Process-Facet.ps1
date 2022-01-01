@@ -364,6 +364,8 @@ function Process-Facet {
 			$configurations = @();
 			$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Completed;
 			
+			$deferredConfigurations = $facet.DefersConfigurations;
+			
 			foreach($validation in $facetProcessingResult.ValidationResults) {
 				
 				$configurationResult = New-Object Proviso.Processing.ConfigurationResult($validation);
@@ -371,10 +373,11 @@ function Process-Facet {
 				
 				if ($validation.Matched) {
 					$configurationResult.SetBypassed();
-					$PVContext.WriteLog("Bypassing _configuration_ of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
+					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
-				elseif ($null -ne ($validation.ParentDefinition.ConfiguredBy)) {
-					Write-Host "Bypassing Configuration for $($validation.Description) cuz it's been forwarded to: $($validation.ParentDefinition.ConfiguredBy) "
+				elseif ($validation.ParentDefinition.DefersConfiguration) {
+					$configurationResult.SetDeferred($validation.ParentDefinition.ConfiguredBy);
+					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);
@@ -391,26 +394,61 @@ function Process-Facet {
 					}
 					
 					# Recomparisons:
-					$PVContext.SetRecompareActive();
-					if (-not ($configurationResult.ConfigurationFailed)) {
-						try {
-							[ScriptBlock]$testBlock = $validation.Test;
-							
-							$reComparison = Compare-ExpectedWithActual -Expected $validation.Expected -TestBlock $testBlock;
-							
-							$configurationResult.SetRecompareValues(($validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
-						}
-						catch {
-							$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
-							$configurationResult.AddConfigurationError($configurationError);
-						}
+					if (-not ($deferredConfigurations)) {
 						
-						if ($configurationResult.RecompareFailed) {
-							$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+						$PVContext.SetRecompareActive();
+						if (-not ($configurationResult.ConfigurationFailed)) {
+							try {
+								[ScriptBlock]$testBlock = $validation.Test;
+								
+								$reComparison = Compare-ExpectedWithActual -Expected $validation.Expected -TestBlock $testBlock;
+								
+								$configurationResult.SetRecompareValues(($validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
+							}
+							catch {
+								$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
+								$configurationResult.AddConfigurationError($configurationError);
+							}
+							
+							if ($configurationResult.RecompareFailed) {
+								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+							}
 						}
+						$PVContext.SetRecompareInactive();
+						
 					}
-					$PVContext.SetRecompareInactive();
 					
+					$PVContext.ClearConfigurationState();
+				}
+			}
+			
+			# REFACTOR: Honestly, since I HAVE to account for deferred configs ... I might as well NOT have 2x places in the code where I process recompares. 
+			#   instead, 'everything' should be recompared AFTER configuration - in a SEPARATE block of operations ... (i.e., down here).
+			if ($deferredConfigurations) {
+				
+				# run re-comparisons of all applicable configuration results: 
+				$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};			
+				foreach ($configurationResult in $targets) {
+					$PVContext.SetConfigurationState($configurationResult.Validation);
+					$PVContext.SetRecompareActive();
+					
+					try {
+						[ScriptBlock]$testBlock = $configurationResult.Validation.Test;
+						
+						$reComparison = Compare-ExpectedWithActual -Expected ($configurationResult.Validation.Expected) -TestBlock $testBlock;
+						
+						$configurationResult.SetRecompareValues(($configurationResult.Validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
+					}
+					catch {
+						$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
+						$configurationResult.AddConfigurationError($configurationError);
+					}
+					
+					if ($configurationResult.RecompareFailed) {
+						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+					}
+					
+					$PVContext.SetRecompareInactive();
 					$PVContext.ClearConfigurationState();
 				}
 			}

@@ -10,6 +10,8 @@ namespace Proviso.Models
         public string Description { get; private set; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
+        public bool DefersConfiguration { get; private set; }
+        public string ConfiguredBy { get; private set; }
 
         public ScriptBlock Expect { get; private set; }
         public bool ExpectStaticKey { get; private set; }
@@ -40,6 +42,9 @@ namespace Proviso.Models
             this.RequiresReboot = false;
             this.OrderDescending = false;
             this.ExpectIsSet = false;
+
+            this.DefersConfiguration = false;
+            this.ConfiguredBy = null;
         }
 
         public void SetIterationKeyForValueAndGroupDefinitions(string iterationKey)
@@ -58,9 +63,17 @@ namespace Proviso.Models
             this.Test = testBlock;
         }
 
-        public void SetConfigure(ScriptBlock configurationBlock)
+        public void SetConfigure(ScriptBlock configurationBlock) => this.SetConfigure(configurationBlock, null);
+
+        public void SetConfigure(ScriptBlock configurationBlock, string configuredBy)
         {
             this.Configure = configurationBlock;
+
+            if (configuredBy != null & !string.IsNullOrEmpty(configuredBy))
+            {
+                this.ConfiguredBy = configuredBy;
+                this.DefersConfiguration = true;
+            }
         }
 
         public void SetExpectAsStaticKeyValue()
@@ -90,6 +103,12 @@ namespace Proviso.Models
         public void SetStaticKeyValue(object value)
         {
             this.KeyValue = value;
+        }
+
+        public void SetConfiguredBy(string definitionName)
+        {
+            this.ConfiguredBy = definitionName;
+            this.DefersConfiguration = true;
         }
 
         public void SetRequiresReboot()

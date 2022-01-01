@@ -13,6 +13,7 @@ namespace Proviso.Models
         public string ConfigKey { get; private set; }
 
         public bool RebasePresent => this.Rebase != null;
+        public bool DefersConfigurations => this.Definitions.Any(d => d.DefersConfiguration);
 
         public List<Assertion> Assertions { get; private set; }
         public List<Assertion> FailedAssertions { get; private set; }
@@ -78,6 +79,16 @@ namespace Proviso.Models
             return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Group).ToList();
         }
 
+        public void VerifyConfiguredBy(string currentDefinitionDescription, string handlerDefinitionDescription)
+        {
+            Definition handler = this.Definitions.SingleOrDefault(d => d.Description == handlerDefinitionDescription);
+            if(handler == null)
+                throw new Exception($"Definition [{currentDefinitionDescription}] specifies -ConfiguredBy [{handlerDefinitionDescription}] - but a Definition with a Description of [{handlerDefinitionDescription}] does not (yet?) exist.");
+
+            if(handler.ConfiguredBy != null)
+                throw new Exception($"Definition [{currentDefinitionDescription}] specifies -ConfiguredBy [{handlerDefinitionDescription}] - but Definition [{handlerDefinitionDescription}] specifies -ConfiguredBy as well (vs an explicit Configure block). The -ConfiguredBy switch can NOT be 'chained' or 're-pointed'.");
+        }
+
         private void ValidateDefinition(Definition definition)
         {
             // TODO: need to ensure that each definition's NAME is distinct (i.e., can't have the same definition (name) 2x). 
@@ -89,7 +100,7 @@ namespace Proviso.Models
             if(definition.Test == null)
                 throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain a Test-Block");
 
-            if(definition.Configure == null)
+            if(definition.Configure == null & definition.ConfiguredBy == null)
                 throw new Exception($"Definition [{definition.Description}] for Facet [{this.Name}] is invalid. It MUST contain a Configure-Block.");
         }
     }

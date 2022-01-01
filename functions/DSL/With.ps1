@@ -176,12 +176,30 @@ function With {
 						}
 						# TODO: this isn't correctly accounting for both MSSSQLSERVER and <empty>
 						'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
-							# if we didn't find defaults, it's for a non-default instance and ... we can't use defaults/etc.
-							throw "SqlServerInstallation.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
+							[string[]]$parts = $Key -split ".";
+							$instanceName = $parts[1];
+							
+							if ($instanceName -eq "MSSQLSERVER") {
+								$accountName = $parts[3];
+								$accountType = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $accountType;
+							}
+							else {
+								# vNEXT: actually... this is pretty easy to configure... 
+								throw "SqlServerInstallation.<INSTANCE>.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
+							}
 						}
-						# ditto ... needs to account for MSSSQLSERVER|_
 						'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
-							throw "SqlServerInstallation.SQLServerDefaultDirectories cannot be null of use defaults.";
+							[string[]]$parts = $Key -split "\.";
+							$instanceName = $parts[1];
+							
+							if ($instanceName -eq "MSSQLSERVER") {
+								$directoryName = $parts[3];
+								$output = Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
+							}
+							else {
+								# vNEXT: will, eventually, allow for D:\<instanceName>\<defaultDir> as an option here - instead of throwing... 
+								throw "SqlServerInstallation.<INSTANCE>.SQLServerDefaultDirectories cannot be null or use defaults for instances OTHER than [MSSQLSERVER].";
+							}
 						}
 						'TODO-match on cluster stuff here ' {
 							throw "Need to implement cluster checks and AG checks and anything else that makes sense";

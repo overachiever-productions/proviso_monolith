@@ -139,11 +139,11 @@ function Process-Facet {
 		$definitions = $facet.GetSimpleDefinitions();
 		$valueDefs = $facet.GetBaseValueDefinitions();
 		$groupDefs = $facet.GetBaseGroupDefinitions();
+		$compoundDefs = $facet.GetBaseCompoundDefinitions();
 		
 		if ($valueDefs) {
 			$expandedDefs = @();
 			
-			# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 			foreach ($definition in $valueDefs) {
 				
 				$values = $PVConfig.GetValue($definition.IterationKey); #Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.IterationKey);
@@ -151,6 +151,7 @@ function Process-Facet {
 					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
 				}
 				
+				# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 				foreach ($value in $values) {
 					$newDescription = "$($definition.Description):$($value)";
 					
@@ -191,7 +192,6 @@ function Process-Facet {
 				}
 				
 				foreach ($groupName in $groupNames) {
-					
 					$newDescription = "$($definition.Description):$($groupName)";
 					
 					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
@@ -229,8 +229,67 @@ function Process-Facet {
 					}
 					
 					$expandedGroupDefinition.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
-					
 					$expandedDefs += $expandedGroupDefinition;
+				}
+			}
+			
+			$definitions += $expandedDefs;
+		}
+		
+		if ($compoundDefs) {
+			$expandedDefs = @();
+			
+			foreach ($definition in $compoundDefs){
+				[string]$trimmedKey = ($definition.IterationKey) -replace ".\*", "";
+				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
+				if ($groupNames.Count -lt 1) {
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+				}
+				
+				foreach ($groupName in $groupNames){
+					$fullCompoundKey = "$trimmedKey.$groupName.$($definition.CompoundIterationKey)";
+					# TODO: implement the .OrderDescending logic in this helper func... 
+					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $Config -FullCompoundKey $fullCompoundKey -OrderDescending:$($definition.OrderDescending);
+					
+					if ($compoundChildElements.Count -lt 1){
+						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					}
+					else{
+						foreach ($compoundValue in $compoundChildElements){
+							$compoundDescription = "$($definition.Description):$($groupName).$compoundValue";
+							
+							$compoundDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $compoundDescription, [Proviso.Enums.DefinitionType]::Compound);
+							$compoundDefinition.SetTest($definition.Test);
+							$compoundDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
+							
+							$iteratorKey = "$($trimmedKey).$($groupName)";
+							$iteratorValue = $groupName;
+							
+							$iteratorChildKey = $fullCompoundKey;
+							$iteratorChildKeyValue = $compoundValue;
+							
+							if ($definition.ExpectCurrentIterationKey){
+								$script = "return '$iteratorValue';";
+								$expectedBlock = [scriptblock]::Create($script);
+								
+								$compoundDefinition.SetExpect($expectedBlock);
+							}
+							else {
+								if ($definition.ExpectCompoundValueKey) {
+									$script = "return '$iteratorChildKeyValue';";
+									$expectedBlock = [scriptblock]::Create($script);
+									
+									$compoundDefinition.SetExpect($expectedBlock);
+								}
+								else {
+									$compoundDefinition.SetExpect(($definition.Expect));
+								}
+							}
+							
+							$compoundDefinition.SetCurrentIteratorDetails($iteratorKey, $iteratorValue, $iteratorChildKey, $iteratorChildKeyValue);
+							$expandedDefs += $compoundDefinition;
+						}
+					}
 				}
 			}
 			

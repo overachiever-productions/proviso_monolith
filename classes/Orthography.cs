@@ -29,6 +29,7 @@ namespace Proviso
             this._allowedFacetBlocks.Add("Definitions");            //  1 - child of facet
             this._allowedFacetBlocks.Add("Value-Definitions");      //  1 - child of facet
             this._allowedFacetBlocks.Add("Group-Definitions");      //  1 - child of facet
+            this._allowedFacetBlocks.Add("Compound-Definitions");   //  1 - child of facet
             this._allowedFacetBlocks.Add("Definition");             //    2 - child of definitions
             this._allowedFacetBlocks.Add("Expect");                 //      3 - child of definition
             this._allowedFacetBlocks.Add("Test");                   //      3 - child of definition

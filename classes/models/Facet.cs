@@ -79,6 +79,11 @@ namespace Proviso.Models
             return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Group).ToList();
         }
 
+        public List<Definition> GetBaseCompoundDefinitions()
+        {
+            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Compound).ToList();
+        }
+
         public void VerifyConfiguredBy(string currentDefinitionDescription, string handlerDefinitionDescription)
         {
             Definition handler = this.Definitions.SingleOrDefault(d => d.Description == handlerDefinitionDescription);

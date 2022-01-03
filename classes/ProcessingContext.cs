@@ -94,12 +94,15 @@ namespace Proviso
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
                     break;
                 case DefinitionType.Group:
+                case DefinitionType.Compound:
                     this.CurrentKey = current.CurrentIteratorKey;
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
 
                     this.CurrentChildKey = current.CurrentIteratorChildKey;
                     this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
                     break;
+                default: 
+                    throw new Exception("Proviso Exception. Invalid DefinitionType in CLR ProcessingContext for .SetValidationState().");
             }
         }
 

@@ -8,9 +8,11 @@ function Definition {
 		$ConfiguredBy,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$DefinitionBlock,
+		[string]$CompoundValueKey = $null,  		# basically the same as the -ValueKey ... but has to be implemented per Definition (instead of 'up' at Definitions-block level).
 		[string]$ExpectKeyValue = $null,
-		[switch]$ExpectValueForCurrentKey = $false, 
+		[switch]$ExpectValueForCurrentKey = $false,
 		[string]$ExpectValueForChildKey = $null,
+		[switch]$ExpectValueForCompoundKey = $false,
 		[Alias("Has")]
 		[switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
 		[switch]$RequiresReboot = $false,
@@ -30,6 +32,10 @@ function Definition {
 					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Definition] methods within [Group-Definitions] blocks";
 				}
 				
+				if ($ExpectValueForCompoundKey) {
+					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Definition] methods within [Compound-Definitions] blocks";
+				}
+				
 				if ($OrderByChildKey) {
 					throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Definition] methods within [Group-Definitions] blocks.";
 				}
@@ -40,6 +46,10 @@ function Definition {
 				
 				if ($GroupKey) {
 					throw "Invalid Argument. -GroupKey can ONLY be specified for [Definition] methods within [Group-Definitions] blocks.";
+				}
+				
+				if ($CompoundValueKey) {
+					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Definition] methods within [Compound-Definitions] blocks.";
 				}
 				
 				if ($OrderDescending) {
@@ -65,17 +75,25 @@ function Definition {
 				if ($ExpectValueForChildKey) {
 					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Definition] methods within [Group-Definitions] blocks";
 				}
+								
+				if ($ExpectValueForCompoundKey) {
+					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Definition] methods within [Compound-Definitions] blocks";
+				}
 				
 				if ($OrderByChildKey) {
-					throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Definition] methods within [Group-Definitions] blocks.";
+					throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Definition] methods within [Group-Definitions] and [Compound-Definitions] blocks.";
 				}
 
 				if ($GroupKey) {
-					throw "Invalid Argument. -GroupKey can ONLY be specified for [Definition] methods within [Group-Definitions] blocks.";
+					throw "Invalid Argument. -GroupKey can ONLY be specified for [Definition] methods within [Group-Definitions] and [Compound-Definitions] blocks.";
+				}
+				
+				if ($CompoundValueKey) {
+					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Definition] methods within [Compound-Definitions] blocks.";
 				}
 				
 				if ($null -eq $ValueKey) {
-					throw "Invalid Argument. [Value-Definition] blocks MUST include the -ValueKey argument.";
+					throw "Invalid Argument. [Value-Definitions] blocks MUST include the -ValueKey argument.";
 				}
 			}
 			Group {
@@ -84,20 +102,24 @@ function Definition {
 				}
 				
 				if ($ValueKey) {
-					throw "Invalid Argument. -ValueKey can ONLY be specified for [Definition] methods within [Value-Definition] blocks.";
+					throw "Invalid Argument. -ValueKey can ONLY be specified for [Definition] methods within [Value-Definitions] blocks.";
 				}
-
+				
+				if ($CompoundValueKey) {
+					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Definition] methods within [Compound-Definitions] blocks.";
+				}
+				
 				if ($OrderDescending) {
-					throw "Invalid Argument. -OrderDescending can ONLY be used for [Definition] methods within [Value-Definition] blocks.";
+					throw "Invalid Argument. -OrderDescending can ONLY be used for [Definition] methods within [Value-Definitions] and [Compound-Definitions] blocks.";
 				}
 				
 				if ($null -eq $GroupKey) {
-					throw "Invalid Argument. [Group-Definition] blocks MUST include the -GroupKey argument.";
+					throw "Invalid Argument. [Group-Definitions] blocks MUST include the -GroupKey argument.";
 				}
 				
 				if ($ExpectValueForChildKey) {
 					if ($Expect) {
-						throw "Invalid Argument. -ExpectValueForChildKey and xxx can NOT both be used - use one or the other.";
+						throw "Invalid Argument. -ExpectValueForChildKey and the -Expect argument can NOT both be used - use one or the other.";
 					}
 					
 					if ($ExpectBlock) {
@@ -106,6 +128,45 @@ function Definition {
 					
 					if ($ExpectValueForCurrentKey) {
 						throw "Invalid Argument. -ExpectValueForChildKey and -ExpectValueForCurrentKey can NOT both be used - use one or the other.";
+					}
+				}
+				
+				if ($ExpectValueForCompoundKey) {
+					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Definition] methods within [Compound-Definitions] blocks";
+				}
+			}
+			Compound {
+				if ($ExpectKeyValue) {
+					throw "Invalid Argument. -ExpectKeyValue can NOT be used in [Group-Definitions] or [Value-Definitions] blocks - it can only be used in [Definitions] blocks.";
+				}
+				
+				if ($ValueKey) {
+					throw "Invalid Argument -ValueKey can ONLY be specified for [Definition] methods within [Value-Definitions] blocks.";
+				}
+				
+				if ($null -eq $GroupKey) {
+					throw "Invalid Argument. [Group-Definitions] blocks MUST include the -GroupKey and -ValueKey arguments.";
+				}
+				
+				if ($null -eq $CompoundValueKey) {
+					throw "Invalid Argument. [Compound-Definitions] blocks MUST include the -GroupKey and -CompoundValueKey arguments.";
+				}
+				
+				if ($ExpectValueForChildKey) {
+					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Definition] methods within [Group-Definitions] blocks";
+				}
+				
+				if ($ExpectValueForCompoundKey) {
+					if ($Expect) {
+						throw "Invalid Argument. -ExpectValueForCompoundKey and the -Expect argument can NOT both be used - use one or the other.";
+					}
+					
+					if ($ExpectBlock) {
+						throw "Invalid Argument. -ExpectValueForCompoundKey and an explicit [Expect] block can NOT both be used - use one or the other.";
+					}
+					
+					if ($ExpectValueForCurrentKey) {
+						throw "Invalid Argument. -ExpectValueForCompoundKey and -ExpectValueForCurrentKey can NOT both be used - use one or the other.";
 					}
 				}
 			}
@@ -196,6 +257,22 @@ function Definition {
 				
 				if ($ExpectValueForChildKey) {
 					$definition.SetExpectAsCurrentChildKeyValue($ExpectValueForChildKey);
+				}
+				
+				if ($OrderByChildKey) {
+					$definition.AddOrderByChildKey($OrderByChildKey);
+				}
+			}
+			Compound{
+				$definition.SetIterationKeyForValueAndGroupDefinitions($GroupKey);
+				$definition.SetCompoundIterationValueKey($CompoundValueKey);
+				
+				if ($ExpectValueForCurrentKey) {
+					$definition.SetExpectAsCurrentIterationKeyValue();
+				}
+				
+				if ($ExpectValueForCompoundKey) {
+					$definition.SetExpectAsCompoundKeyValue();
 				}
 				
 				if ($OrderByChildKey) {

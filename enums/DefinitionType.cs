@@ -4,6 +4,7 @@
     {
         Simple, 
         Value, 
-        Group
+        Group, 
+        Compound
     }
 }

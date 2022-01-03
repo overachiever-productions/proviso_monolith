@@ -16,6 +16,7 @@ namespace Proviso.Models
         public ScriptBlock Expect { get; private set; }
         public bool ExpectStaticKey { get; private set; }
         public bool ExpectCurrentIterationKey { get; private set; }
+        public bool ExpectCompoundValueKey { get; private set; }
         public bool ExpectGroupChildKey { get; private set; }
         public bool ExpectIsSet { get; private set; }
 
@@ -24,6 +25,7 @@ namespace Proviso.Models
         public object KeyValue { get; private set; }
         
         public string IterationKey { get; private set; }        // Key used for 'looping' over Value(Array) keys or Group keys... 
+        public string CompoundIterationKey { get; private set; }
         public string ChildKey { get; private set; }            // used ONLY for/by Group keys ... 
         public string OrderByChildKey { get; private set; }     //      ONLY used for Group Keys... 
         public bool OrderDescending { get; private set; }       //      ONLY used for Array/Value keys
@@ -51,7 +53,12 @@ namespace Proviso.Models
         {
             this.IterationKey = iterationKey;
         }
-       
+
+        public void SetCompoundIterationValueKey(string compoundKey)
+        {
+            this.CompoundIterationKey = compoundKey;
+        }
+
         public void SetExpect(ScriptBlock expectation)
         {
             this.Expect = expectation;
@@ -92,6 +99,12 @@ namespace Proviso.Models
         {
             this.ExpectGroupChildKey = true;
             this.ChildKey = childKey;
+            this.ExpectIsSet = true;
+        }
+
+        public void SetExpectAsCompoundKeyValue()
+        {
+            this.ExpectCompoundValueKey = true;
             this.ExpectIsSet = true;
         }
 

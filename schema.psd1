@@ -134,20 +134,48 @@
 		
 		MSSQLSERVER = @{
 			SqlExePath	      = "sqlserver_2019_dev"
-			SqlIniFile	      = "2019_STANDARD_INSTALL"
+			#SqlIniFile	      = "2019_STANDARD_INSTALL"
 			StrictInstallOnly = $true
+			
+			Setup = @{
+				Version = "2019 by default or actually... maybe must <empty> by default?"
+				Edition = "same kind of thing... "
+				
+				Features = "SQLENGINE, CONNN"
+				Collation = "SQL_Latin1_General_CP1_CI_AS"
+				InstantFileInit = $true
+				
+				InstallDirectory	   = "C:\Program Files\Microsoft SQL Server"
+				InstallSharedDirectory = "C:\Program Files\Microsoft SQL Server"
+				InstallSharedWowDirectory = "C:\Program Files (x86)\Microsoft SQL Server"
+				
+				SqlTempDbFileCount = "4 or half number of cores as default (whichever is larger)"
+				SqlTempDbFileSize = 1024
+				SqlTempDbFileGrowth = 256
+				SqlTempDbLogFileSize = 2048
+				SqlTempDbLogFileGrowth = 256
+				
+				FileStreamLevel = 0
+				
+				NamedPipesEnabled = $false
+				TcpEnabled	= $true
+				
+				LicenseKey = ""
+			}
 			
 			ServiceAccounts   = @{
 				SqlServiceAccountName	    = "xyz or group managed service account here"
 				SqlServiceAccountPassword   = "probably safe-ish to store this here... but, better off to have an option to run lookups and some nomenclature/specification on how to grab that"
 				AgentServiceAccountName	    = "optional. if not present, defaults to ServiceAccountName"
 				AgentServiceAccountPassword = "OPTIONAL. as with ServiceAccountPassword, can be empty if/when service-accounts are NT SERVICE\xxx accounts... "
+				FullTextServiceAccount	    = "NT Service\MSSQLFDLauncher"
+				FullTextServicePassword     = ""
 			}
 			
 			SecuritySetup	  = @{
 				EnableSqlAuth			    = $true
 				AddCurrentUserAsAdmin	    = $false
-				SaPassword				    = "12345"
+				SaPassword				    = ""
 				MembersOfSysAdmin		    = @(
 					"domain\techops"
 					"BuiltIn\Administrators"
@@ -155,13 +183,13 @@
 			}
 			
 			SqlServerDefaultDirectories = @{
-				SqlDataPath    = "D:\SQLData"
-				SqlLogsPath    = "D:\SQLData"
-				SqlBackupsPath = "D:\SQLBackups"
-				TempDbPath	   = "D:\SQLData"
+				InstallSqlDataDir 	= "D:\SQLData"
+				SqlDataPath    		= "D:\SQLData"
+				SqlLogsPath    		= "D:\SQLData"
+				SqlBackupsPath 		= "D:\SQLBackups"
+				TempDbPath	   		= "D:\SQLData"
+				TempDbLogsPath 		= "D:\SQLData"
 			}
-			
-			LicenseKey	      = ""
 		}
 	}
 	

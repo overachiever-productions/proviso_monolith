@@ -204,7 +204,6 @@
 	
 }
 
-
 $PVResources | Add-Member -MemberType ScriptMethod -Name ValidateRootSet -Value $ValidateRootSet;
 $PVResources | Add-Member -MemberType ScriptMethod -Name SetRoot -Value $SetRoot;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetAsset -Value $GetAsset;

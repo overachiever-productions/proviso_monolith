@@ -4,8 +4,8 @@
 	
 	Host = @{
 		
-		TargetServer = "{~DEFAULT_PROHIBITED~}"
-		TargetDomain = "{~DEFAULT_PROHIBITED~}"
+		TargetServer	    = "{~DEFAULT_PROHIBITED~}"
+		TargetDomain	    = "{~DEFAULT_PROHIBITED~}"
 		
 		AllowGlobalDefaults = $false
 		
@@ -29,8 +29,8 @@
 		}
 		
 		RequiredPackages    = @{
-			WsfcComponents				     = $false
-			NetFxForPre2016InstancesRequired = $false
+			WsfcComponents								   = $false
+			NetFxForPre2016InstancesRequired			   = $false
 			AdManagementFeaturesforPowershell6PlusRequired = $false
 		}
 		
@@ -73,42 +73,107 @@
 	SqlServerInstallation = @{
 		
 		"{~ANY~}" = @{
+			SqlExePath	      = "{~DEFAULT_PROHIBITED~}"
 			StrictInstallOnly = $true
+			
+			Setup			  = @{
+				Version			       = ""
+				Edition			       = ""
+				
+				Features			   = "{~DEFAULT_PROHIBITED~}"
+				Collation			   = "SQL_Latin1_General_CP1_CI_AS"
+				InstantFileInit		      = $true
+				
+				InstallDirectory		  = "{~DEFAULT_PROHIBITED~}"
+				InstallSharedDirectory    = "{~DEFAULT_PROHIBITED~}"
+				InstallSharedWowDirectory = "{~DEFAULT_PROHIBITED~}"
+				
+				SqlTempDbFileCount	   = "{~DYNAMIC~}" # 4 or .5 * core-count (whichever is larger)
+				SqlTempDbFileSize	   = 1024
+				SqlTempDbFileGrowth    = 256
+				SqlTempDbLogFileSize   = 2048
+				SqlTempDbLogFileGrowth = 256
+				
+				FileStreamLevel	       = 0
+				
+				NamedPipesEnabled	   = $false
+				TcpEnabled			   = $true
+				
+				LicenseKey			   = ""
+			}
 			
 			SecuritySetup	  = @{
 				EnableSqlAuth		  = $false
 				AddCurrentUserAsAdmin = $false
-				SaPassword		      = ""
+				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
 				MembersOfSysAdmin	  = @(
 				)
 			}
 			
-			LicenseKey	      = ""
+			# NOTE: Get-SqlServerDefaultServiceAccount will eventually handle these defaults: 
+			#ServiceAccounts   = @{}
+			
+			# NOTE: Get-SqlServerDefaultDirectoryLocation will eventually address this... (for defaults)
+			#SqlServerDefaultDirectories = @{}
 		}
 		
 		MSSQLSERVER = @{
+			SqlExePath	      = "{~DEFAULT_PROHIBITED~}"
 			StrictInstallOnly = $true
 			
+			Setup			  = @{
+				Version			       = ""
+				Edition			       = ""
+				
+				Features			   = "{~DEFAULT_PROHIBITED~}"
+				Collation				  = "SQL_Latin1_General_CP1_CI_AS"
+				InstantFileInit		      = $true
+				
+				InstallDirectory		  = "C:\Program Files\Microsoft SQL Server"
+				InstallSharedDirectory    = "C:\Program Files\Microsoft SQL Server"
+				InstallSharedWowDirectory = "C:\Program Files (x86)\Microsoft SQL Server"
+				
+				SqlTempDbFileCount	   = "{~DYNAMIC~}"
+				SqlTempDbFileSize	   = 1024
+				SqlTempDbFileGrowth    = 256
+				SqlTempDbLogFileSize   = 2048
+				SqlTempDbLogFileGrowth = 256
+				
+				FileStreamLevel	       = 0
+				
+				NamedPipesEnabled	   = $false
+				TcpEnabled			   = $true
+				
+				LicenseKey			   = ""
+			}
+			
+			# Handled by: Get-SqlServerDefaultServiceAccount
 			ServiceAccounts   = @{
 				SqlServiceAccountName	    = "NT SERVICE\MSSQLSERVER"
 				SqlServiceAccountPassword   = ""
-				AgentServiceAccountName	    = "NT Service\SQLSERVERAGENT"
+				AgentServiceAccountName	    = "NT SERVICE\SQLSERVERAGENT"
 				AgentServiceAccountPassword = ""
+				FullTextServiceAccount	    = "NT SERVICE\MSSQLFDLauncher"
+				FullTextServicePassword	    = ""
 			}
 			
 			SecuritySetup	  = @{
-				EnableSqlAuth			    = $false
+				EnableSqlAuth			    = $true
 				AddCurrentUserAsAdmin	    = $false
-				SaPassword				    = ""
+				SaPassword				    = "{~DEFAULT_PROHIBITED~}"
 				MembersOfSysAdmin		    = @(
 				)
 			}
 			
-			# COULD specify C:\etc. but... would rather THROW exceptions for values not found than default data/etc. to C:\ drive. 
+			#Handled by: Get-SqlServerDefaultDirectoryLocation
 			SqlServerDefaultDirectories = @{
+#				InstallSqlDataDir 	= "D:\SQLData"
+#				SqlDataPath    		= "D:\SQLData"
+#				SqlLogsPath    		= "D:\SQLData"
+#				SqlBackupsPath 		= "D:\SQLBackups"
+#				TempDbPath	      	= "D:\SQLData"
+#				TempDbLogsPath    	= "D:\SQLData"
 			}
-			
-			LicenseKey	      = ""
 		}
 	}
 	

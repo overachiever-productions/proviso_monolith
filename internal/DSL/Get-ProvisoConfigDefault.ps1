@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# REFACTOR: https://overachieverllc.atlassian.net/browse/PRO-178
+
 filter Get-ProvisoConfigDefault {
 	param (
 		[Parameter(Mandatory)]
@@ -8,18 +10,35 @@ filter Get-ProvisoConfigDefault {
 		[switch]$ValidateOnly = $false  # validate vs return values... 
 	);
 	
-	$defaulValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+	$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
 	
-	if ($null -ne $defaulValue) {
-		if ($defaulValue -eq "{~DEFAULT_PROHIBITED~}") {
-			if (-not ($ValidateOnly)){
-				$defaulValue = $null;
+	# NOTE: this is kind of BS... i have to put the STRING to the left in these evaluations - otherwise a value of $True will trigger as TRUE and complete the -eq ... 
+	if ("{~DEFAULT_PROHIBITED~}" -eq $defaultValue) {
+		if ($ValidateOnly) {
+			return $true;
+		}
+		else {
+			$defaultValue = $null;
+		}
+	}
+	
+	if ("{~DYNAMIC~}" -eq $defaultValue) {
+		switch ($Key) {
+			{ $_ -like '*SqlTempDbFileCount' } {
+				$coreCount = Get-WindowsCoreCount;
+				if ($coreCount -le 4) {
+					return $coreCount;
+				}
+				return 4;
+			}
+			default {
+				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
 			}
 		}
 	}
 	
-	if ($null -ne $defaulValue) {
-		return $defaulValue;
+	if ($null -ne $defaultValue) {
+		return $defaultValue;
 	}
 
 	# Non-SQL-Instance Partials (pattern):
@@ -30,19 +49,19 @@ filter Get-ProvisoConfigDefault {
 		if (-not ([string]::IsNullOrEmpty($partialName))) {
 			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
 		
-			$defaulValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
+			$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
 			
-			if ($null -ne $defaulValue) {
-				if ($ValidateOnly -and ($defaulValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
-					return $defaulValue;
+			if ($null -ne $defaultValue) {
+				if ($ValidateOnly -and ($defaultValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
+					return $defaultValue;
 				}
 				
-				if ($defaulValue -eq "{~PARENT~}") {
-					$defaulValue = $partialName;
+				if ($defaultValue -eq "{~PARENT~}") {
+					$defaultValue = $partialName;
 				}
 				
-				if ($null -ne $defaulValue) {
-					return ($defaulValue).Value;
+				if ($null -ne $defaultValue) {
+					return ($defaultValue).Value;
 				}
 			}
 			

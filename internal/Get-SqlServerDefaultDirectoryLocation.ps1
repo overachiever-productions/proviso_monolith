@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+
+# REFACTOR: majore screw-up in using these helpers: https://overachieverllc.atlassian.net/browse/PRO-179
 filter Get-SqlServerDefaultDirectoryLocation {
 	
 	param (
@@ -13,7 +15,9 @@ filter Get-SqlServerDefaultDirectoryLocation {
 	#  		otherwise, we'd get, say: "D:\X3\SQLData" and so on... 
 	
 	switch ($SqlDirectory) {
-		
+		"InstallSqlDataDir" {
+			return "D:\SQLData";
+		}
 		"SqlDataPath" {
 			return "D:\SQLData";
 		}

@@ -174,13 +174,13 @@ function With {
 						'Host\.ExpectedDisks\..+.VolumeName' {
 							throw "Host.ExpectedDisks.<diskName>.VolumeName (drive letter) cannot be null or use defaults.";
 						}
-						# TODO: this isn't correctly accounting for both MSSSQLSERVER and <empty>
+						# TODO: this isn't correctly accounting for both MSSQLSERVER and <empty>
 						'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
-							[string[]]$parts = $Key -split ".";
+							[string[]]$parts = $Key -split '\.';
 							$instanceName = $parts[1];
 							
 							if ($instanceName -eq "MSSQLSERVER") {
-								$accountName = $parts[3];
+								$accountType = $parts[3];
 								$accountType = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $accountType;
 							}
 							else {
@@ -189,7 +189,7 @@ function With {
 							}
 						}
 						'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
-							[string[]]$parts = $Key -split "\.";
+							[string[]]$parts = $Key -split '\.';
 							$instanceName = $parts[1];
 							
 							if ($instanceName -eq "MSSQLSERVER") {

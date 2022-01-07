@@ -4,7 +4,7 @@
 	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.4.1'
+	ModuleVersion = '0.4.2'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -74,7 +74,9 @@
 	ModuleList = @()
 	
 	# List of all files packaged with this module
-	FileList = @()
+	FileList			   = @(
+		'\internal\Template.ini'	
+	)
 	
 	# Private data to pass to the module specified in ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
 	PrivateData = @{

@@ -16,6 +16,7 @@ function Definition {
 		[Alias("Has")]
 		[switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
 		[switch]$RequiresReboot = $false,
+		[switch]$IgnoreOnEmptyConfig = $false,
 		[ValidateNotNullOrEmpty()]
 		[string]$Key
 	)

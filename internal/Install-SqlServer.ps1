@@ -65,8 +65,17 @@ function Install-SqlServer {
 		$iniData.SetValue("SQLSVCINSTANTFILEINIT", "$($Settings["InstantFileInit"].ToString().ToUpper())");
 		$iniData.SetValue("FILESTREAMLEVEL", "$($Settings["FileStreamLevel"])");
 		
-		$iniData.SetValue("NPENABLED", "$($Settings["NamedPipesEnabled"].ToString().ToUpper())");
-		$iniData.SetValue("TCPENABLED", "$($Settings["TcpEnabled"].ToString().ToUpper())");
+		$np = "0";
+		$tcp = "0";
+		if ($Settings["NamedPipesEnabled"]) {
+			$np = "1";
+		}
+		if ($Settings["TcpEnabled"]) {
+			$tcp = "1";
+		}
+		
+		$iniData.SetValue("NPENABLED", "$np");
+		$iniData.SetValue("TCPENABLED", "$tcp");
 		
 		$iniData.SetValue("SQLSVCACCOUNT", "$($ServiceAccounts["SqlServiceAccountName"])");
 		$iniData.SetValue("AGTSVCACCOUNT", "$($ServiceAccounts["AgentServiceAccountName"])");
@@ -163,7 +172,21 @@ function Install-SqlServer {
 			$installCommand += $arg;
 		}
 		
+		#
+		
 		$outcome = Invoke-Expression $installCommand;
+		switch ($Version) {
+			"2019" {
+				$2019 = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
+				$outcome = $outcome -replace $2019, ""
+			}
+			"2017" {
+				
+			}
+			"2016" {
+				
+			}
+		}
 		
 		if (($outcome -like "*following error occurred:*") -or ($outcome -like "*Error result:*")) {
 			$PVContext.WriteLog("SQL Installation Error: $outcome ", "Critical");

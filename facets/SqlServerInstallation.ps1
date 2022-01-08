@@ -12,10 +12,7 @@ With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-Sq
 
 Summarize -Latest;
 
-# PICKUP/NEXT:
-	Need to figure out how to handle VALIDATE-ONLY against 'defaults' for SqlServerDirs and SqlServerServiceAccounts... 
-
-# THEN
+# TODO:
    figure out which directives to NUKE/REMOVE based up on VERSION of SQL Server being installed. 
 	Also... pretty sure that means I need to pass the $Version in to Install-SqlServer (er... well, yeah: duh: i do)
 
@@ -107,7 +104,7 @@ Facet SqlServerInstallation {
 				
 				try {
 					
-					$PVContext.WriteLog("Starting Installation of SQL Server.", "Verbose");
+					$PVContext.WriteLog("Starting Installation of SQL Server.", "Important");
 					Install-SqlServer `
 						-Version $version `
 						-StrictInstallOnly:$strictInstallOnly `
@@ -132,56 +129,89 @@ Facet SqlServerInstallation {
 		
 		Definition "Version" -ExpectValueForChildKey "Setup.Version" -ConfiguredBy "InstanceExists" -IgnoreOnEmptyConfig {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
-				
+		
+				return (Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "VersionName");
 			}
 		}
 		
 		Definition "Edition" -ExpectValueForChildKey "Setup.Edition" -ConfiguredBy "InstanceExists" -IgnoreOnEmptyConfig {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				return (Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "Edition");
 			}
 		}
 		
-		Definition "Features" -ExpectValueForChildKey "Setup.Features" -ConfiguredBy "InstanceExists" {
+		# https://overachieverllc.atlassian.net/browse/PRO-181
+#		Definition "Features" -ExpectValueForChildKey "Setup.Features" -ConfiguredBy "InstanceExists" {
+#			Test {
+#				$instanceName = $PVContext.CurrentKeyValue;
+#				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
+#					return "";
+#				}
+#				
+#				return "<TODO...>";
+#			}
+#		}
+		
+		Definition "Collation" -ExpectValueForChildKey "Setup.Collation" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
-				
+				return (Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "Collation");
 			}
 		}
 		
 		Definition "SqlServiceAccount" -ExpectValueForChildKey "ServiceAccounts.SqlServiceAccountName" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				if ($instanceName -ne "MSSQLSERVER") {
+					throw "Non-Default instance-names not YET supported.";
+				}
+				
+				$serviceName = "MSSQLSERVER";
+				return (Get-CimInstance -ClassName Win32_Service -Filter "Name='$serviceName'" | Select-Object -Property StartName).StartName;
 			}
 		}
 		
 		Definition "SqlAgentAccount" -ExpectValueForChildKey "ServiceAccounts.AgentServiceAccountName" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				if ($instanceName -ne "MSSQLSERVER") {
+					throw "Non-Default instance-names not YET supported.";
+				}
+				
+				$serviceName = "SQLSERVERAGENT";
+				return (Get-CimInstance -ClassName Win32_Service -Filter "Name='$serviceName'" | Select-Object -Property StartName).StartName;
 			}
 		}
 		
 		Definition "AllowSqlAuth" -ExpectValueForChildKey "SecuritySetup.EnableSqlAuth" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				return Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "MixedMode";
 			}
 		}
 		
@@ -189,50 +219,64 @@ Facet SqlServerInstallation {
 		
 		Definition "DataPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.SqlDataPath" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				return Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "DefaultData";
 			}
 		}
 		
 		Definition "LogsPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.SqlLogsPath" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				return Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "DefaultLog";
 			}
 		}
 		
 		Definition "BackupsPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.SqlBackupsPath" -ConfiguredBy "InstanceExists" {
 			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
 					return "";
 				}
 				
+				return Get-SqlServerInstanceDetailsFromRegistry -InstanceName $instanceName -Detail "DefaultBackups";
 			}
 		}
 		
-		Definition "TempDbPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.TempDbPath" -ConfiguredBy "InstanceExists" {
-			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
-					return "";
-				}
-				
-			}
-		}
-		
-		Definition "TempDbLogsPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.TempDbLogsPath" -ConfiguredBy "InstanceExists" {
-			Test {
-				if (-not ($PVContext.GetFacetState("$currentKey.Installed"))) {
-					return "";
-				}
-				
-			}
-		}
-		
-		# etc... 
-		
+		# https://overachieverllc.atlassian.net/browse/PRO-180
+#		Definition "TempDbPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.TempDbPath" -ConfiguredBy "InstanceExists" {
+#			Test {
+#				$instanceName = $PVContext.CurrentKeyValue;
+#				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
+#					return "";
+#				}
+#				
+#				# TODO: account for non-default instance-names... 		
+#				
+#				#$query = "SELECT RTRIM(LEFT([physical_name], LEN([physical_name]) - CHARINDEX(N'\', REVERSE([physical_name])))) [path] FROM sys.[database_files] WHERE [file_id] = 1;";
+#				#$command = "sqlcmd -S. -Q `"$query`"";
+#				#$output = Invoke-Expression $command;
+#				
+#				return "<TODO...>";
+#			}
+#		}
+#		
+#		Definition "TempDbLogsPath" -ExpectValueForChildKey "SQLServerDefaultDirectories.TempDbLogsPath" -ConfiguredBy "InstanceExists" {
+#			Test {
+#				$instanceName = $PVContext.CurrentKeyValue;
+#				if (-not ($PVContext.GetFacetState("$instanceName.Installed"))) {
+#					return "";
+#				}
+#				
+#				return "<TODO...>";
+#			}
+#		}
 	}
 }

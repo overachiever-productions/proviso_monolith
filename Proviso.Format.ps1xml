@@ -15,7 +15,11 @@
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
-            <Width>22</Width>
+            <Width>4</Width>
+            <Label>FID</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>32</Width>
             <Label>Facet</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -43,7 +47,10 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 21)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 31)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
@@ -73,10 +80,10 @@
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
-          <!--<TableColumnHeader>
-            <Width>22</Width>
-            <Label>Facet</Label>
-          </TableColumnHeader>-->
+          <TableColumnHeader>
+            <Width>4</Width>
+            <Label>FID</Label>
+          </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
             <Label>Assertion</Label>
@@ -89,9 +96,9 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
-              <!--<TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Assertion.ParentFacetName, 21)</ScriptBlock>
-              </TableColumnItem>-->
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 51)</ScriptBlock>
                 <!--<ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>-->
@@ -113,6 +120,10 @@
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
+            <Width>4</Width>
+            <Label>FID</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
             <Width>52</Width>
             <Label>Validation</Label>
           </TableColumnHeader>
@@ -128,6 +139,9 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 51)</ScriptBlock>
               </TableColumnItem>
@@ -182,6 +196,10 @@
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
+            <Width>4</Width>
+            <Label>FID</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
             <Width>52</Width>
             <Label>Configuration</Label>
           </TableColumnHeader>
@@ -201,6 +219,9 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 51)</ScriptBlock>
               </TableColumnItem>

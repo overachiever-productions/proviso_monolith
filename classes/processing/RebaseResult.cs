@@ -1,4 +1,5 @@
-﻿using System.Management.Automation;
+﻿using System;
+using System.Management.Automation;
 using Proviso.Enums;
 using Proviso.Models;
 
@@ -9,10 +10,13 @@ namespace Proviso.Processing
         public Rebase Rebase { get; private set; }
         public ErrorRecord RebaseError { get; private set; }
         public RebaseOutcome RebaseOutcome { get; private set; }
+        public Guid ProcessingId { get; private set; }
 
-        public RebaseResult(Rebase rebase)
+        public RebaseResult(Rebase rebase, Guid processingId)
         {
             this.Rebase = rebase;
+            this.ProcessingId = processingId;
+
             this.RebaseOutcome = RebaseOutcome.UnProcessed;
         }
 

@@ -54,6 +54,7 @@ function Process-Facet {
 		}
 		
 		$facetProcessingResult = New-Object Proviso.Processing.FacetProcessingResult($facet, $Provision);
+		$processingGuid = $facetProcessingResult.ProcessingId;
 		$PVContext.SetCurrentFacet($facet, $ExecuteRebase, $Provision, $facetProcessingResult);
 	}
 	
@@ -83,7 +84,7 @@ function Process-Facet {
 			
 			$assertionsOutcomes = [Proviso.Enums.AssertionsOutcome]::AllPassed;
 			foreach ($assert in $facet.Assertions) {
-				$assertionResult = New-Object Proviso.Processing.AssertionResult($assert);
+				$assertionResult = New-Object Proviso.Processing.AssertionResult($assert, $processingGuid);
 				$results += $assertionResult;
 				
 				try {				
@@ -130,7 +131,7 @@ function Process-Facet {
 		}
 		
 		# --------------------------------------------------------------------------------------
-		# Definitions / Testing
+		# Validations
 		# --------------------------------------------------------------------------------------	
 		$validations = @();
 		$facetProcessingResult.StartValidations();
@@ -298,7 +299,7 @@ function Process-Facet {
 		
 		foreach ($definition in $definitions) {
 			
-			$validationResult = New-Object Proviso.Processing.ValidationResult($definition); 
+			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, $processingGuid); 
 			$validations += $validationResult;
 			
 			[ScriptBlock]$expectedBlock = $definition.Expect;
@@ -376,7 +377,7 @@ function Process-Facet {
 			}
 			
 			[ScriptBlock]$rebaseBlock = $facet.Rebase.RebaseBlock;
-			$rebaseResult = New-Object Proviso.Processing.RebaseResult(($facet.Rebase));
+			$rebaseResult = New-Object Proviso.Processing.RebaseResult(($facet.Rebase), $processingGuid);
 			$rebaseOutcome = [Proviso.Enums.RebaseOutcome]::Success;
 			
 			try {
@@ -403,7 +404,7 @@ function Process-Facet {
 		}
 	
 		# --------------------------------------------------------------------------------------
-		# Configuration
+		# Provisioning
 		# --------------------------------------------------------------------------------------		
 		if ($Provision) {
 			

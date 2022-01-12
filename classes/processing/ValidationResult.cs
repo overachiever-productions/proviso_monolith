@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using Proviso.Enums;
@@ -18,12 +19,14 @@ namespace Proviso.Processing
         public ScriptBlock Configure => this.ParentDefinition.Configure;
         public ScriptBlock Test => this.ParentDefinition.Test;
         public bool Failed { get; private set; }  // not the same as matched vs not-matched... but failed (i.e., an exception somewhere).
+        public Guid ProcessingId { get; private set; }
 
         public List<ValidationError> ValidationErrors { get; private set; }
 
-        public ValidationResult(Definition parent)
+        public ValidationResult(Definition parent, Guid processingId)
         {
             this.ParentDefinition = parent;
+            this.ProcessingId = processingId;
 
             this.Failed = false;
             this.ValidationErrors = new List<ValidationError>();
@@ -53,7 +56,7 @@ namespace Proviso.Processing
 
         public string GetValidationName()
         {
-            return $"{this.ParentDefinition.Parent.Name}::{this.ParentDefinition.Description}";
+            return $"{this.ParentDefinition.Description}";
         }
 
         public string GetActualSummary()

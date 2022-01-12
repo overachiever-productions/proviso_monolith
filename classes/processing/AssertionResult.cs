@@ -10,13 +10,15 @@ namespace Proviso.Processing
 
         public Assertion Assertion { get; private set; }
         public ErrorRecord AssertionError { get; private set; }
+        public Guid ProcessingId { get; private set; }
 
         public bool Passed => this.AssertionError == null && this._assertionPassed;
         public bool Failed => !this.Passed;
 
-        public AssertionResult(Assertion assertion)
+        public AssertionResult(Assertion assertion, Guid processingId)
         {
             this.Assertion = assertion;
+            this.ProcessingId = processingId;
         }
 
         public void Complete(bool assertionPassed)
@@ -32,7 +34,7 @@ namespace Proviso.Processing
 
         public string GetAssertionName()
         {
-            return $"{this.Assertion.ParentFacetName}::{this.Assertion.Name}";
+            return $"{this.Assertion.Name}";
         }
 
         public string GetErrorMessage()

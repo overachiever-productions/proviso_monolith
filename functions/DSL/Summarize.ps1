@@ -5,9 +5,10 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingFacet;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingFacet;
 
-	Summarize -All #-IncludeAssertions;
+	Summarize -All -IncludeAssertions -IncludeAllValidations;
 
 #>
 
@@ -52,6 +53,7 @@ function Summarize {
 		[Proviso.Processing.ConfigurationResult[]]$configurations = @();
 		[Proviso.Processing.RebaseResult[]]$rebases = @();
 		
+		$Formatter.ResetFacetIds(); # resets FacetID functionality for this 'batch' of Summarize results... 
 		foreach ($result in $targets) {
 			
 			if ($IncludeAssertions -or ($result.AssertionsFailed)) {
@@ -129,3 +131,4 @@ function Summarize {
 		
 	};
 }
+

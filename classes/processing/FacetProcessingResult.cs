@@ -22,6 +22,8 @@ namespace Proviso.Processing
             }
         }
 
+        public Guid ProcessingId { get; private set; }
+
         public FacetProcessingState ProcessingState { get; private set; }
 
         public FacetProcessingState LatestState
@@ -56,6 +58,7 @@ namespace Proviso.Processing
         {
             this.Facet = facet;
             this.ExecuteConfiguration = executeConfiguration;
+            this.ProcessingId = Guid.NewGuid();
 
             this.ProcessingStart = DateTime.Now;
             this.ProcessingState |= FacetProcessingState.Initialized;

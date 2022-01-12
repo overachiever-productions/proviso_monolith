@@ -20,9 +20,13 @@ namespace Proviso.Processing
         public List<ConfigurationError> ConfigurationErrors { get; private set; }
         public List<ConfigurationError> RecompareErrors { get; private set; }
 
+        public Guid ProcessingId { get; private set; }
+
         public ConfigurationResult(ValidationResult validation)
         {
             this.Validation = validation;
+            this.ProcessingId = validation.ProcessingId;
+
             this.ConfigurationBypassed = false;
             this.ConfigurationDeferred = false;
             this.ConfigurationDeferredTo = null;
@@ -73,7 +77,7 @@ namespace Proviso.Processing
 
         public string GetConfigurationName()
         {
-            return $"{this.Validation.ParentDefinition.Parent.Name}::{this.Validation.ParentDefinition.Description}";
+            return $"{this.Validation.ParentDefinition.Description}";
         }
 
         public string GetRecompareSummary()

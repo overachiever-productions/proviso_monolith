@@ -3,7 +3,9 @@
 Facet "TestingFacet" {
 	
 	Assertions  {
-
+		Assert "IsTest" {
+			return $True;  # just for testing (summary/output) purposes... 
+		}
 	}
 	
 	Definitions {

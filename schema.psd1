@@ -134,14 +134,13 @@
 		
 		MSSQLSERVER = @{
 			SqlExePath	      = "sqlserver_2019_dev"
-			#SqlIniFile	      = "2019_STANDARD_INSTALL"
 			StrictInstallOnly = $true
 			
 			Setup = @{
-				Version = "2019 by default or actually... maybe must <empty> by default?"
-				Edition = "same kind of thing... "
+				Version = "doesn't allow defaults"
+				Edition = "doesn't allow defaults"
 				
-				Features = "SQLENGINE, CONNN"
+				Features = "SQLENGINE, CONN"
 				Collation = "SQL_Latin1_General_CP1_CI_AS"
 				InstantFileInit = $true
 				
@@ -196,11 +195,13 @@
 	SqlServerConfiguration = @{
 		
 		MSSQLSERVER = @{
+			# REFACTOR: this isn't limiting SQL Server to TLS1.2. It's forcing encryption. SO, call it "ForceEncryptedConnections" or "ForceEncryption" etc.
 			LimitSqlServerTls1dot2Only = $true
 			GenerateSPN			       = $true 
 			DisableSaLogin			   = $false
 			DeployContingencySpace	   = $true;
 			
+			#REFACTOR: UserRights 
 			EnabledUserRights		   = @{
 				LockPagesInMemory			  = $true
 				PerformVolumeMaintenanceTasks = $true

@@ -53,6 +53,13 @@ function Install-SqlServer {
 		# Create a .ini file for installation: 
 		$iniData = New-IniFile;
 		
+		# Ensure directories: 
+		foreach ($dirKey in $SqlDirectories.Keys) {
+			$dir = $SqlDirectories.Item($dirKey);
+			
+			Mount-Directory $dir;
+		} 
+		
 		# Define required attributes:
 		$iniData.SetValue("INSTANCENAME", "$InstanceName");
 		$iniData.SetValue("FEATURES", "$($Features)");
@@ -171,8 +178,6 @@ function Install-SqlServer {
 		foreach ($arg in $arguments) {
 			$installCommand += $arg;
 		}
-		
-		#
 		
 		$outcome = Invoke-Expression $installCommand;
 		switch ($Version) {

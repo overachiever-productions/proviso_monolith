@@ -6,8 +6,8 @@ Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -For
 
 Assign -ProvisoRoot "\\storage\Lab\proviso";
 
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-SqlServerInstallation;
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-SqlServerInstallation;
+#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-SqlInstallation;
+With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-SqlInstallation;
 #With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingFacet;
 
 Summarize -Latest;
@@ -18,7 +18,7 @@ Summarize -Latest;
 
 #>
 
-Facet SqlServerInstallation {
+Facet SqlInstallation {
 	Assertions {
 		
 	}

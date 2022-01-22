@@ -27,8 +27,8 @@
 Runbook -Name "Initialize-Server" -RequiresDomainCreds {
 	
 	With "xyz as config" | Secured-By $secureThingy | Invoke {
-		Provision-NetworkAdapters;
-		Provision-ServerName;
+		<VerbName>-NetworkAdapters;
+		<VerbName>-ServerName;
 	}
 	
 	Summarize -All;
@@ -54,17 +54,17 @@ Runbook -For "Ephemeral-Disks"  {
 Runbook -For "Prep-Host-For-SQLServer" {
 	
 	With $configPassedIn -Strict | Secured-By $securedThingyPassedIn | Invoke -AllowReboot -NextRunBook $null {
-		Provision-LocalAdministrators;
-		Provision-WindowsServerPreferences;
-		Provision-RequiredPackages -AllowReboot;
-		Provision-HostTls;
-		Provision-FirewallRules;
+		<VerbName>-LocalAdministrators;
+		<VerbName>-WindowsServerPreferences;
+		<VerbName>-RequiredPackages -AllowReboot;
+		<VerbName>-HostTls;
+		<VerbName>-FirewallRules;
 		
-		Provision-ExpectedDisks;
+		<VerbName>-ExpectedDisks;
 	}
 }
 
-Runbook -For "Install-SqlServer" {
+Runbook -For "Install-SqlServer" -ServerName "SQL-xxx-orWhatever" {
 	
 	With $configPassedIn | Secured-By $dynamicSecurityThingy | Invoke {
 		#Verify-SqlServerPrerequisites -Fatal; # verify stuff like... passwords available (in config/secured-by), and that anything/everything else needed prior to installation (except .binaries) has been configured as expected. machine-name, network, required packages, etc.
@@ -72,22 +72,22 @@ Runbook -For "Install-SqlServer" {
 		# arguably, the above could also be Configure-SqlBinaryResources - i.e., and contain "Config" blocks that copy/move stuff around as needed (or try to). 
 		Validate-SqlServerBinaryResources -Fatal;
 		
-		Provision-SqlServerInstallation; # core installation stuff.... 
-		Provision-ExpectedSqlDirectoriesAndPermissions; # post install tweak/check for folders + perms and shares + perms. 
-		Provision-SqlServerPowerShellModule; # make sure it's installed... and up to date... 
+		<VerbName>-SqlServerInstallation; # core installation stuff.... 
+		<VerbName>-ExpectedSqlDirectoriesAndPermissions; # post install tweak/check for folders + perms and shares + perms. 
+		<VerbName>-SqlServerPowerShellModule; # make sure it's installed... and up to date... 
 		
-		Provision-SqlServerInstance; # disable-sa, set SPN, limit TLS only, UserRightsAssignments, and TraceFlags (this puppy is busy... )
-		Provision-ContingencySpace;
+		<VerbName>-SqlServerInstance; # disable-sa, set SPN, limit TLS only, UserRightsAssignments, and TraceFlags (this puppy is busy... )
+		<VerbName>-ContingencySpace;
 		
-		Provision-AdminDb; # install, enable-advanced, setup email, and ... run dbo.configure_instance. 
-		Provision-AdminDbAlerts; # IO/corruption, severity, disk-space alerts. 
-		Provision-AdminDbJobs; # create all of the various jobs and such. (history cleanup, ix maint, stats defrag, consistency checks, backups, restore-tests)
+		<VerbName>-AdminDb; # install, enable-advanced, setup email, and ... run dbo.configure_instance. 
+		<VerbName>-AdminDbAlerts; # IO/corruption, severity, disk-space alerts. 
+		<VerbName>-AdminDbJobs; # create all of the various jobs and such. (history cleanup, ix maint, stats defrag, consistency checks, backups, restore-tests)
 		
-		Provision-ExtendedEventsSessions; # disable sqltelemetry/etc. 
+		<VerbName>-ExtendedEventsSessions; # disable sqltelemetry/etc. 
 		
-		Provision-DataCollectorSets;
+		<VerbName>-DataCollectorSets;
 		
-		Provision-SSMS;
+		<VerbName>-SSMS;
 	}
 }
 

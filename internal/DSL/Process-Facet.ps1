@@ -437,7 +437,7 @@ function Process-Facet {
 				}
 				elseif ($validation.ParentDefinition.DefersConfiguration) {
 					$configurationResult.SetDeferred($validation.ParentDefinition.ConfiguredBy);
-					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
+					$PVContext.WriteLog("Deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);

@@ -23,7 +23,7 @@
             <Label>Facet</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>12</Width>
+            <Width>10</Width>
             <Label>Operation</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -53,7 +53,7 @@
                 <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 31)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
+                <ScriptBlock>if ($_.ExecuteConfiguration) { "PROVISION" } else { "VALIDATE" }</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$($_.Duration.ToString("ss\.fff"))</ScriptBlock>

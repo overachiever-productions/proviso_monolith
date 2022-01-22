@@ -112,8 +112,6 @@ namespace Proviso.Processing
             {
                 if (this.Validation.ParentDefinition.RequiresReboot)
                     return "<PENDING>";
-
-                return "<FAILED>";
             }
 
             return Formatter.Instance.ToEmptyableString(this.RecompareActual);
@@ -138,7 +136,7 @@ namespace Proviso.Processing
             }
 
             if (this.ConfigurationBypassed)
-                return "Definition already matched.";
+                return "Already-Matched.";
 
             if (this.RecompareFailed)
             {

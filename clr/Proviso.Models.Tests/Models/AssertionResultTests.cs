@@ -14,7 +14,7 @@ namespace Proviso.Models.Tests.Models
         {
             var assertion = new Assertion("Test Assert", "Test Facet", null, null, true, false, false);
 
-            AssertionResult sut = new AssertionResult(assertion);
+            AssertionResult sut = new AssertionResult(assertion, new Guid());
 
             Assert.IsTrue(sut.Failed);
         }
@@ -24,7 +24,7 @@ namespace Proviso.Models.Tests.Models
         {
             var assertion = new Assertion("Test Assert", "Test Facet", null, null, true, false, false);
 
-            AssertionResult sut = new AssertionResult(assertion);
+            AssertionResult sut = new AssertionResult(assertion, new Guid());
             sut.Complete(false);
 
             Assert.IsTrue(sut.Failed);
@@ -35,7 +35,7 @@ namespace Proviso.Models.Tests.Models
         {
             var assertion = new Assertion("Test Assert", "Test Facet", null, null, true, false, false);
 
-            AssertionResult sut = new AssertionResult(assertion);
+            AssertionResult sut = new AssertionResult(assertion, new Guid());
             sut.Complete(true);
 
             Assert.IsTrue(sut.Passed);
@@ -48,7 +48,7 @@ namespace Proviso.Models.Tests.Models
             Exception ex = new Exception();
             var errorRecord = new ErrorRecord(ex, "Fake.Error.Id", ErrorCategory.InvalidOperation, null);
 
-            AssertionResult sut = new AssertionResult(assertion);
+            AssertionResult sut = new AssertionResult(assertion, new Guid());
             sut.Complete(errorRecord);
 
             Assert.IsTrue(sut.Failed);

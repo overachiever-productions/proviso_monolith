@@ -18,6 +18,8 @@ namespace Proviso
         public bool ExecuteRebase { get; private set; }
         public bool RebootRequired { get; private set; }
         public string RebootReason { get; private set; }
+        public bool SqlRestartRequired { get; private set; }
+        public string SqlRestartReason { get; private set; }
         public Facet LastProcessedFacet => this._facets.Count > 0 ? this._facets.Peek() : null;
         public FacetProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
         public int ProcessedFacetsCount => this._facets.Count;
@@ -41,6 +43,7 @@ namespace Proviso
         private ProcessingContext()
         {
             this.RebootRequired = false;
+            this.SqlRestartRequired = false;
             this.RecompareActive = false;
         }
 
@@ -163,6 +166,13 @@ namespace Proviso
             this.RebootRequired = true;
             if (!string.IsNullOrEmpty(reason))
                 this.RebootReason = reason;
+        }
+
+        public void SetSqlRestartRequired(string reason = null)
+        {
+            this.SqlRestartRequired = true;
+            if (!string.IsNullOrEmpty(reason))
+                this.SqlRestartReason = reason;
         }
 
         //public void SetCurrentRunbook(string runbookName)

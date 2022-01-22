@@ -291,3 +291,100 @@ function Assert-ProvisoResourcesRootDefined {
 		}
 	}
 }
+
+function Assert-SqlServerIsInstalled {
+	param (
+		[string]$FailureMessage = "SQL Server Configuration Facets cannot be run until all defined SQL Server instances are installed.",
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
+	);
+	
+	begin {
+		Validate-FacetBlockUsage -BlockName "Assert";
+	}
+	
+	process {
+		if ($Ignored) {
+			return;
+		}
+	
+		try {
+			[ScriptBlock]$codeBlock = {
+				# TODO: standardize calls into Get-provisoConfigGroupNames. I was doing "SQLServerInstallation.*" here and ... it returned nothing... 
+				# 		i.e., need to probably just roll this func into the $PVConfig object itself ANYHOW... and then address parameter cleanup options there vs in callers (not sure what I was thinking)
+				$instanceNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "SQLServerInstallation";
+				if ($instanceNames.Count -lt 1) {
+					throw "Expected 1 or more instances - but none were defined at [SQLServerInstallation.*].";
+				}
+				
+				$installedInstances = Get-ExistingSqlServerInstanceNames;
+				
+				foreach ($instance in $instanceNames) {
+					if ($installedInstances -notcontains $instance) {
+						throw "Expected SQL Server Instance [$instance] is not installed.";
+					}
+				}
+			}
+			
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+		}
+		catch {
+			throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+		}
+	}
+	
+	end {
+		if (-not ($Ignored)) {
+			$facet.AddAssertion($assertion);
+		}
+	}
+}
+
+function Assert-AdminDbInstalled {
+	param (
+		[string]$FailureMessage = "AdminDb Configuration Facets cannot be run until the admindb has been deployed.",
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
+	);
+	
+	begin {
+		Validate-FacetBlockUsage -BlockName "Assert";
+	}
+	
+	process {
+		if ($Ignored) {
+			return;
+		}
+		
+		try {
+			[ScriptBlock]$codeBlock = {
+				$instanceNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "AdminDb";
+				if ($instanceNames.Count -lt 1) {
+					throw "Expected 1 or more instances - but none were defined at [AdminDb.*].";
+				}
+				
+				foreach ($instance in $instanceNames) {
+					if ($PVConfig.GetValue("AdminDb.$instance.Deploy")) {
+						$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instance) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
+						if (-not ($exists)) {
+							return $false;
+						}
+					}
+				}
+				
+				return $true;
+			}
+			
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+		}
+		catch {
+			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+		}
+	}
+	
+	end {
+		if (-not ($Ignored)) {
+			$facet.AddAssertion($assertion);
+		}
+	}
+}

@@ -201,7 +201,53 @@
 		[string]$HostName
 	);
 	
+	# TODO: Implement - but the idea is that ... i can just specify a host name and this'll get an associated config.
+}
+
+[ScriptBlock]$GetAdminDbPath = {
+	param (
+		[Parameter(Mandatory)]
+		[string]$InstanceName,
+		[string]$OverridePath = $null
+	);
 	
+	$adminDbPath = $null;
+	
+	if (-not ([string]::IsNullOrEmpty($OverridePath))) {
+		if (Test-Path -Path $OverridePath) {
+			$adminDbPath = $OverridePath;
+		}
+		else {
+			throw "Invalid Server Configuration. Value [OverrideSource] for AdminDb.$InstanceName is invalid. Leave empty or specify a FULL path to admindb_latest.sql";
+		}
+	}
+	else {
+		$filePath = "C:\Scripts";
+		Mount-Directory $filePath;
+		
+		$release = Invoke-RestMethod -Method GET -Uri "https://api.github.com/repos/overachiever-productions/S4/releases/latest" -TimeoutSec 12 -ErrorAction SilentlyContinue;
+		if ($release) {
+			$file = ($release.assets | Where-Object {
+					$_.name -like "*.sql"
+				})[0].browser_download_url;
+			
+			$outFile = $filePath | Join-Path -ChildPath "admindb_latest.sql";
+			Invoke-WebRequest -Method GET -Uri $file -OutFile $outFile;
+			
+			$adminDbPath = $outFile;
+		}
+		# otherwise, assume we don't have network connectivity... 
+	}
+	
+	if ($null -eq $adminDbPath) {
+		$adminDbPath = $this.GetAsset("admindb_latest", "sql");
+	}
+	
+	if ($null -eq $adminDbPath) {
+		throw "Proviso Framework Error. Unable to locate an override, or default (local) copy of admindb_latest.sql - and could NOT download admindb from github.com.";
+	}
+	
+	return $adminDbPath;
 }
 
 $PVResources | Add-Member -MemberType ScriptMethod -Name ValidateRootSet -Value $ValidateRootSet;
@@ -211,6 +257,7 @@ $PVResources | Add-Member -MemberType ScriptMethod -Name GetSqlSetupExe -Value $
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSqlSetupIso -Value $GetSqlSetupIso;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSsmsBinaries -Value $GetSsmsBinaries;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSqlSpOrCu -Value $GetSQLSpOrCu;
+$PVResources | Add-Member -MemberType ScriptMethod -Name GetAdminDbPath -Value $GetAdminDbPath;
 
 <#
 

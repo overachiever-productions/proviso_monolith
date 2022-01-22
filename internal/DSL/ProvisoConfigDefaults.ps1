@@ -223,11 +223,16 @@
 			}
 			
 			HistoryManagement = @{
-				Enabled = $true
+				Enabled 				 = $true
+				SqlServerLogsToKeep	     = 18
+				AgentJobHistoryRetention = "6 weeks"
+				BackupHistoryRetention   = "6 weeks"
+				EmailHistoryRetention    = "6 months"
 			}
 			
 			DiskMonitoring   = @{
 				Enabled = $true
+				WarnWhenFreeGBsGoBelow = "32"
 			}
 			
 			Alerts		     = @{
@@ -239,18 +244,57 @@
 			
 			IndexMaintenance = @{
 				Enabled = $false
+				DailyJobRunsOnDays = "M,W,F"
+				WeekendJobRunsOnDays = "Su"
+				StartTime		     = "21:50:00"
+				TimeZoneForUtcOffset = "" # vNEXT, make this one {~DYNAMIC~} 
+				JobsNamePrefix	     = "Index Maintenance - "
+				JobsCategoryName	 = "Database Maintenance"
+				OperatorToAlertOnErrors = "Alerts"
 			}
 			
 			ConsistencyChecks = @{
 				Enabled = $false
+				ExecutionDays = "M,W,F,Su"
+				StartTime	  = "04:10:00"
+				Targets	      = "{USER}"
+				Exclusions    = ""
+				Priorities    = ""
+				IncludeExtendedLogicalChecks = $false
+				TimeZoneForUtcOffset		 = "" # vNEXT, make this one {~DYNAMIC~} 
+				JobName					     = "Database Consistency Checks"
+				JobCategoryName			     = "Database Maintenance"
+				Operator					 = "Alerts"
+				Profile					     = "General"
+				JobEmailPrefix = "[Database Corruption Checks] "
 			}
 			
 			BackupJobs	     = @{
 				Enabled = $true
+
 			}
 			
 			RestoreTestJobs  = @{
 				Enabled = $false
+				JobName			      = "Database Backups - Regular Restore Tests"
+				JobStartTime		  = "22:30:00"
+				TimeZoneForUtcOffset  = ""
+				JobCategoryName	      = "Backups"
+				AllowForSecondaries   = $false
+				DatabasesToRestore    = "{READ_FROM_FILESYSTEM}"
+				DatabasesToExclude    = ""
+				Priorities		      = ""
+				BackupsRootPath	      = "{DEFAULT}"
+				RestoreDataPath	      = "{DEFAULT}"
+				RestoreLogsPath	      = "{DEFAULT}"
+				RestoredDbNamePattern = "{0}_s4test"
+				AllowReplace		  = ""
+				RpoThreshold		  = "24 hours"
+				DropDbsAfterRestore   = $true
+				MaxFailedDrops	      = 3
+				Operator			  = "Alerts"
+				Profile			      = "General"
+				JobEmailPrefix	      = "[RESTORE TEST] "
 			}
 			
 			SqlEncryptionKeys = @{

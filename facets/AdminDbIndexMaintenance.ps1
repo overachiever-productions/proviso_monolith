@@ -109,9 +109,14 @@ Facet AdminDbIndexMaintenance {
 					return $state; # this SHOULD be the M, W, F, Su or whatever value we EXPECT... 
 				}
 				else {
-					$ignored = "NOTFOUND", "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
+					[string[]]$ignored = "NOTFOUND";
 					if ($ignored -contains $state) {
 						return "";
+					}
+					
+					[string[]]$ignored = "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
+					if ($ignored -contains $state) {
+						return "<$state>";
 					}
 					
 					return $state;
@@ -139,9 +144,14 @@ Facet AdminDbIndexMaintenance {
 					return $state; # this SHOULD be the M, W, F, Su or whatever value we EXPECT... 
 				}
 				else {
-					$ignored = "NOTFOUND", "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
+					[string[]]$ignored = "NOTFOUND";
 					if ($ignored -contains $state) {
 						return "";
+					}
+					
+					[string[]]$ignored = "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
+					if ($ignored -contains $state) {
+						return "<$state>";
 					}
 					
 					return $state;

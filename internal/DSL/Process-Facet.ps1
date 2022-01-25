@@ -19,7 +19,7 @@ With -CurrentHost | Do-Something;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-HostTls;
 
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-LocalAdmins;
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
+	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
 	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingFacet;
 	#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-DataCollectorSets;
 
@@ -159,7 +159,15 @@ function Process-Facet {
 					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
 					
 					$expandedValueDefinition.SetTest(($definition.Test));
-					$expandedValueDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
+					
+					if ($definition.ConfiguredBy) {
+						$configuredByRenamed = "$($definition.ConfiguredBy):$($value)";
+						
+						$expandedValueDefinition.SetConfigure($newDescription, $configuredByRenamed);
+					}
+					else{
+						$expandedValueDefinition.SetConfigure(($definition.Configure));
+					}
 					
  					if ($definition.ExpectCurrentIterationKey) {
 						$script = "return '$value';";
@@ -172,7 +180,6 @@ function Process-Facet {
 					}
 					
 					$expandedValueDefinition.SetCurrentIteratorDetails($definition.IterationKey, $value);
-					
 					$expandedDefs += $expandedValueDefinition;
 				}
 			}
@@ -186,7 +193,7 @@ function Process-Facet {
 			foreach ($definition in $groupDefs) {
 				
 				[string]$trimmedKey = ($definition.IterationKey) -replace ".\*", "";
-				
+	
 				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
@@ -194,11 +201,17 @@ function Process-Facet {
 				
 				foreach ($groupName in $groupNames) {
 					$newDescription = "$($definition.Description):$($groupName)";
-					
 					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
 					
 					$expandedGroupDefinition.SetTest(($definition.Test));
-					$expandedGroupDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
+					
+					if ($definition.ConfiguredBy) {
+						$configuredByRenamed = "$($definition.ConfiguredBy):$($groupName)";
+						$expandedGroupDefinition.SetConfigure(($definition.Configure), $configuredByRenamed);
+					}
+					else {
+						$expandedGroupDefinition.SetConfigure(($definition.Configure));
+					}
 					
 					$currentIteratorKey = "$($trimmedKey).$($groupName)";
 					$currentIteratorKeyValue = $groupName;
@@ -230,6 +243,7 @@ function Process-Facet {
 					}
 					
 					$expandedGroupDefinition.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
+					
 					$expandedDefs += $expandedGroupDefinition;
 				}
 			}
@@ -261,7 +275,14 @@ function Process-Facet {
 							
 							$compoundDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $compoundDescription, [Proviso.Enums.DefinitionType]::Compound);
 							$compoundDefinition.SetTest($definition.Test);
-							$compoundDefinition.SetConfigure(($definition.Configure), ($definition.ConfiguredBy));
+							
+							if ($definition.ConfiguredBy) {
+								$compoundNewname = "$($definition.ConfiguredBy):$($groupName).$compoundValue";
+								$compoundDefinition.SetConfigure($compoundDescription, $compoundNewname);
+							}
+							else{
+								$compoundDefinition.SetConfigure(($definition.Configure));
+							}
 							
 							$iteratorKey = "$($trimmedKey).$($groupName)";
 							$iteratorValue = $groupName;
@@ -298,7 +319,6 @@ function Process-Facet {
 		}
 		
 		foreach ($definition in $definitions) {
-			
 			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, $processingGuid); 
 			$validations += $validationResult;
 			
@@ -424,10 +444,10 @@ function Process-Facet {
 			$configurations = @();
 			$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Completed;
 			
-			$deferredConfigurations = $facet.DefersConfigurations;
+			[string[]]$configuredByDefsCalledThroughDeferredOperations = @();
 			
 			foreach($validation in $facetProcessingResult.ValidationResults) {
-				
+							
 				$configurationResult = New-Object Proviso.Processing.ConfigurationResult($validation);
 				$configurations += $configurationResult;
 				
@@ -437,7 +457,12 @@ function Process-Facet {
 				}
 				elseif ($validation.ParentDefinition.DefersConfiguration) {
 					$configurationResult.SetDeferred($validation.ParentDefinition.ConfiguredBy);
-					$PVContext.WriteLog("Deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
+							
+					if ($configuredByDefsCalledThroughDeferredOperations -notcontains $validation.ParentDefinition.ConfiguredBy) {
+						$configuredByDefsCalledThroughDeferredOperations += $validation.ParentDefinition.ConfiguredBy;
+					}
+					
+					$PVContext.WriteLog("Temporarily deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);
@@ -453,64 +478,57 @@ function Process-Facet {
 						$configurationResult.AddConfigurationError($configurationError);
 					}
 					
-					# Recomparisons:
-					if (-not ($deferredConfigurations)) {
-						
-						$PVContext.SetRecompareActive();
-						if (-not ($configurationResult.ConfigurationFailed)) {
-							try {
-								[ScriptBlock]$testBlock = $validation.Test;
-								
-								$reComparison = Compare-ExpectedWithActual -Expected $validation.Expected -TestBlock $testBlock;
-								
-								$configurationResult.SetRecompareValues(($validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
-							}
-							catch {
-								$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
-								$configurationResult.AddConfigurationError($configurationError);
-							}
-							
-							if ($configurationResult.RecompareFailed) {
-								$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
-							}
-						}
-						$PVContext.SetRecompareInactive();
-						
-					}
-					
 					$PVContext.ClearConfigurationState();
 				}
 			}
 			
-			# REFACTOR: Honestly, since I HAVE to account for deferred configs ... I might as well NOT have 2x places in the code where I process recompares. 
-			#   instead, 'everything' should be recompared AFTER configuration - in a SEPARATE block of operations ... (i.e., down here).
-			if ($deferredConfigurations) {
+			# For any Definition that SHOULD have been processed above, but which deferred Configuration/Provisioning operations to its -ConfiguredBy target... process those as needed: 
+			foreach ($definitionName in $configuredByDefsCalledThroughDeferredOperations) {
+				$validation = $facetProcessingResult.GetValidationResultByDefinitionName($definitionName);
 				
-				# run re-comparisons of all applicable configuration results: 
-				$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};			
-				foreach ($configurationResult in $targets) {
-					$PVContext.SetConfigurationState($configurationResult.Validation);
-					$PVContext.SetRecompareActive();
+				$PVContext.WriteLog("Executing previously deferred Definition [$definitionName] - as it was required for a -ConfiguredBy declaration.", "Debug");
+				
+				# TODO: this is an EXACT copy/past of the same logic up above... i.e., DRY violation. Guess I might want to move all of this into some 'helper' funcs... 
+				$PVContext.SetConfigurationState($validation);
+				
+				try {
+					[ScriptBlock]$configureBlock = $validation.Configure;
 					
-					try {
-						[ScriptBlock]$testBlock = $configurationResult.Validation.Test;
-						
-						$reComparison = Compare-ExpectedWithActual -Expected ($configurationResult.Validation.Expected) -TestBlock $testBlock;
-						
-						$configurationResult.SetRecompareValues(($configurationResult.Validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
-					}
-					catch {
-						$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
-						$configurationResult.AddConfigurationError($configurationError);
-					}
-					
-					if ($configurationResult.RecompareFailed) {
-						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
-					}
-					
-					$PVContext.SetRecompareInactive();
-					$PVContext.ClearConfigurationState();
+					& $configureBlock;
 				}
+				catch {
+					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
+					$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
+					$configurationResult.AddConfigurationError($configurationError);
+				}
+				
+				$PVContext.ClearConfigurationState();
+			}
+			
+			# Now that we're done running configuration/provisioning operations, time to execute Re-Compare operations:
+			$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};
+			foreach ($configurationResult in $targets) {
+				$PVContext.SetConfigurationState($configurationResult.Validation);
+				$PVContext.SetRecompareActive();
+				
+				try {
+					[ScriptBlock]$testBlock = $configurationResult.Validation.Test;
+					
+					$reComparison = Compare-ExpectedWithActual -Expected ($configurationResult.Validation.Expected) -TestBlock $testBlock;
+					
+					$configurationResult.SetRecompareValues(($configurationResult.Validation.Expected), ($reComparison.ActualResult), ($reComparison.Matched), ($reComparison.ActualError), ($reComparison.ComparisonError));
+				}
+				catch {
+					$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
+					$configurationResult.AddConfigurationError($configurationError);
+				}
+				
+				if ($configurationResult.RecompareFailed) {
+					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
+				}
+				
+				$PVContext.SetRecompareInactive();
+				$PVContext.ClearConfigurationState();
 			}
 			
 			$facetProcessingResult.EndConfigurations($configurationsOutcome, $configurations);

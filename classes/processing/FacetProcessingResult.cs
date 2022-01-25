@@ -76,6 +76,11 @@ namespace Proviso.Processing
             this.ConfigurationResults = new List<ConfigurationResult>();
         }
 
+        public ValidationResult GetValidationResultByDefinitionName(string definitionName)
+        {
+            return this.ValidationResults.First(v => v.ParentDefinition.Description == definitionName);
+        }
+
         public void StartAssertions()
         {
             this.ProcessingState |= FacetProcessingState.AssertsStarted;

@@ -116,6 +116,12 @@ Facet AdminDbConsistencyChecks {
 				
 				$jobName = "Database Consistency Checks";
 				$start = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_starttime N'$jobName'; ").Outcome;
+				
+				[string[]]$special = "NOTFOUND"; # various processing overrides/etc. 
+				if ($special -contains $special) {
+					return "<EMPTY>";
+				}
+				
 				return $start;
 			}
 		}		

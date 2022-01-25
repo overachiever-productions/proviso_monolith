@@ -62,5 +62,25 @@ Facet "TestingFacet" {
 				# don't do anything... and see if ... <PENDING> pops up as result/outcome... 
 			}
 		}
+		
+		Definition "Deferred Definition" -Expect $true {
+			Test {
+				# Test case here is that this'll effectively NEVER get called by itself - only by the 'child' or def below that DEFERS config to this definition.
+				return $true;
+			}
+			Configure {
+				$PVContext.AddFacetState("Deferred.Deferred", "Deferred");
+			}
+		}
+		
+		Definition "It is Deferred" -Expect "Deferred" -ConfiguredBy "Deferred Definition" {
+			Test {
+				if ($PVContext.GetFacetState("Deferred.Deferred")) {
+					return $PVContext.GetFacetState("Deferred.Deferred");
+				}
+				
+				# otherwise, we'll get empty... 
+			}
+		}
 	}
 }

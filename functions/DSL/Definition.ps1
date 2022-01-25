@@ -264,7 +264,7 @@ function Definition {
 					$definition.AddOrderByChildKey($OrderByChildKey);
 				}
 			}
-			Compound{
+			Compound {
 				$definition.SetIterationKeyForValueAndGroupDefinitions($GroupKey);
 				$definition.SetCompoundIterationValueKey($CompoundValueKey);
 				

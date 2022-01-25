@@ -17,7 +17,7 @@ filter Report-SqlServerAgentJobEnabledState {
 	
 	$enabled = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $SqlServerInstanceName) "SELECT [enabled] FROM msdb.dbo.[sysjobs] WHERE [name] = N'$SqlServerAgentJob'; ").enabled;
 	if ($enabled -eq 0) {
-		$PVContext.WriteLog("SQL Server Agent Job [$SqlServerAgentJob] exists on SQL Server Instance [$SqlServerInstanceName] - but is DISABLED.", "Important");
+		$PVContext.WriteLog("SQL Server Agent Job [$SqlServerAgentJob] exists on SQL Server Instance [$SqlServerInstanceName] - but is DISABLED.", "Verbose");
 		return $false;
 	}
 	
@@ -31,7 +31,7 @@ filter Report-SqlServerAgentJobEnabledState {
 						j.[name] = N'$SqlServerAgentJob'; ").enabled;
 	
 	if ($scheduleEnabled -eq 0) {
-		$PVContext.WriteLog("SQL Server Agent Job [$SqlServerAgentJob] exists on SQL Server Instance [$SqlServerInstanceName] - but does NOT have a Job Schedule that is ENABLED.", "Important");
+		$PVContext.WriteLog("SQL Server Agent Job [$SqlServerAgentJob] exists on SQL Server Instance [$SqlServerInstanceName] - but does NOT have a Job Schedule that is ENABLED.", "Verbose");
 		return $false;
 	}
 	

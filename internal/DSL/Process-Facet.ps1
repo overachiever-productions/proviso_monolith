@@ -489,6 +489,8 @@ function Process-Facet {
 				$PVContext.WriteLog("Executing previously deferred Definition [$definitionName] - as it was required for a -ConfiguredBy declaration.", "Debug");
 				
 				# TODO: this is an EXACT copy/past of the same logic up above... i.e., DRY violation. Guess I might want to move all of this into some 'helper' funcs... 
+				# er, well, it was... before i enabled the idea of .IsChildCall().
+				$PVContext.SetDeferredExecution();
 				$PVContext.SetConfigurationState($validation);
 				
 				try {
@@ -503,6 +505,7 @@ function Process-Facet {
 				}
 				
 				$PVContext.ClearConfigurationState();
+				$PVContext.ClearDeferredExecution();
 			}
 			
 			# Now that we're done running configuration/provisioning operations, time to execute Re-Compare operations:

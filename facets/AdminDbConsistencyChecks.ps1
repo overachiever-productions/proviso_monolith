@@ -34,23 +34,36 @@ Facet AdminDbConsistencyChecks {
 				
 				if ($expectedSetting) {
 					
-					$weekDays = $PVConfig.GetValue("AdminDb.IndexMaintenance.DailyJobRunsOnDays");
-					$weekEnds = $PVConfig.GetValue("AdminDb.IndexMaintenance.WeekendJobRunsOnDays");
-					$ixJobStartTime = $PVConfig.GetValue("AdminDb.IndexMaintenance.StartTime");
-					$ixJobTimeZone = $PVConfig.GetValue("AdminDb.IndexMaintenance.TimeZoneForUtcOffset");
-					$ixJobPrefix = $PVConfig.GetValue("AdminDb.IndexMaintenance.JobsNamePrefix");
-					$ixJobCategory = $PVConfig.GetValue("AdminDb.IndexMaintenance.JobsCategoryName");
-					$ixJobOperator = $PVConfig.GetValue("AdminDb.IndexMaintenance.OperatorToAlertOnErrors");
+					$dbccStartTime = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.StartTime");
+					$dbccTargets = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Targets");
+					$dbccExclusions = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Exclusions");
+					$dbccPriorities = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Priorities");
+					$dbccLogicalChecks = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.IncludeExtendedLogicalChecks");
+					$dbccTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.TimeZoneForUtcOffset");
+					$dbccJobName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobName");
+					$dbccJobCategoryName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobCategoryName");
+					$dbccOperator = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Operator");
+					$dbccProfile = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Profile");
+					$dbccSubject = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobEmailPrefix");
 					
+					$dbccExtended = "0";
+					if ($dbccLogicalChecks) {
+						$dbccExtended = "1";
+					}
 					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_index_maintenance_jobs]
-						@DailyJobRunsOnDays = N'$weekDays',
-						@WeekendJobRunsOnDays = N'$weekEnds',
-						@IXMaintenanceJobStartTime = N'$ixJobStartTime',
-						@TimeZoneForUtcOffset = N'$ixJobTimeZone',
-						@JobsNamePrefix = N'$ixJobPrefix',
-						@JobsCategoryName = N'$ixJobCategory',
-						@JobOperatorToAlertOnErrors = N'$ixJobOperator',
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_consistency_checks_job]
+						@ExecutionDays = N'$dbccDays', 
+						@JobStartTime = N'$dbccStartTime', 
+						@JobName = N'$dbccJobName', 
+						@JobCategoryName = N'$dbccJobCategoryName', 
+						@TimeZoneForUtcOffset = N'$dbccTimeZone', 
+						@Targets = N'$dbccTargets', 
+						@Exclusions = N'$dbccExclusions', 
+						@Priorities = N'$dbccPriorities', 
+						@IncludeExtendedLogicalChecks = $dbccExtended, 
+						@OperatorName = N'$dbccOperator', 
+						@MailProfileName = N'$dbccProfile', 
+						@EmailSubjectPrefix = N'$dbccSubject', 
 						@OverWriteExistingJobs = 1; ";
 					
 				}

@@ -12,7 +12,13 @@ Facet AdminDbDiskMonitoring {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
-				Report-SqlServerAgentJobEnabledState -SqlServerAgentJob "Regular Drive Space Checks" -SqlServerInstanceName $instanceName;
+				$state = Get-AgentJobStartTime -SqlServerInstanceName $instanceName -SqlServerAgentJob "Regular Drive Space Checks";
+				
+				if ($state -like "<*") {
+					return $state;
+				}
+				
+				return $true;
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentKeyValue;

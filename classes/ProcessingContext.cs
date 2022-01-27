@@ -68,12 +68,7 @@ namespace Proviso
         {
             this.Expected = value;
         }
-
-        //public void SetCurrentActualValue(object value)
-        //{
-        //    this.Actual = value;
-        //}
-
+        
         public void SetRecompareActive()
         {
             this.RecompareActive = true;
@@ -149,9 +144,21 @@ namespace Proviso
             this.Actual = currentValidation.Actual;
         }
 
+        public void SetDeferredExecution()
+        {
+            // Hmm... this could just be a switch on/against .SetConfigurationState ... i.e., "bool isDeferred"... 
+        }
+
+        public void ClearDeferredExecution()
+        {
+
+        }
+
+
         public void ClearConfigurationState()
         {
-            // REFACTOR ... this is damned near the same as ClearValidationState... the the point where I probably don't need 2x methods... 
+            // REFACTOR ... this is damned near the same as ClearValidationState... to the point where I probably don't need 2x methods... 
+            //      could just call it something like "Reset or Clear State"
             this.CurrentKey = null;
             this.CurrentKeyValue = null;
             this.CurrentChildKey = null;
@@ -202,6 +209,7 @@ namespace Proviso
             this._temporaryFacetState = new Dictionary<string, object>();
         }
 
+        #region Facet State
         public void AddFacetState(string key, object value)
         {
             // vNEXT: this idea of SETTING state may not be the best approach - i.e., I could see something getting 'lost' or 'stuck open' here... 
@@ -231,5 +239,6 @@ namespace Proviso
 
             return null;
         }
+        #endregion
     }
 }

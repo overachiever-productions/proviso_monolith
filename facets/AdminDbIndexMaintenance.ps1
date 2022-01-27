@@ -39,8 +39,16 @@ Facet AdminDbIndexMaintenance {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
-				$weekDayJobs = Report-SqlServerAgentJobEnabledState -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
-				$weekendJobs = Report-SqlServerAgentJobEnabledState -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
+				$weekDayStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
+				$weekendStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
+				
+				$weekDayJobs, $weekendJobs = $false;
+				if ($weekDayStart -notlike "<*") {
+					$weekDayJobs = $true;
+				}
+				if ($weekendStart -notlike "<*") {
+					$weekendJobs = $true;
+				}
 				
 				if (($weekDayJobs) -and ($weekendJobs)) {
 					return $true;

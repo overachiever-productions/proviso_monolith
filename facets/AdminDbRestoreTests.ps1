@@ -22,25 +22,25 @@ Facet AdminDbRestoreTests {
 				
 				if ($expectedSetting) {
 					
-					$restoreJobName = $PVConfig.GetValue("AdminDb.RestoreTestJobs.JobName");
-					$restoreJobStart = $PVConfig.GetValue("AdminDb.RestoreTestJobs.JobStartTime");
-					$restoreJobTimeZone = $PVConfig.GetValue("AdminDb.RestoreTestJobs.TimeZoneForUtcOffset");
-					$restoreJobCategory = $PVConfig.GetValue("AdminDb.RestoreTestJobs.JobCategoryName");
-					$allowSecondaries = $PVConfig.GetValue("AdminDb.RestoreTestJobs.AllowForSecondaries");
-					$dbsToRestore = $PVConfig.GetValue("AdminDb.RestoreTestJobs.DatabasesToRestore");
-					$dbsToExclude = $PVConfig.GetValue("AdminDb.RestoreTestJobs.DatabasesToExclude");
-					$priorities = $PVConfig.GetValue("AdminDb.RestoreTestJobs.Priorities");
-					$backupsRoot = $PVConfig.GetValue("AdminDb.RestoreTestJobs.BackupsRootPath");
-					$restoreDataRoot = $PVConfig.GetValue("AdminDb.RestoreTestJobs.RestoreDataPath");
-					$restoreLogRoot = $PVConfig.GetValue("AdminDb.RestoreTestJobs.RestoreLogsPath");
-					$restorePattern = $PVConfig.GetValue("AdminDb.RestoreTestJobs.RestoredDbNamePattern");
-					$allowReplace = $PVConfig.GetValue("AdminDb.RestoreTestJobs.AllowReplace");
-					$rpoThreshold = $PVConfig.GetValue("AdminDb.RestoreTestJobs.RpoThreshold");
-					$dropAfterRestore = $PVConfig.GetValue("AdminDb.RestoreTestJobs.DropDbsAfterRestore");
-					$maxFailedDrops = $PVConfig.GetValue("AdminDb.RestoreTestJobs.MaxFailedDrops");
-					$restoreOperator = $PVConfig.GetValue("AdminDb.RestoreTestJobs.Operator");
-					$restoreProfile = $PVConfig.GetValue("AdminDb.RestoreTestJobs.Profile");
-					$emailPrefix = $PVConfig.GetValue("AdminDb.RestoreTestJobs.JobEmailPrefix");
+					$restoreJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
+					$restoreJobStart = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobStartTime");
+					$restoreJobTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.TimeZoneForUtcOffset");
+					$restoreJobCategory = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobCategoryName");
+					$allowSecondaries = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowForSecondaries");
+					$dbsToRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToRestore");
+					$dbsToExclude = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToExclude");
+					$priorities = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Priorities");
+					$backupsRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.BackupsRootPath");
+					$restoreDataRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreDataPath");
+					$restoreLogRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreLogsPath");
+					$restorePattern = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoredDbNamePattern");
+					$allowReplace = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowReplace");
+					$rpoThreshold = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RpoThreshold");
+					$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDbsAfterRestore");
+					$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxFailedDrops");
+					$restoreOperator = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Operator");
+					$restoreProfile = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Profile");
+					$emailPrefix = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobEmailPrefix");
 					
 					$secondaries = "0";
 					if ($allowSecondaries) {
@@ -87,6 +87,11 @@ Facet AdminDbRestoreTests {
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
 				
 				$start = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_starttime N'$expectedJobName'; ").Outcome;
+				
+				if ($start -eq "NOTFOUND") {
+					return "<EMPTY>";
+				}
+				
 				return $start;
 			}
 		}

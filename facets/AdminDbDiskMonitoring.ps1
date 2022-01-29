@@ -56,7 +56,11 @@ Facet AdminDbDiskMonitoring {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Check on Disk Space and Send Alerts' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'Regular Drive Space Checks'); ").command;
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular Drive Space Checks" -JobStepName "Check on Disk Space and Send Alerts" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
+				
 				$regex = New-Object System.Text.RegularExpressions.Regex('WhenFreeGBsGoBelow = (?<gbs>[0-9|.]+)', [System.Text.RegularExpressions.RegexOptions]::Multiline);
 				$matches = $regex.Match($jobStepBody);
 				if ($matches) {

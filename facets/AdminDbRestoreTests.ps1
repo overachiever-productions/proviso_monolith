@@ -13,7 +13,13 @@ Facet AdminDbRestoreTests {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
 				
-				Report-SqlServerAgentJobEnabledState -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
+				$start = Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
+				
+				if ($start -like "<*") {
+					return $start;
+				}
+				
+				return $true;
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -86,13 +92,7 @@ Facet AdminDbRestoreTests {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
 				
-				$start = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_starttime N'$expectedJobName'; ").Outcome;
-				
-				if ($start -eq "NOTFOUND") {
-					return "<EMPTY>";
-				}
-				
-				return $start;
+				return Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
@@ -101,8 +101,13 @@ Facet AdminDbRestoreTests {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
 				
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Restore Tests' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'$expectedJobName'); ").command;
 				
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $expectedJobName -JobStepName "Restore Tests" -SqlServerInstanceName $instanceName;
+				
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
+					
 				$regex = New-Object System.Text.RegularExpressions.Regex("@DatabasesToRestore = N'(?<targets>[^']+)", [System.Text.RegularExpressions.RegexOptions]::Multiline);
 				$matches = $regex.Match($jobStepBody);
 				if ($matches) {

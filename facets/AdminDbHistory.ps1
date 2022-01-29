@@ -14,7 +14,12 @@ Facet AdminDbHistory {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
-				Report-SqlServerAgentJobEnabledState -SqlServerAgentJob "Regular History Cleanup" -SqlServerInstanceName $instanceName;
+				$state = Get-AgentJobStartTime -SqlServerAgentJob "Regular History Cleanup" -SqlServerInstanceName $instanceName;
+				if ($state -like "<*") {
+					return $state;
+				}
+				
+				return $true;
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -61,16 +66,17 @@ Facet AdminDbHistory {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
 				
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Truncate Job History' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'Regular History Cleanup'); ").command;
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Job History" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
 				
-				if ($jobStepBody) {
-					$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
-					$matches = $regex.Match($jobStepBody);
-					if ($matches) {
-						$days = $matches.Groups[1].Value;
-						
-						return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
-					}
+				$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
+				$matches = $regex.Match($jobStepBody);
+				if ($matches) {
+					$days = $matches.Groups[1].Value;
+					
+					return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
 				}
 			}
 		}
@@ -80,16 +86,17 @@ Facet AdminDbHistory {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
 				
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Truncate Backup History' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'Regular History Cleanup'); ").command;
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Backup History" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
 				
-				if ($jobStepBody) {
-					$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
-					$matches = $regex.Match($jobStepBody);
-					if ($matches) {
-						$days = $matches.Groups[1].Value;
-						
-						return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
-					}
+				$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
+				$matches = $regex.Match($jobStepBody);
+				if ($matches) {
+					$days = $matches.Groups[1].Value;
+					
+					return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
 				}
 			}
 		}
@@ -99,16 +106,17 @@ Facet AdminDbHistory {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
 				
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Truncate Email History' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'Regular History Cleanup'); ").command;
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Email History" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
 				
-				if ($jobStepBody) {
-					$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
-					$matches = $regex.Match($jobStepBody);
-					if ($matches) {
-						$days = $matches.Groups[1].Value;
-						
-						return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
-					}
+				$regex = New-Object System.Text.RegularExpressions.Regex('DAY, 0 - (?<days>[0-9]{1,4})', [System.Text.RegularExpressions.RegexOptions]::Multiline);
+				$matches = $regex.Match($jobStepBody);
+				if ($matches) {
+					$days = $matches.Groups[1].Value;
+					
+					return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
 				}
 			}
 		}

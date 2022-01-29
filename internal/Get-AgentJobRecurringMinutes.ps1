@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-filter Get-AgentJobDaysSchedule {
+filter Get-AgentJobRecurringMinutes {
 	param (
 		[Parameter(Mandatory)]
 		[string]$SqlServerAgentJob,
@@ -50,8 +50,8 @@ filter Get-AgentJobDaysSchedule {
 	}
 	
 	$frequencyDetails = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $SqlServerInstanceName) "SELECT 
-			[s].[freq_type],
-			[s].[freq_interval]
+			[s].[freq_subday_type],
+			[s].[freq_subday_interval]
 		FROM 
 			msdb.dbo.sysjobs j 
 			INNER JOIN msdb.dbo.[sysjobschedules] js ON [j].[job_id] = [js].[job_id]
@@ -59,48 +59,11 @@ filter Get-AgentJobDaysSchedule {
 		WHERE 
 			j.[name] = N'$SqlServerAgentJob'; ");
 	
-	if ($frequencyDetails.freq_type -ne 8) {
-		return "<NOT_WEEKLY>";
+	if ($frequencyDetails.freq_subday_type -ne 4) {
+		return "<NOT_DAILY>";
 	}
 	
-	$frequency = $frequencyDetails.freq_interval;
+	$frequency = $frequencyDetails.freq_subday_interval;
 	
-	$executionDays = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $SqlServerInstanceName) "DECLARE @interval int = $frequency;
-		DECLARE @days table (
-			abbreviation sysname,
-			day_name sysname, 
-			bit_map int, 
-			sort_order int
-		);
-		INSERT INTO @days (
-			[abbreviation],
-			[day_name],
-			[bit_map], 
-			[sort_order]
-		)
-		VALUES	
-			(N'Su', N'Sunday', 1, 99),
-			(N'M', N'Monday', 2, 1),
-			(N'Tu', N'Tuesday', 4, 2),
-			(N'W', N'Wednesday', 8, 3),
-			(N'Th', N'Thursday', 16, 4),
-			(N'F', N'Friday', 32, 5),
-			(N'Sa', N'Saturday', 64, 6);
-
-		DECLARE @matchedDays sysname = N'';
-
-		SELECT 
-			@matchedDays = @matchedDays + CASE WHEN (@interval & [bit_map]) = [bit_map] THEN [abbreviation] + N',' ELSE N'' END
-		FROM 
-			@days
-		ORDER BY 
-			[sort_order];
-
-		IF LEN(@matchedDays) > 1 BEGIN 
-			SELECT @matchedDays = SUBSTRING(@matchedDays, 0, LEN(@matchedDays));
-		END;
-
-		SELECT @matchedDays [output]; ").output;
-	
-	return $executionDays;
+	return Pluralize-Vector -Unit $frequency -UnitType "minute";
 }

@@ -26,7 +26,7 @@ filter Translate-AdminDbVectorFromDays {
 	throw "Proviso Framwork Error. Unexpected Target Format for Output of Vector";
 }
 
-Filter Pluralize-Vector {
+filter Pluralize-Vector {
 	param (
 		[Parameter(Mandatory)]
 		$Unit,

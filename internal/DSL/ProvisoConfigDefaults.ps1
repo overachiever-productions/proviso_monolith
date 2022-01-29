@@ -266,12 +266,35 @@
 				JobCategoryName			     = "Database Maintenance"
 				Operator					 = "Alerts"
 				Profile					     = "General"
-				JobEmailPrefix = "[Database Corruption Checks] "
+				JobEmailPrefix = "[Database Corruption Checks] - "
 			}
 			
 			BackupJobs	     = @{
 				Enabled = $true
-
+				
+				UserDatabasesToBackup	    = "{USER}"
+				UserDbsToExclude		    = ""
+				CertificateName			    = ""
+				BackupDirectory			    = "{DEFAULT}"
+				CopyToDirectory			    = ""
+				SystemBackupRetention	    = "4 days"
+				CopyToSystemBackupRetention = "4 days"   # todo, have this default to whatever is set for SystemBackupRetention - i.e., if they set that to 5 days, this is 5 days... 
+				UserBackupRetention		    = "3 days"
+				CopyToUserBackupRetention   = "3 days"    # ditto. and, of course, none of these 'matter' unless there's a CopyToDirectory specified
+				LogBackupRetention		    = "73 hours"
+				CopyToLogBackupRetention    = "73 hours"  # ditto
+				AllowForSecondaries		    = $false
+				SystemBackupsStart		    = "18:50:00"
+				UserBackupsStart		    = "02:00:00"
+				DiffBackupsStart		    = ""
+				DiffBackupsEvery		    = ""
+				LogBackupsStart			    = "00:02:00"
+				LogBackupsEvery			    = "10 minutes"
+				TimeZoneForUtcOffset	    = ""
+				JobsNamePrefix			    = "Database Backups - "
+				JobsCategoryName		    = "Backups"
+				Operator				    = "Alerts"
+				Profile					    = "General"
 			}
 			
 			RestoreTestJobs  = @{
@@ -294,7 +317,7 @@
 				MaxFailedDrops	      = 3
 				Operator			  = "Alerts"
 				Profile			      = "General"
-				JobEmailPrefix	      = "[RESTORE TEST] "
+				JobEmailPrefix	      = "[RESTORE TEST] - "
 			}
 			
 			SqlEncryptionKeys = @{

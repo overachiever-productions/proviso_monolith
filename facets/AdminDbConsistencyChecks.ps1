@@ -11,22 +11,14 @@ Facet AdminDbConsistencyChecks {
 		Definition "ConsistencyCheckJobEnabled" -ExpectValueForChildKey "ConsistencyChecks.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				$jobName = "Database Consistency Checks";
-				
-				$state = Report-SqlServerAgentJobEnabledState -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
-				
-				if ($expectedSetting) {
-					return $state;
+				$start = Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
+				if ($start -like "<*") {
+					return $false;
 				}
-				else {
-					if ($null -eq $state) {
-						return $false;		# don't output <EMPTY> when we're tryign to account for true/false WHEN the job should NOT be configured (i.e., return FALSE so that expected and actual match)
-					}
-					
-					return $state;
-				}
+				
+				return $true;
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -87,22 +79,9 @@ Facet AdminDbConsistencyChecks {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				$jobName = "Database Consistency Checks";
-				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_weeklyschedule_days N'$jobName'; ").Outcome;
-				
-				if ($expectedSetting) {
-					return $state; # this SHOULD be the M, W, F, Su or whatever value we EXPECT... 
-				}
-				else {
-					$ignored = "NOTFOUND", "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
-					if ($ignored -contains $state) {
-						return "";
-					}
-					
-					return $state;
-				}
+				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
@@ -111,7 +90,10 @@ Facet AdminDbConsistencyChecks {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$jobName = "Database Consistency Checks";
-				$jobStepBody = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [command] FROM [msdb].dbo.[sysjobsteps] WHERE [step_name] = 'Check Database Consistency' AND [job_id] = (SELECT [job_id] FROM [msdb].dbo.[sysjobs] WHERE [name] = N'$jobName'); ").command;
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $jobName -JobStepName "Check Database Consistency" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
 				
 				$regex = New-Object System.Text.RegularExpressions.Regex("@Targets = N'(?<targets>[^']+)", [System.Text.RegularExpressions.RegexOptions]::Multiline);
 				$matches = $regex.Match($jobStepBody);
@@ -128,14 +110,7 @@ Facet AdminDbConsistencyChecks {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$jobName = "Database Consistency Checks";
-				$start = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_starttime N'$jobName'; ").Outcome;
-				
-				[string[]]$special = "NOTFOUND"; # various processing overrides/etc. 
-				if ($special -contains $special) {
-					return "<EMPTY>";
-				}
-				
-				return $start;
+				return Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}		
 		

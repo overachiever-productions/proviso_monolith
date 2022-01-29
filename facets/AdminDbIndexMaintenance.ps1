@@ -8,7 +8,7 @@ Facet AdminDbIndexMaintenance {
 	
 	# TODO: currently using hard-coded job-names... 
 	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "IndexMaintenanceEnabled" -ExpectValueForChildKey "IndexMaintenance.Enabled" {
+		Definition "IndexMaintenanceEnabled" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -42,7 +42,7 @@ Facet AdminDbIndexMaintenance {
 				$weekDayStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
 				$weekendStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
 				
-				$weekDayJobs, $weekendJobs = $false;
+				$weekDayJobs = $weekendJobs = $false;
 				if ($weekDayStart -notlike "<*") {
 					$weekDayJobs = $true;
 				}
@@ -108,27 +108,9 @@ Facet AdminDbIndexMaintenance {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				$jobName = "Index Maintenance - WeekDay";
-				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_weeklyschedule_days N'$jobName'; ").Outcome;
-				
-				if ($expectedSetting) {
-					return $state; # this SHOULD be the M, W, F, Su or whatever value we EXPECT... 
-				}
-				else {
-					[string[]]$ignored = "NOTFOUND";
-					if ($ignored -contains $state) {
-						return "";
-					}
-					
-					[string[]]$ignored = "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
-					if ($ignored -contains $state) {
-						return "<$state>";
-					}
-					
-					return $state;
-				}
+				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
@@ -143,27 +125,9 @@ Facet AdminDbIndexMaintenance {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				$jobName = "Index Maintenance - Weekend";
-				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.extract_agentjob_weeklyschedule_days N'$jobName'; ").Outcome;
-				
-				if ($expectedSetting) {
-					return $state; # this SHOULD be the M, W, F, Su or whatever value we EXPECT... 
-				}
-				else {
-					[string[]]$ignored = "NOTFOUND";
-					if ($ignored -contains $state) {
-						return "";
-					}
-					
-					[string[]]$ignored = "DISABLED", "SCHEDULE_DISABLED", "NO_SCHEDULE";
-					if ($ignored -contains $state) {
-						return "<$state>";
-					}
-					
-					return $state;
-				}
+				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		

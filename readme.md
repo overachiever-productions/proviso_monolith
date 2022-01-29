@@ -5,6 +5,72 @@
 
 
 
+## Introduction
+[
+Built around the idea of a Facet (small area of 'facet' of configuration/something you want work on/against) e.g., a NetworkFacet, or a MachineName facet or whatever... 
+
+It then allows application of 3 verbs for use against facets:
+- Validate
+- Provision 
+- Document 
+
+So, for example, assume the following Facet, a simple test that works against day of week: 
+
+```PowerShell
+Facet  "Test" {
+    
+    Definition "ItIsTuesday" {
+        Expect {
+            return "Tuesday"
+        }
+        Test {
+            return something.dayOfWeek.
+        }
+        Configure {
+            # do whatever it takes to 'make it' Tuesday... 
+        }
+    }
+}
+```
+
+Key to each facet is the notion of an Expect - similar to an Assert in Unit Testing - i.e., the desired state or 'expected' state of whatever it is you're working with. 
+
+The code in Test is then used to get the ACTUAL value - so, a lookup against the day of the week, or the actual IP address or Gateway if you're working on a network stack, and so on. 
+
+And, Configure, of course, becomes the block of code used to 'force' your definition/facet into correct order - i.e., how to make the 'actual' become 'expected'. 
+
+So, for example, here's a more real-world sample showing: 
+
+(network stack? what? firewall rules? what? )
+
+### Definitions
+Importantly, a Facet can (usually will) contain multiple definitions. For example, to configure a network adapter, you'd want definitions for: 
+- IP Address 
+- Subnet 
+- Gateway
+- Primary DNS
+- Secondary DNS
+- etc. 
+
+All of which could/would be modelled in a 'NetworkAdapterFacet' - like so: 
+
+```
+
+Facet "Network Adapter" {
+    
+    Definitions {
+        x
+        y
+        z
+        etc
+    }
+}
+
+```
+
+
+
+]
 
 
 

@@ -7,7 +7,7 @@ filter Export-SurfaceProxyFunction {
 		[string]$RootDirectory,
 		[Parameter(Mandatory)]
 		[string]$SurfaceName,
-		[switch]$Provision = $false,
+		[switch]$Configure = $false,
 		[switch]$AllowRebase
 	);
 	
@@ -35,9 +35,9 @@ function {0}-{1} {{
 	
 	$rebaseParamDef = "";
 	$rebaseOutput = "";
-	$provisionDirective = "";
-	if ($Provision) {
-		$provisionDirective = "-Provision";
+	$configureDirective = "";
+	if ($Configure) {
+		$configureDirective = "-Configure";
 		
 		if ($AllowRebase) {
 			$rebaseParamDef = ",`r`t`t[Switch]`$ExecuteRebase = `$false, `r`t`t[Switch]`$Force = `$false ";
@@ -46,11 +46,11 @@ function {0}-{1} {{
 	}
 	
 	$methodType = "Validate";
-	if ($Provision) {
-		$methodType = "Provision";
+	if ($Configure) {
+		$methodType = "Configure";
 	}
 	
-	$body = [string]::Format($template, $methodType, $SurfaceName, $rebaseParamDef, $rebaseOutput, $provisionDirective);
+	$body = [string]::Format($template, $methodType, $SurfaceName, $rebaseParamDef, $rebaseOutput, $configureDirective);
 	
 	try {
 		$filePath = Join-Path -Path $RootDirectory -ChildPath "\surfaces\generated";

@@ -1,13 +1,13 @@
 Set-StrictMode -Version 1.0;
 
-function Provision-TestingSurface {
+function Configure-SqlConfiguration {
 	
 	param (
 		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config
 	);
 	
-	Validate-MethodUsage -MethodName "Provision";
+	Validate-MethodUsage -MethodName "Configure";
 
 	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {
 		if($null -eq $Config) {
@@ -15,5 +15,5 @@ function Provision-TestingSurface {
 		}
 	}
 
-	Process-Surface -SurfaceName "TestingSurface" -Config $Config -Provision;
+	Process-Surface -SurfaceName "SqlConfiguration" -Config $Config -Configure;
 }

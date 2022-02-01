@@ -1,13 +1,13 @@
 Set-StrictMode -Version 1.0;
 
-function Provision-AdminDbConsistencyChecks {
+function Configure-AdminDbHistory {
 	
 	param (
 		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config
 	);
 	
-	Validate-MethodUsage -MethodName "Provision";
+	Validate-MethodUsage -MethodName "Configure";
 
 	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {
 		if($null -eq $Config) {
@@ -15,5 +15,5 @@ function Provision-AdminDbConsistencyChecks {
 		}
 	}
 
-	Process-Surface -SurfaceName "AdminDbConsistencyChecks" -Config $Config -Provision;
+	Process-Surface -SurfaceName "AdminDbHistory" -Config $Config -Configure;
 }

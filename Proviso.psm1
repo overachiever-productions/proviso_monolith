@@ -73,7 +73,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 			$allowsRebase = $currentSurface.RebasePresent;
 			
 			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName;
-			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName -Provision -AllowRebase:$allowsRebase;
+			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName -Configure -AllowRebase:$allowsRebase;
 		}
 	}
 	catch {

@@ -1,13 +1,13 @@
 Set-StrictMode -Version 1.0;
 
-function Provision-AdminDbIndexMaintenance {
+function Configure-AdminDbInstanceSettings {
 	
 	param (
 		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config
 	);
 	
-	Validate-MethodUsage -MethodName "Provision";
+	Validate-MethodUsage -MethodName "Configure";
 
 	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {
 		if($null -eq $Config) {
@@ -15,5 +15,5 @@ function Provision-AdminDbIndexMaintenance {
 		}
 	}
 
-	Process-Surface -SurfaceName "AdminDbIndexMaintenance" -Config $Config -Provision;
+	Process-Surface -SurfaceName "AdminDbInstanceSettings" -Config $Config -Configure;
 }

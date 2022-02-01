@@ -13,7 +13,7 @@ Assign -ProvisoRoot "\\storage\Lab\proviso\";
 With -CurrentHost | Do-Something;
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingSurface;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
 
 #>
@@ -25,7 +25,7 @@ function Process-Surface {
 		[string]$SurfaceName,
 		[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config,
-		[switch]$Provision = $false,
+		[switch]$Configure = $false,
 		[switch]$ExecuteRebase = $false,
 		[switch]$Force = $false
 	);
@@ -44,9 +44,9 @@ function Process-Surface {
 			}
 		}
 		
-		$surfaceProcessingResult = New-Object Proviso.Processing.SurfaceProcessingResult($surface, $Provision);
+		$surfaceProcessingResult = New-Object Proviso.Processing.SurfaceProcessingResult($surface, $Configure);
 		$processingGuid = $surfaceProcessingResult.ProcessingId;
-		$PVContext.SetCurrentSurface($surface, $ExecuteRebase, $Provision, $surfaceProcessingResult);
+		$PVContext.SetCurrentSurface($surface, $ExecuteRebase, $Configure, $surfaceProcessingResult);
 	}
 	
 	process {
@@ -415,9 +415,9 @@ function Process-Surface {
 		}
 	
 		# --------------------------------------------------------------------------------------
-		# Provisioning
+		# Configuration
 		# --------------------------------------------------------------------------------------		
-		if ($Provision) {
+		if ($Configure) {
 			
 			$surfaceProcessingResult.StartConfigurations();
 			
@@ -473,7 +473,7 @@ function Process-Surface {
 				}
 			}
 			
-			# For any Facet that SHOULD have been processed above, but which deferred Configuration/Provisioning operations to its -ConfiguredBy target... process those as needed: 
+			# For any Facet that SHOULD have been processed above, but which deferred Configuration operations to its -ConfiguredBy target... process those as needed: 
 			foreach ($facetName in $configuredByFacetsCalledThroughDeferredOperations) {
 				$validation = $surfaceProcessingResult.GetValidationResultByFacetName($facetName);
 				
@@ -499,7 +499,7 @@ function Process-Surface {
 				$PVContext.ClearDeferredExecution();
 			}
 			
-			# Now that we're done running configuration/provisioning operations, time to execute Re-Compare operations:
+			# Now that we're done running configuration operations, time to execute Re-Compare operations:
 			$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};
 			foreach ($configurationResult in $targets) {
 				$PVContext.SetConfigurationState($configurationResult.Validation);

@@ -1,13 +1,13 @@
 Set-StrictMode -Version 1.0;
 
-function Provision-AdminDbDiskMonitoring {
+function Configure-AdminDbIndexMaintenance {
 	
 	param (
 		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
 		[PSCustomObject]$Config
 	);
 	
-	Validate-MethodUsage -MethodName "Provision";
+	Validate-MethodUsage -MethodName "Configure";
 
 	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {
 		if($null -eq $Config) {
@@ -15,5 +15,5 @@ function Provision-AdminDbDiskMonitoring {
 		}
 	}
 
-	Process-Surface -SurfaceName "AdminDbDiskMonitoring" -Config $Config -Provision;
+	Process-Surface -SurfaceName "AdminDbIndexMaintenance" -Config $Config -Configure;
 }

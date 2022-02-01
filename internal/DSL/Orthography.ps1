@@ -15,13 +15,13 @@ Filter Validate-MethodUsage {
 	}
 }
 
-Filter Validate-FacetBlockUsage {
+Filter Validate-SurfaceBlockUsage {
 	param (
 		[Parameter(Mandatory)]
 		[string]$BlockName
 	);
 	
-	$dslError = $ProvisoOrthography.AddFacetBlock($BlockName);
+	$dslError = $ProvisoOrthography.AddSurfaceBlock($BlockName);
 	
 	if ($dslError) {
 		throw $dslError;

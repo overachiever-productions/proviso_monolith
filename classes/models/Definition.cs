@@ -5,7 +5,7 @@ namespace Proviso.Models
 {
     public class Definition
     {
-        public Facet Parent { get; private set; }
+        public Surface Parent { get; private set; }
         public DefinitionType DefinitionType { get; private set; }
         public string Description { get; private set; }
         public ScriptBlock Test { get; private set; }
@@ -35,7 +35,7 @@ namespace Proviso.Models
         public string CurrentIteratorChildKey { get; private set; }
         public object CurrentIteratorChildKeyValue { get; private set; }
 
-        public Definition(Facet parent, string description, DefinitionType type)
+        public Definition(Surface parent, string description, DefinitionType type)
         {
             this.Parent = parent;
             this.Description = description;

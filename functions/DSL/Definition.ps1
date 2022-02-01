@@ -22,7 +22,7 @@ function Definition {
 	)
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Definition";
+		Validate-SurfaceBlockUsage -BlockName "Definition";
 		switch ($definitionType) {
 			Simple {
 				if ($ExpectValueForCurrentKey) {
@@ -60,11 +60,11 @@ function Definition {
 				if ($ExpectKeyValue) {
 					$keyType = (Get-ProvisoConfigDefault -Key $ExpectKeyValue -ValidateOnly);
 					if ($null -eq $keyType) {
-						throw "Invalid -ExpectKeyValuevalue ([$($ExpectKeyValue)]) specified for Definition [$Description] within Facet [$($facet.Name)].";
+						throw "Invalid -ExpectKeyValuevalue ([$($ExpectKeyValue)]) specified for Definition [$Description] within Surface [$($surface.Name)].";
 					}
 					
 					if ($keyType.GetType() -notin "bool", "string", "hashtable", "system.object[]") {
-						throw "Invalid -ExpectKeyValue.DataType for Key ([$($ExpectKeyValue)]) specified for Definition [$Description] within Facet [$($facet.Name)]."
+						throw "Invalid -ExpectKeyValue.DataType for Key ([$($ExpectKeyValue)]) specified for Definition [$Description] within Surface [$($surface.Name)]."
 					}
 				}
 			}
@@ -211,17 +211,17 @@ function Definition {
 		if ($Key){
 			$keyType = (Get-ProvisoConfigDefault -Key $Key -ValidateOnly);
 			if ($null -eq $keyType) {
-				throw "Invalid -Key value ([$($Key)]) specified for Definition [$Description] within Facet [$($facet.Name)].";
+				throw "Invalid -Key value ([$($Key)]) specified for Definition [$Description] within Surface [$($surface.Name)].";
 			}
 			
 			if ($keyType.GetType() -notin "bool", "string", "hashtable", "system.object[]") {
-				throw "Invalid -Key.DataType for Key ([$($Key)]) specified for Definition [$Description] within Facet [$($facet.Name)]."
+				throw "Invalid -Key.DataType for Key ([$($Key)]) specified for Definition [$Description] within Surface [$($surface.Name)]."
 			}
 		}
 	}
 	
 	process {
-		$definition = New-Object Proviso.Models.Definition($facet, $Description, $definitionType);
+		$definition = New-Object Proviso.Models.Definition($surface, $Description, $definitionType);
 			
 		if ($RequiresReboot) {
 			$definition.SetRequiresReboot();
@@ -295,10 +295,10 @@ function Definition {
 		}
 		
 		if ($ConfiguredBy -and ($null -eq $definition.Configure)) {
-			$facet.VerifyConfiguredBy($Description, $ConfiguredBy);	# throws if the name isn't valid (i.e., found (already) within the current facet)
+			$surface.VerifyConfiguredBy($Description, $ConfiguredBy);	# throws if the name isn't valid (i.e., found (already) within the current surface)
 			$definition.SetConfiguredBy($ConfiguredBy);
 		}
 		
-		$facet.AddDefinition($definition);
+		$surface.AddDefinition($definition);
 	}
 }

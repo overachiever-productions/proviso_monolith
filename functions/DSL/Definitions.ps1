@@ -6,7 +6,7 @@ function Definitions {
 		[ScriptBlock]$Definitions
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Definitions";
+	Validate-SurfaceBlockUsage -BlockName "Definitions";
 	$definitionType = [Proviso.Enums.DefinitionType]::Simple;
 	$ValueKey = $null;
 	$GroupKey = $null;
@@ -28,7 +28,7 @@ function Value-Definitions {
 		[switch]$OrderDescending = $false
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Value-Definitions";
+	Validate-SurfaceBlockUsage -BlockName "Value-Definitions";
 	$definitionType = [Proviso.Enums.DefinitionType]::Value;
 	$GroupKey = $null;
 	$CompoundValueKey = $null;
@@ -48,7 +48,7 @@ function Group-Definitions {
 		[string]$OrderByChildKey
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Group-Definitions";
+	Validate-SurfaceBlockUsage -BlockName "Group-Definitions";
 	$definitionType = [Proviso.Enums.DefinitionType]::Group;
 	$ValueKey = $null;
 	$CompoundValueKey = $null;
@@ -72,7 +72,7 @@ function Compound-Definitions {
 		[switch]$OrderDescending = $false
 	)
 	
-	Validate-FacetBlockUsage -BlockName "Compound-Definitions";
+	Validate-SurfaceBlockUsage -BlockName "Compound-Definitions";
 	$definitionType = [Proviso.Enums.DefinitionType]::Compound;
 	$ValueKey = $null;
 	$ExpectBlock = $null;

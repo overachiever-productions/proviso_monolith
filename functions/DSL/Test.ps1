@@ -5,7 +5,7 @@ function Test {
 		[ScriptBlock]$TestBlock
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Test";
+	Validate-SurfaceBlockUsage -BlockName "Test";
 	
 	$definition.SetTest($TestBlock);
 }

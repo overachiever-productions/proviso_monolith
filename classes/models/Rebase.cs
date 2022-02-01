@@ -5,12 +5,12 @@ namespace Proviso.Models
     public class Rebase
     {
         public ScriptBlock RebaseBlock { get; private set; }
-        public string ParentFacetName { get; private set; }
+        public string ParentSurfaceName { get; private set; }
 
-        public Rebase(ScriptBlock rebaseBlock, string parentFacetName)
+        public Rebase(ScriptBlock rebaseBlock, string parentSurfaceName)
         {
             this.RebaseBlock = rebaseBlock;
-            this.ParentFacetName = parentFacetName;
+            this.ParentSurfaceName = parentSurfaceName;
         }
     }
 }

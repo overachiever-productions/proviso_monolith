@@ -49,7 +49,7 @@ namespace Proviso.Processing
             this.ValidationErrors.Add(added);
         }
 
-        public string GetFacetName()
+        public string GetSurfaceName()
         {
             return this.ParentDefinition.Parent.Name;
         }

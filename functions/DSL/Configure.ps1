@@ -6,7 +6,7 @@ function Configure {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Configure";
+		Validate-SurfaceBlockUsage -BlockName "Configure";
 		
 		if ($ConfiguredBy) {
 			throw "Invalid Argument. Define blocks can use EITHER a Configure{} block OR the -ConfiguredBy parameter (not both).";

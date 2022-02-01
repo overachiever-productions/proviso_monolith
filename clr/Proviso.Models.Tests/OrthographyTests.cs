@@ -70,45 +70,45 @@ namespace Proviso.Models.Tests
         }
 
         [Test]
-        public void FacetParent_WithNoLoadedFacetsMembers_ReturnsNull()
+        public void SurfaceParent_WithNoLoadedSurfaceMembers_ReturnsNull()
         {
             var sut = Orthography.Instance;
-            string parent = sut.FacetParent();
+            string parent = sut.SurfaceParent();
 
             Assert.That(string.IsNullOrEmpty(parent));
         }
 
         [Test]
-        public void FacetParent_WithOnlyFacetRoot_ReturnsNull()
+        public void SurfaceParent_WithOnlySurfaceRoot_ReturnsNull()
         {
             var sut = Orthography.Instance;
-            sut.AddFacetBlock("Facet");
+            sut.AddSurfaceBlock("Surface");
             
-            string parent = sut.FacetParent();
+            string parent = sut.SurfaceParent();
             Assert.That(string.IsNullOrEmpty(parent));
         }
 
         [Test]
-        public void FacetParent_WithValidParent_ReturnsParent()
+        public void SurfaceParent_WithValidParent_ReturnsParent()
         {
             var sut = Orthography.Instance;
-            sut.AddFacetBlock("Facet");
-            sut.AddFacetBlock("Assertions");
+            sut.AddSurfaceBlock("Surface");
+            sut.AddSurfaceBlock("Assertions");
 
-            string parent = sut.FacetParent();
-            StringAssert.AreEqualIgnoringCase("Facet", parent);
+            string parent = sut.SurfaceParent();
+            StringAssert.AreEqualIgnoringCase("Surface", parent);
         }
 
         [Test]
-        public void FacetParent_WithMultipleParentNodes_ReturnsCorrectParent()
+        public void SurfaceParent_WithMultipleParentNodes_ReturnsCorrectParent()
         {
             var sut = Orthography.Instance;
-            sut.AddFacetBlock("Facet");
-            sut.AddFacetBlock("Definitions");
-            sut.AddFacetBlock("Definition");
-            sut.AddFacetBlock("Expect");
+            sut.AddSurfaceBlock("Surface");
+            sut.AddSurfaceBlock("Definitions");
+            sut.AddSurfaceBlock("Definition");
+            sut.AddSurfaceBlock("Expect");
 
-            string parent = sut.FacetParent();
+            string parent = sut.SurfaceParent();
             StringAssert.AreEqualIgnoringCase("Definition", parent);
         }
     }

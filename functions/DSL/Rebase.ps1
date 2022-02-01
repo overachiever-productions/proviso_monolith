@@ -5,8 +5,8 @@ function Rebase {
 		[scriptblock]$RebaseBlock
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Rebase";
+	Validate-SurfaceBlockUsage -BlockName "Rebase";
 	
 	$rebase = New-Object Proviso.Models.Rebase($RebaseBlock, $Name);
-	$facet.AddRebase($rebase);
+	$surface.AddRebase($rebase);
 }

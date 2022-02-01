@@ -31,9 +31,9 @@ namespace Proviso.Processing
             this.RebaseOutcome = RebaseOutcome.Failure;
         }
 
-        public string GetFacetName()
+        public string GetSurfaceName()
         {
-            return this.Rebase.ParentFacetName;
+            return this.Rebase.ParentSurfaceName;
         }
 
         public string GetOutcomeSummary()

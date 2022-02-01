@@ -5,8 +5,8 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingFacet;
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingFacet;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingSurface;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingSurface;
 
 	Summarize -All -IncludeAssertions -IncludeAllValidations;
 
@@ -16,20 +16,20 @@ function Summarize {
 	
 	param (
 		[Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-		[Proviso.Processing.FacetProcessingResult[]]$ProcessingResults,
+		[Proviso.Processing.SurfaceProcessingResult[]]$ProcessingResults,
 		[switch]$All = $false,
 		[switch]$Terse = $false,  # keep tables/outputs to SINGLE line (vs 'non-terse' - where outcomes, etc. can contain multi-line info/outputs).
 		# vNEXT: there SHOULD be a way to only/just use 'Last' - as in, check to see if it's an arg... if it is, it can EITHER be a 'switch' (i.e., value of 1 if no [int] value specified) OR an int... 
 		# Or... just figure out a better way to distinguis between 'last' and LastN, hell, might even be as simple as -Last and -LastN (or ... -Last and -Lastest)
 		[switch]$Latest = $false,
 		[int]$Last = $null,
-		[switch]$IncludeFacetHeader = $true,
+		[switch]$IncludeSurfaceHeader = $true,
 		[switch]$IncludeAssertions = $false,
 		[switch]$IncludeAllValidations = $false  # by default, don't show validations for Configure operations - that info gets displayed in ... Configuration Summaries.
 	);
 	
 	begin {
-		[Proviso.Processing.FacetProcessingResult[]]$targets = $ProcessingResults;
+		[Proviso.Processing.SurfaceProcessingResult[]]$targets = $ProcessingResults;
 		
 		if ($null -eq $targets) {
 			if ($All) {
@@ -53,7 +53,7 @@ function Summarize {
 		[Proviso.Processing.ConfigurationResult[]]$configurations = @();
 		[Proviso.Processing.RebaseResult[]]$rebases = @();
 		
-		$Formatter.ResetFacetIds(); # resets FacetID functionality for this 'batch' of Summarize results... 
+		$Formatter.ResetSurfaceIds(); # resets SurfaceID functionality for this 'batch' of Summarize results... 
 		foreach ($result in $targets) {
 			
 			if ($IncludeAssertions -or ($result.AssertionsFailed)) {
@@ -86,14 +86,14 @@ function Summarize {
 		}
 		
 		# Emit results into console/output:
-		if ($IncludeFacetHeader) {
+		if ($IncludeSurfaceHeader) {
 			"-------------------------------------------------------------------------------------------------------------------------------";
-			"FACET PROCESSING SUMMARIES:";
+			"SURFACE PROCESSING SUMMARIES:";
 			
-			$targets | Format-Table -View Facet-Summary -Wrap:(-not $Terse);
+			$targets | Format-Table -View Surface-Summary -Wrap:(-not $Terse);
 		}
 		
-		# yeah... this logic is kind of odd... but the idea is to show assertion outcomes IF they set via -IncludeAssertions OR... if there was a critical failure of an assertion in 1 or more Facets... 
+		# yeah... this logic is kind of odd... but the idea is to show assertion outcomes IF they set via -IncludeAssertions OR... if there was a critical failure of an assertion in 1 or more Surfaces... 
 		if ($IncludeAssertions -or $asserts.Count -gt 0) {
 			if ($asserts.Count -gt 0) {
 				"-------------------------------------------------------------------------------------------------------------------------------";

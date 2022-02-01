@@ -8,7 +8,7 @@ namespace Proviso.Models
         public string FileName { get; set; }
         public string SourcePath { get; set; }
 
-        public List<Facet> Surfaces { get; set; }
+        public List<Surface> Surfaces { get; set; }
 
 
     }

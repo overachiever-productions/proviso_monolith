@@ -7,7 +7,7 @@
 	With \\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Execute {
 		Validate-FirewallRules;
 		Validate-ServerName;
-		Validate-TestingFacet;
+		Validate-TestingSurface;
 	};
 
 	Summarize -All;

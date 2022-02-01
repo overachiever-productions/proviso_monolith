@@ -47,7 +47,7 @@ namespace Proviso
             return this._credential;
         }
 
-        public ScriptBlock GetCredentialPromis()
+        public ScriptBlock GetCredentialPromise()
         {
             if (this.CredentialsType != CredentialsType.Promise)
                 throw new InvalidOperationException("Domain Credential Promise can NOT be retrieved when it has not been set (or when an actual Credential has been provided).");

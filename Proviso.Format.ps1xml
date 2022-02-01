@@ -8,19 +8,19 @@
   <ViewDefinitions>
 
     <View>
-      <Name>Facet-Summary</Name>
+      <Name>Surface-Summary</Name>
       <ViewSelectedBy>
-        <TypeName>Proviso.Processing.FacetProcessingResult</TypeName>
+        <TypeName>Proviso.Processing.SurfaceProcessingResult</TypeName>
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
             <Width>4</Width>
-            <Label>FID</Label>
+            <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>32</Width>
-            <Label>Facet</Label>
+            <Label>Surface</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>10</Width>
@@ -47,13 +47,13 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 31)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.Surface.Name, 31)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>if ($_.ExecuteConfiguration) { "PROVISION" } else { "VALIDATE" }</ScriptBlock>
+                <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$($_.Duration.ToString("ss\.fff"))</ScriptBlock>
@@ -82,7 +82,7 @@
         <TableHeaders>
           <TableColumnHeader>
             <Width>4</Width>
-            <Label>FID</Label>
+            <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
@@ -97,7 +97,7 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 51)</ScriptBlock>
@@ -121,7 +121,7 @@
         <TableHeaders>
           <TableColumnHeader>
             <Width>4</Width>
-            <Label>FID</Label>
+            <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
@@ -140,7 +140,7 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 51)</ScriptBlock>
@@ -166,7 +166,7 @@
           <TableHeaders>
             <TableColumnHeader>
               <Width>22</Width>
-              <Label>Facet</Label>
+              <Label>Surface</Label>
             </TableColumnHeader>
             <TableColumnHeader>
               <Width>90</Width>
@@ -177,7 +177,7 @@
             <TableRowEntry>
               <TableColumnItems>
                 <TableColumnItem>
-                  <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
+                  <ScriptBlock>$Formatter.Abridge($_.GetSurfaceName(), 21)</ScriptBlock>
                 </TableColumnItem>
                 <TableColumnItem>
                   <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
@@ -197,7 +197,7 @@
         <TableHeaders>
           <TableColumnHeader>
             <Width>4</Width>
-            <Label>FID</Label>
+            <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
@@ -220,7 +220,7 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.GetFacetId($_.ProcessingId)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 51)</ScriptBlock>

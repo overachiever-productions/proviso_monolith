@@ -11,7 +11,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\enums\ConfigurationsOutcome.cs"
 	"$ProvisoScriptRoot\enums\DefinitionType.cs"
 	"$ProvisoScriptRoot\enums\CredentialsType.cs"
-	"$ProvisoScriptRoot\enums\FacetProcessingState.cs"
+	"$ProvisoScriptRoot\enums\SurfaceProcessingState.cs"
 	"$ProvisoScriptRoot\enums\RebaseOutcome.cs"
 	"$ProvisoScriptRoot\enums\ValidationErrorType.cs"
 	"$ProvisoScriptRoot\enums\ValidationsOutcome.cs"
@@ -22,15 +22,15 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
 	"$ProvisoScriptRoot\classes\models\Runbook.cs"
 	"$ProvisoScriptRoot\classes\models\Setup.cs"
-	"$ProvisoScriptRoot\classes\models\Facet.cs"
-	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"
+	"$ProvisoScriptRoot\classes\models\Surface.cs"
 	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationResult.cs"
 	"$ProvisoScriptRoot\classes\processing\RebaseResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ValidationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ValidationResult.cs"
-	"$ProvisoScriptRoot\classes\processing\FacetProcessingResult.cs"
+	"$ProvisoScriptRoot\classes\processing\SurfaceProcessingResult.cs"
+	"$ProvisoScriptRoot\classes\ProvisoCatalog.cs"
 	"$ProvisoScriptRoot\classes\Orthography.cs"
 	"$ProvisoScriptRoot\classes\DomainCredential.cs"
 	"$ProvisoScriptRoot\classes\ProcessingContext.cs"
@@ -61,35 +61,35 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
-# 4. Import/Build Facets and dynamically create Validate|Provision|Document-<FacetName> funcs. 
-Clear-FacetProxies -RootDirectory $ProvisoScriptRoot;
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'facets/*.ps1') -ErrorAction Stop))) {
+# 4. Import/Build Surfaces and dynamically create Validate|Configure|Document-<SurfaceName> funcs. 
+Clear-SurfaceProxies -RootDirectory $ProvisoScriptRoot;
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'surfaces/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
 		
-		$currentFacet = $script:ProvisoFacetsCatalog.GetFacetByFileName(($file.Basename));
-		if ($null -ne $currentFacet) {
-			$facetName = $currentFacet.Name;
-			$allowsRebase = $currentFacet.RebasePresent;
+		$currentSurface = $script:ProvisoCatalog.GetSurfaceByFileName(($file.Basename));
+		if ($null -ne $currentSurface) {
+			$surfaceName = $currentSurface.Name;
+			$allowsRebase = $currentSurface.RebasePresent;
 			
-			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName;
-			Export-FacetProxyFunction -RootDirectory $ProvisoScriptRoot -FacetName $facetName -Provision -AllowRebase:$allowsRebase;
+			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName;
+			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName -Provision -AllowRebase:$allowsRebase;
 		}
 	}
 	catch {
-		throw "Unable to Import Facet: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+		throw "Unable to Import Surface: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
 
-# 5. Import DSL Facet-Proxies (syntactic sugar):
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'facets/generated/*.ps1') -ErrorAction Stop))) {
+# 5. Import DSL Surface-Proxies (syntactic sugar):
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'surfaces/generated/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
 		
 		$provisoPublicModuleMembers += $file.Basename;
 	}
 	catch {
-		throw "Unable to Import Facet Proxy-Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+		throw "Unable to Import Surface Proxy-Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
 

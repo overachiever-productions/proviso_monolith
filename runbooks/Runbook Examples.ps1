@@ -24,7 +24,7 @@
 
 			- HighAvailablity
 			
-			- Patching (i.e., just facets that handle patching? )
+			- Patching (i.e., just surfaces that handle patching? )
 
 
 
@@ -98,7 +98,7 @@ Runbook "ServerInitialization" {
 #		<VerbName>-AdminDbIndexMaintenance;
 #		<VerbName>-AdminDbBackupJobs;
 #		
-#		# usually we'll do one of the other..... but no reason both facet 'processors' can't be executed.
+#		# usually we'll do one of the other..... but no reason both surface 'processors' can't be executed.
 #		<VerbName>-AdminDbRestoreTestJobs;
 #		<VerbName>-AdminDbConsistencyChecks;
 #	};

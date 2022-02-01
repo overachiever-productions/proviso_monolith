@@ -3,10 +3,10 @@
 $script:Formatter = [Proviso.Formatter]::Instance;
 
 # Each call to Summarize (func) sets this value to 0. 
-#    whereas each call into Formatter.GetFacetId() ... increments by 1 and then converts # to alpha... 
+#    whereas each call into Formatter.GetSurfaceId() ... increments by 1 and then converts # to alpha... 
 [int]$script:fc1dd0f3SummaryCounter = 0;
 [hashtable]$script:fc1dd0f3SummaryIds = @{};
-[ScriptBlock]$GetFacetId = {
+[ScriptBlock]$GetSurfaceId = {
 	param (
 		[Parameter(Mandatory)]
 		[System.Guid]$ProcessingId
@@ -26,11 +26,11 @@ $script:Formatter = [Proviso.Formatter]::Instance;
 	return " $output.";
 }
 
-[ScriptBlock]$ResetFacetIds = {
+[ScriptBlock]$ResetSurfaceIds = {
 	[int]$script:fc1dd0f3SummaryCounter = 0;
 	[hashtable]$script:fc1dd0f3SummaryIds = @{};
 }
 
 
-$script:Formatter | Add-Member -MemberType ScriptMethod -Name GetFacetId -Value $GetFacetId;
-$script:Formatter | Add-Member -MemberType ScriptMethod -Name ResetFacetIds -Value $ResetFacetIds;
+$script:Formatter | Add-Member -MemberType ScriptMethod -Name GetSurfaceId -Value $GetSurfaceId;
+$script:Formatter | Add-Member -MemberType ScriptMethod -Name ResetSurfaceIds -Value $ResetSurfaceIds;

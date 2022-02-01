@@ -9,9 +9,9 @@ namespace Proviso
 {
     public class ProcessingContext
     {
-        private Dictionary<string, object> _temporaryFacetState = new Dictionary<string, object>();
-        private readonly Stack<Facet> _facets = new Stack<Facet>();  // these never get popped... just using a stack for ordering... 
-        private readonly Stack<FacetProcessingResult> _processingResults = new Stack<FacetProcessingResult>();
+        private Dictionary<string, object> _temporarySurfaceState = new Dictionary<string, object>();
+        private readonly Stack<Surface> _surfaces = new Stack<Surface>();  // these never get popped... just using a stack for ordering... 
+        private readonly Stack<SurfaceProcessingResult> _processingResults = new Stack<SurfaceProcessingResult>();
         
         public bool RecompareActive { get; private set; }
         public bool ExecuteConfiguration { get; private set; }
@@ -20,12 +20,12 @@ namespace Proviso
         public string RebootReason { get; private set; }
         public bool SqlRestartRequired { get; private set; }
         public string SqlRestartReason { get; private set; }
-        public Facet LastProcessedFacet => this._facets.Count > 0 ? this._facets.Peek() : null;
-        public FacetProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
-        public int ProcessedFacetsCount => this._facets.Count;
-        public int FacetResultsCount => this._processingResults.Count;
+        public Surface LastProcessedSurface => this._surfaces.Count > 0 ? this._surfaces.Peek() : null;
+        public SurfaceProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
+        public int ProcessedSurfacesCount => this._surfaces.Count;
+        public int SurfaceResultsCount => this._processingResults.Count;
 
-        public int FacetStateObjectsCount => this._temporaryFacetState.Count;
+        public int SurfaceStateObjectsCount => this._temporarySurfaceState.Count;
 
         public string CurrentKey { get; private set; }
         public object CurrentKeyValue { get; private set; }
@@ -36,7 +36,7 @@ namespace Proviso
         public object Expected { get; private set; }
         public object Actual { get; private set; }
         
-        public Dictionary<string, object> TemporaryFacetState => this._temporaryFacetState;
+        public Dictionary<string, object> TemporarySurfaceState => this._temporarySurfaceState;
 
         public static ProcessingContext Instance => new ProcessingContext();
         
@@ -47,16 +47,16 @@ namespace Proviso
             this.RecompareActive = false;
         }
 
-        public FacetProcessingResult[] GetAllResults()
+        public SurfaceProcessingResult[] GetAllResults()
         {
             return this._processingResults.ToArray()
                 .OrderBy(x => x.ProcessingEnd)
                 .ToArray();
         }
 
-        public FacetProcessingResult[] GetLatestResults(int latest)
+        public SurfaceProcessingResult[] GetLatestResults(int latest)
         {
-            FacetProcessingResult[] copy = this._processingResults.ToArray();
+            SurfaceProcessingResult[] copy = this._processingResults.ToArray();
 
             return copy
                 .OrderBy(x => x.ProcessingEnd)
@@ -193,49 +193,49 @@ namespace Proviso
 
         //}
 
-        public void SetCurrentFacet(Facet added, bool executeRebase, bool executeConfiguration, FacetProcessingResult processingResult)
+        public void SetCurrentSurface(Surface added, bool executeRebase, bool executeConfiguration, SurfaceProcessingResult processingResult)
         {
-            this._temporaryFacetState = new Dictionary<string, object>();
-            this._facets.Push(added);
+            this._temporarySurfaceState = new Dictionary<string, object>();
+            this._surfaces.Push(added);
             this._processingResults.Push(processingResult);
 
             this.ExecuteRebase = executeRebase;
             this.ExecuteConfiguration = executeConfiguration;
         }
 
-        public void CloseCurrentFacet()
+        public void CloseCurrentSurface()
         {
             this.ClearConfigurationState();
-            this._temporaryFacetState = new Dictionary<string, object>();
+            this._temporarySurfaceState = new Dictionary<string, object>();
         }
 
-        #region Facet State
-        public void AddFacetState(string key, object value)
+        #region Surface State
+        public void AddSurfaceState(string key, object value)
         {
             // vNEXT: this idea of SETTING state may not be the best approach - i.e., I could see something getting 'lost' or 'stuck open' here... 
             //      cuz this is a bit 'fiddly'. 
             //      MIGHT make better sense to simply CHECK to see if the key's value exists and ... if so, simply RESET it to the new value? 
-            //      AND, note: this all exists because of RECOMPARE operations - i.e., imagine we do $PVContext.AddFacetState("myKey", $someVal); within 
+            //      AND, note: this all exists because of RECOMPARE operations - i.e., imagine we do $PVContext.AddSurfaceState("myKey", $someVal); within 
             //          the scope of a test ... well, that's spiffy and all - cuz that value is then available inside of the CONFIGURE operation. 
             //          BUT: when CONFIGURE is done running, we RE-COMPARE results - meaning that TEST is re-run and ... attempting to add _tempFacetState.Add(keyAlreadyDefined, someVal) obviously ... throws. 
 
-            //  THE ABOVE SAID: I've added an explicit: void OverwriteFacetState... which addresses SOME concerns - but not all. 
+            //  THE ABOVE SAID: I've added an explicit: void OverwriteSurfaceState... which addresses SOME concerns - but not all. 
             if (!this.RecompareActive)
-                this._temporaryFacetState.Add(key, value);
+                this._temporarySurfaceState.Add(key, value);
         }
 
-        public void OverwriteFacetState(string key, object value)
+        public void OverwriteSurfaceState(string key, object value)
         {
-            if (this._temporaryFacetState.ContainsKey(key))
-                this._temporaryFacetState[key] = value;
+            if (this._temporarySurfaceState.ContainsKey(key))
+                this._temporarySurfaceState[key] = value;
             else 
-                this._temporaryFacetState.Add(key, value);
+                this._temporarySurfaceState.Add(key, value);
         }
 
-        public object GetFacetState(string key)
+        public object GetSurfaceState(string key)
         {
-            if (this._temporaryFacetState.ContainsKey(key))
-                return this._temporaryFacetState[key];
+            if (this._temporarySurfaceState.ContainsKey(key))
+                return this._temporarySurfaceState[key];
 
             return null;
         }

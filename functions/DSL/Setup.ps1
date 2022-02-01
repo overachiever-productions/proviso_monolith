@@ -5,8 +5,8 @@ function Setup {
 		[scriptblock]$SetupBlock
 	);
 	
-	Validate-FacetBlockUsage -BlockName "Setup";
+	Validate-SurfaceBlockUsage -BlockName "Setup";
 	
 	$setup = New-Object Proviso.Models.Setup($SetupBlock, $Name);
-	$facet.AddSetup($setup);
+	$surface.AddSetup($setup);
 }

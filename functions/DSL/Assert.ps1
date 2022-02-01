@@ -18,7 +18,7 @@ function Assert {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 		
 		if ($Is -and $IsNot) {
 			# vNEXT: look at using $MyInvocation and/or other meta-data to determine WHICH alias was used and throw with those terms vs generic -Is/-IsNot:
@@ -46,7 +46,7 @@ function Assert {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
@@ -59,7 +59,7 @@ function Assert-UserIsAdministrator {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 	}
 	
 	process {
@@ -88,7 +88,7 @@ function Assert-UserIsAdministrator {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
@@ -103,7 +103,7 @@ function Assert-HostIsWindows {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 		
 #		$sum = @($Server2016, $Server2019, $Server2022) | ForEach-Object -begin { $out = 0; } -Process { if ($_) {	$out += 1 }; } -end { return $out; };
 #		if ($sum -gt 1) {
@@ -148,7 +148,7 @@ function Assert-HostIsWindows {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
@@ -164,7 +164,7 @@ function Assert-HasDomainCreds {
 	)
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 		
 		#$sum = @($ForDomainJoin, $ForClusterCreation, $ForAdditionOfLocalAdmins) | ForEach-Object -begin { $out = 0; } -Process { if ($_) {	$out += 1 }; } -end { return $out; };
 		$sum = @($ForDomainJoin, $ForClusterCreation) | ForEach-Object -begin { $out = 0; } -Process { if ($_) {	$out += 1 }; } -end { return $out; };
@@ -248,7 +248,7 @@ function Assert-HasDomainCreds {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
@@ -265,7 +265,7 @@ function Assert-ProvisoResourcesRootDefined {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 	}
 	
 	process {
@@ -287,20 +287,20 @@ function Assert-ProvisoResourcesRootDefined {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
 
 function Assert-SqlServerIsInstalled {
 	param (
-		[string]$FailureMessage = "SQL Server Configuration Facets cannot be run until all defined SQL Server instances are installed.",
+		[string]$FailureMessage = "SQL Server Configuration Surfaces cannot be run until all defined SQL Server instances are installed.",
 		[Alias("Skip", "DoNotRun")]
 		[Switch]$Ignored = $false
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 	}
 	
 	process {
@@ -335,20 +335,20 @@ function Assert-SqlServerIsInstalled {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }
 
 function Assert-AdminDbInstalled {
 	param (
-		[string]$FailureMessage = "AdminDb Configuration Facets cannot be run until the admindb has been deployed.",
+		[string]$FailureMessage = "AdminDb Configuration Surfaces cannot be run until the admindb has been deployed.",
 		[Alias("Skip", "DoNotRun")]
 		[Switch]$Ignored = $false
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Assert";
+		Validate-SurfaceBlockUsage -BlockName "Assert";
 	}
 	
 	process {
@@ -384,7 +384,7 @@ function Assert-AdminDbInstalled {
 	
 	end {
 		if (-not ($Ignored)) {
-			$facet.AddAssertion($assertion);
+			$surface.AddAssertion($assertion);
 		}
 	}
 }

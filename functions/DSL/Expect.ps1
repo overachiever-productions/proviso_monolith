@@ -21,7 +21,7 @@ function Expect {
 	);
 	
 	begin {
-		Validate-FacetBlockUsage -BlockName "Expect";
+		Validate-SurfaceBlockUsage -BlockName "Expect";
 		
 		If ($Expect) { 
 			# because we're IN here (i.e., within Expect (the verb), we know that there's an Expect{} and that -Expect is also defined)

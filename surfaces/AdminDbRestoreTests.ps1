@@ -7,8 +7,8 @@ Surface AdminDbRestoreTests {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "RestoreTestsEnabled" -ExpectValueForChildKey "RestoreTestJobs.Enabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "RestoreTestsEnabled" -ExpectValueForChildKey "RestoreTestJobs.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -87,7 +87,7 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		Definition "StartTime" -ExpectValueForChildKey "RestoreTestJobs.JobStartTime" -ConfiguredBy "RestoreTestsEnabled" {
+		Facet "StartTime" -ExpectValueForChildKey "RestoreTestJobs.JobStartTime" -ConfiguredBy "RestoreTestsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -96,7 +96,7 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		Definition "DatabasesToRestore" -ExpectValueForChildKey "RestoreTestJobs.DatabasesToRestore"  -ConfiguredBy "RestoreTestsEnabled" {
+		Facet "DatabasesToRestore" -ExpectValueForChildKey "RestoreTestJobs.DatabasesToRestore"  -ConfiguredBy "RestoreTestsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -118,6 +118,6 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		# TODO: Implement -Detailed definitions... 
+		# TODO: Implement -Detailed facets... 
 	}
 }

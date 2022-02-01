@@ -72,12 +72,12 @@ namespace Proviso.Processing
 
         public string GetSurfaceName()
         {
-            return this.Validation.ParentDefinition.Parent.Name;
+            return this.Validation.ParentFacet.Parent.Name;
         }
 
         public string GetConfigurationName()
         {
-            return $"{this.Validation.ParentDefinition.Description}";
+            return $"{this.Validation.ParentFacet.Description}";
         }
 
         public string GetRecompareSummary()
@@ -87,7 +87,7 @@ namespace Proviso.Processing
             //  b. previously/already set (i.e., bypassed). 
             //  c. recompare failure/error
             //  d. set but recompare failed (i.e., no exceptions but... post-configure value isn't as expected). 
-            //  e. just like the above only, parentDefinition.RebootRequired = true - so ... output <PENDING> + "Reboot Pending..."
+            //  e. just like the above only, parentFacet.RebootRequired = true - so ... output <PENDING> + "Reboot Pending..."
             //  f. set + recompare succeeded - it.., SET.
             if (this.ConfigurationFailed)
             {
@@ -110,7 +110,7 @@ namespace Proviso.Processing
 
             if (!this.RecompareMatched)
             {
-                if (this.Validation.ParentDefinition.RequiresReboot)
+                if (this.Validation.ParentFacet.RequiresReboot)
                     return "<PENDING>";
             }
 
@@ -124,7 +124,7 @@ namespace Proviso.Processing
             //  b. previously/already set (i.e., bypassed). 
             //  c. recompare failure/error
             //  d. set but recompare failed (i.e., no exceptions but... post-configure value isn't as expected). 
-            //  e. just like the above only, parentDefinition.RebootRequired = true - so ... output <PENDING> + "Reboot Pending..."
+            //  e. just like the above only, parentFacet.RebootRequired = true - so ... output <PENDING> + "Reboot Pending..."
             //  f. set + recompare succeeded - it.., SET.
 
             if (this.ConfigurationFailed)
@@ -148,7 +148,7 @@ namespace Proviso.Processing
 
             if (!this.RecompareMatched)
             {
-                if (this.Validation.ParentDefinition.RequiresReboot)
+                if (this.Validation.ParentFacet.RequiresReboot)
                     return "Reboot Pending...";
 
                 return "Failure - Expected and Actual did NOT match after Configuration operations.";

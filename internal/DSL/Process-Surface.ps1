@@ -3,17 +3,17 @@
 <#
 
 # intermediate dev/testing against target VMs:
+
 	#Register-PSRepository -Name Pro2 -SourceLocation "\\storage\lab\proviso\repo2" -InstallationPolicy Trusted;
+
+
 Install-Module -Name Proviso -Repository Pro2 -Force;
 Import-Module -Name Proviso -Force -DisableNameChecking;
 Assign -ProvisoRoot "\\storage\Lab\proviso\";
 With -CurrentHost | Do-Something;
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	#Assign -ProvisoRoot "\\storage\Lab\proviso\";
-
 	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingSurface;
-
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
 
 #>
@@ -128,80 +128,80 @@ function Process-Surface {
 		$surfaceProcessingResult.StartValidations();
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		
-		$definitions = $surface.GetSimpleDefinitions();
-		$valueDefs = $surface.GetBaseValueDefinitions();
-		$groupDefs = $surface.GetBaseGroupDefinitions();
-		$compoundDefs = $surface.GetBaseCompoundDefinitions();
+		$facets = $surface.GetSimpleFacets();
+		$valueFacets = $surface.GetBaseValueFacets();
+		$groupFacets = $surface.GetBaseGroupFacets();
+		$compoundFacets = $surface.GetBaseCompoundFacets();
 		
-		if ($valueDefs) {
-			$expandedDefs = @();
+		if ($valueFacets) {
+			$expandedFacets = @();
 			
-			foreach ($definition in $valueDefs) {
+			foreach ($facets in $valueFacets) {
 				
-				$values = $PVConfig.GetValue($definition.IterationKey); #Get-ProvisoConfigValueByKey -Config $Config -Key ($definition.IterationKey);
+				$values = $PVConfig.GetValue($facet.IterationKey); #Get-ProvisoConfigValueByKey -Config $Config -Key ($facet.IterationKey);
 				if ($values.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
 				
 				# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 				foreach ($value in $values) {
-					$newDescription = "$($definition.Description):$($value)";
+					$newDescription = "$($facet.Description):$($value)";
 					
-					$expandedValueDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Value);
+					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Value);
 					
-					$expandedValueDefinition.SetTest(($definition.Test));
+					$expandedValueFacet.SetTest(($facet.Test));
 					
-					if ($definition.ConfiguredBy) {
-						$configuredByRenamed = "$($definition.ConfiguredBy):$($value)";
+					if ($facet.ConfiguredBy) {
+						$configuredByRenamed = "$($facet.ConfiguredBy):$($value)";
 						
-						$expandedValueDefinition.SetConfigure($newDescription, $configuredByRenamed);
+						$expandedValueFacet.SetConfigure($newDescription, $configuredByRenamed);
 					}
 					else{
-						$expandedValueDefinition.SetConfigure(($definition.Configure));
+						$expandedValueFacet.SetConfigure(($facet.Configure));
 					}
 					
- 					if ($definition.ExpectCurrentIterationKey) {
+ 					if ($facet.ExpectCurrentIterationKey) {
 						$script = "return '$value';";
 						$expectedBlock = [scriptblock]::Create($script);
 						
-						$expandedValueDefinition.SetExpect($expectedBlock);
+						$expandedValueFacet.SetExpect($expectedBlock);
 					}
 					else {
-						$expandedValueDefinition.SetExpect(($definition.Expect));
+						$expandedValueFacet.SetExpect(($facet.Expect));
 					}
 					
-					$expandedValueDefinition.SetCurrentIteratorDetails($definition.IterationKey, $value);
-					$expandedDefs += $expandedValueDefinition;
+					$expandedValueFacet.SetCurrentIteratorDetails($facet.IterationKey, $value);
+					$expandedDefs += $expandedValueFacet;
 				}
 			}
 			
-			$definitions += $expandedDefs;
+			$facets += $expandedFacets;
 		}
 		
-		if ($groupDefs) {
-			$expandedDefs = @();
+		if ($groupFacets) {
+			$expandedFacets = @();
 			
-			foreach ($definition in $groupDefs) {
+			foreach ($facet in $groupFacets) {
 				
-				[string]$trimmedKey = ($definition.IterationKey) -replace ".\*", "";
+				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
 	
-				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
+				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames) {
-					$newDescription = "$($definition.Description):$($groupName)";
-					$expandedGroupDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $newDescription, [Proviso.Enums.DefinitionType]::Group);
+					$newDescription = "$($facet.Description):$($groupName)";
+					$expandedGroupFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Group);
 					
-					$expandedGroupDefinition.SetTest(($definition.Test));
+					$expandedGroupFacet.SetTest(($facet.Test));
 					
-					if ($definition.ConfiguredBy) {
-						$configuredByRenamed = "$($definition.ConfiguredBy):$($groupName)";
-						$expandedGroupDefinition.SetConfigure(($definition.Configure), $configuredByRenamed);
+					if ($facet.ConfiguredBy) {
+						$configuredByRenamed = "$($facet.ConfiguredBy):$($groupName)";
+						$expandedGroupFacet.SetConfigure(($facet.Configure), $configuredByRenamed);
 					}
 					else {
-						$expandedGroupDefinition.SetConfigure(($definition.Configure));
+						$expandedGroupFacet.SetConfigure(($facet.Configure));
 					}
 					
 					$currentIteratorKey = "$($trimmedKey).$($groupName)";
@@ -210,69 +210,69 @@ function Process-Surface {
 					$currentIteratorChildKey = $null;
 					$currentIteratorChildKeyValue = $null;
 					
-					if ($definition.ExpectCurrentIterationKey) {
+					if ($facet.ExpectCurrentIterationKey) {
 						$script = "return '$currentIteratorKeyValue';";
 						$expectedBlock = [scriptblock]::Create($script);
 						
-						$expandedGroupDefinition.SetExpect($expectedBlock);
+						$expandedGroupFacet.SetExpect($expectedBlock);
 					}
 					else {
-						if ($definition.ExpectGroupChildKey) {
+						if ($facet.ExpectGroupChildKey) {
 							
-							$currentIteratorChildKey = "$($trimmedKey).$($groupName).$($definition.ChildKey)";
+							$currentIteratorChildKey = "$($trimmedKey).$($groupName).$($facet.ChildKey)";
 							$currentIteratorChildKeyValue = $PVConfig.GetValue($currentIteratorChildKey);
 									
 							$script = "return '$currentIteratorChildKeyValue';";
 							$expectedBlock = [scriptblock]::Create($script);
 							
-							$expandedGroupDefinition.SetExpect($expectedBlock);
+							$expandedGroupFacet.SetExpect($expectedBlock);
 						}
 						else {
 							# then it's 'just' a normal expect: 
-							$expandedGroupDefinition.SetExpect(($definition.Expect));
+							$expandedGroupFacet.SetExpect(($facet.Expect));
 						}
 					}
 					
-					$expandedGroupDefinition.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
+					$expandedGroupFacet.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
 					
-					$expandedDefs += $expandedGroupDefinition;
+					$expandedFacets += $expandedGroupFacets;
 				}
 			}
 			
-			$definitions += $expandedDefs;
+			$facets += $expandedFacets;
 		}
 		
-		if ($compoundDefs) {
-			$expandedDefs = @();
+		if ($compoundFacets) {
+			$expandedFacets = @();
 			
-			foreach ($definition in $compoundDefs){
-				[string]$trimmedKey = ($definition.IterationKey) -replace ".\*", "";
-				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($definition.OrderByChildKey);
+			foreach ($facet in $compoundFacets){
+				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
+				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($definition.IterationKey)] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames){
-					$fullCompoundKey = "$trimmedKey.$groupName.$($definition.CompoundIterationKey)";
+					$fullCompoundKey = "$trimmedKey.$groupName.$($facet.CompoundIterationKey)";
 					# TODO: implement the .OrderDescending logic in this helper func... 
-					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $Config -FullCompoundKey $fullCompoundKey -OrderDescending:$($definition.OrderDescending);
+					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $Config -FullCompoundKey $fullCompoundKey -OrderDescending:$($facet.OrderDescending);
 					
 					if ($compoundChildElements.Count -lt 1){
-						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Definition [$($definition.Parent.Name)::$($definition.Description)].", "Important");
+						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 					}
 					else{
 						foreach ($compoundValue in $compoundChildElements){
-							$compoundDescription = "$($definition.Description):$($groupName).$compoundValue";
+							$compoundDescription = "$($facet.Description):$($groupName).$compoundValue";
 							
-							$compoundDefinition = New-Object Proviso.Models.Definition(($definition.Parent), $compoundDescription, [Proviso.Enums.DefinitionType]::Compound);
-							$compoundDefinition.SetTest($definition.Test);
+							$compoundFacet = New-Object Proviso.Models.Facet(($facet.Parent), $compoundDescription, [Proviso.Enums.FacetType]::Compound);
+							$compoundFacet.SetTest($facet.Test);
 							
-							if ($definition.ConfiguredBy) {
-								$compoundNewname = "$($definition.ConfiguredBy):$($groupName).$compoundValue";
-								$compoundDefinition.SetConfigure($compoundDescription, $compoundNewname);
+							if ($facet.ConfiguredBy) {
+								$compoundNewname = "$($facet.ConfiguredBy):$($groupName).$compoundValue";
+								$compoundFacet.SetConfigure($compoundDescription, $compoundNewname);
 							}
 							else{
-								$compoundDefinition.SetConfigure(($definition.Configure));
+								$compoundFacet.SetConfigure(($facet.Configure));
 							}
 							
 							$iteratorKey = "$($trimmedKey).$($groupName)";
@@ -281,42 +281,42 @@ function Process-Surface {
 							$iteratorChildKey = $fullCompoundKey;
 							$iteratorChildKeyValue = $compoundValue;
 							
-							if ($definition.ExpectCurrentIterationKey){
+							if ($facet.ExpectCurrentIterationKey){
 								$script = "return '$iteratorValue';";
 								$expectedBlock = [scriptblock]::Create($script);
 								
-								$compoundDefinition.SetExpect($expectedBlock);
+								$compoundFacet.SetExpect($expectedBlock);
 							}
 							else {
-								if ($definition.ExpectCompoundValueKey) {
+								if ($facet.ExpectCompoundValueKey) {
 									$script = "return '$iteratorChildKeyValue';";
 									$expectedBlock = [scriptblock]::Create($script);
 									
-									$compoundDefinition.SetExpect($expectedBlock);
+									$compoundFacet.SetExpect($expectedBlock);
 								}
 								else {
-									$compoundDefinition.SetExpect(($definition.Expect));
+									$compoundFacet.SetExpect(($facet.Expect));
 								}
 							}
 							
-							$compoundDefinition.SetCurrentIteratorDetails($iteratorKey, $iteratorValue, $iteratorChildKey, $iteratorChildKeyValue);
-							$expandedDefs += $compoundDefinition;
+							$compoundFacet.SetCurrentIteratorDetails($iteratorKey, $iteratorValue, $iteratorChildKey, $iteratorChildKeyValue);
+							$expandedFacets += $compoundFacet;
 						}
 					}
 				}
 			}
 			
-			$definitions += $expandedDefs;
+			$facets += $expandedFacets;
 		}
 		
-		foreach ($definition in $definitions) {
-			$validationResult = New-Object Proviso.Processing.ValidationResult($definition, $processingGuid); 
+		foreach ($facet in $facets) {
+			$validationResult = New-Object Proviso.Processing.ValidationResult($facet, $processingGuid); 
 			$validations += $validationResult;
 			
-			[ScriptBlock]$expectedBlock = $definition.Expect;
+			[ScriptBlock]$expectedBlock = $facet.Expect;
 			if ($null -eq $expectedBlock) {
-				if ($definition.ExpectStaticKey) {
-					$script = "return `$Config.GetValue('$($definition.Key)');";
+				if ($facet.ExpectStaticKey) {
+					$script = "return `$Config.GetValue('$($facet.Key)');";
 					$expectedBlock = [scriptblock]::Create($script);
 				}
 				else {
@@ -327,7 +327,7 @@ function Process-Surface {
 			$expectedResult = $null;
 			$expectedException = $null;
 			
-			$PVContext.SetValidationState($definition);
+			$PVContext.SetValidationState($facet);
 			
 			try {
 				$expectedResult = & $expectedBlock;
@@ -344,7 +344,7 @@ function Process-Surface {
 				$PVContext.SetCurrentExpectValue($expectedResult);
 				$validationResult.AddExpectedResult($expectedResult);
 				
-				[ScriptBlock]$testBlock = $definition.Test;
+				[ScriptBlock]$testBlock = $facet.Test;
 				
 				$comparison = Compare-ExpectedWithActual -Expected $expectedResult -TestBlock $testBlock;
 				
@@ -435,7 +435,7 @@ function Process-Surface {
 			$configurations = @();
 			$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Completed;
 			
-			[string[]]$configuredByDefsCalledThroughDeferredOperations = @();
+			[string[]]$configuredByFacetsCalledThroughDeferredOperations = @();
 			
 			foreach($validation in $surfaceProcessingResult.ValidationResults) {
 							
@@ -446,14 +446,14 @@ function Process-Surface {
 					$configurationResult.SetBypassed();
 					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
-				elseif ($validation.ParentDefinition.DefersConfiguration) {
-					$configurationResult.SetDeferred($validation.ParentDefinition.ConfiguredBy);
+				elseif ($validation.ParentFacet.DefersConfiguration) {
+					$configurationResult.SetDeferred($validation.ParentFacet.ConfiguredBy);
 							
-					if ($configuredByDefsCalledThroughDeferredOperations -notcontains $validation.ParentDefinition.ConfiguredBy) {
-						$configuredByDefsCalledThroughDeferredOperations += $validation.ParentDefinition.ConfiguredBy;
+					if ($configuredByFacetsCalledThroughDeferredOperations -notcontains $validation.ParentFacet.ConfiguredBy) {
+						$configuredByFacetsCalledThroughDeferredOperations += $validation.ParentFacet.ConfiguredBy;
 					}
 					
-					$PVContext.WriteLog("Temporarily deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentDefinition.ConfiguredBy)].");
+					$PVContext.WriteLog("Temporarily deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentFacet.ConfiguredBy)].");
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);
@@ -473,11 +473,11 @@ function Process-Surface {
 				}
 			}
 			
-			# For any Definition that SHOULD have been processed above, but which deferred Configuration/Provisioning operations to its -ConfiguredBy target... process those as needed: 
-			foreach ($definitionName in $configuredByDefsCalledThroughDeferredOperations) {
-				$validation = $surfaceProcessingResult.GetValidationResultByDefinitionName($definitionName);
+			# For any Facet that SHOULD have been processed above, but which deferred Configuration/Provisioning operations to its -ConfiguredBy target... process those as needed: 
+			foreach ($facetName in $configuredByFacetsCalledThroughDeferredOperations) {
+				$validation = $surfaceProcessingResult.GetValidationResultByFacetName($facetName);
 				
-				$PVContext.WriteLog("Executing previously deferred Definition [$definitionName] - as it was required for a -ConfiguredBy declaration.", "Debug");
+				$PVContext.WriteLog("Executing previously deferred Facet [$facetName] - as it was required for a -ConfiguredBy declaration.", "Debug");
 				
 				# TODO: this is an EXACT copy/past of the same logic up above... i.e., DRY violation. Guess I might want to move all of this into some 'helper' funcs... 
 				# er, well, it was... before i enabled the idea of .IsChildCall().

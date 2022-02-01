@@ -8,8 +8,8 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 		Assert-HostIsWindows;
 	}
 	
-	Definitions {
-		Definition -For "DvdDriveToZ" -ExpectKeyValue "Host.WindowsPreferences.DvdDriveToZ" {
+	Scope {
+		Facet -For "DvdDriveToZ" -ExpectKeyValue "Host.WindowsPreferences.DvdDriveToZ" {
 			Test {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
 				if ($dvdDrive) {
@@ -48,7 +48,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition -For "OptimizeWindowsExplorer" -ExpectKeyValue "Host.WindowsPreferences.OptimizeExplorer" {
+		Facet -For "OptimizeWindowsExplorer" -ExpectKeyValue "Host.WindowsPreferences.OptimizeExplorer" {
 			Test {
 				$key = Get-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\";
 				$launchTo = $null;
@@ -89,7 +89,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition -For "DisableServerManager" -ExpectKeyValue "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
+		Facet -For "DisableServerManager" -ExpectKeyValue "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
 			Test {
 				$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon";
 				
@@ -112,7 +112,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition -For "HighPerfPowerConfig" -ExpectKeyValue "Host.WindowsPreferences.SetPowerConfigHigh" {
+		Facet -For "HighPerfPowerConfig" -ExpectKeyValue "Host.WindowsPreferences.SetPowerConfigHigh" {
 			Test {
 				$current = powercfg -GETACTIVESCHEME;
 				if (!($current -contains "(High performance)")) {
@@ -133,7 +133,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition -For "DisableMonitorTimeout" -ExpectKeyValue "Host.WindowsPreferences.DisableMonitorTimeout" {
+		Facet -For "DisableMonitorTimeout" -ExpectKeyValue "Host.WindowsPreferences.DisableMonitorTimeout" {
 			Test {
 				$output = powercfg /Query;
 				$block = [regex]::split($output, 'VIDEOIDLE')[1];
@@ -163,7 +163,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Definition -For "EnableDiskPerfCounters" -ExpectKeyValue "Host.WindowsPreferences.EnableDiskPerfCounters" {
+		Facet -For "EnableDiskPerfCounters" -ExpectKeyValue "Host.WindowsPreferences.EnableDiskPerfCounters" {
 			Test {
 				$state = diskperf;
 				if ($state -match "[(Both)(are automatically enabled)]{2}") {

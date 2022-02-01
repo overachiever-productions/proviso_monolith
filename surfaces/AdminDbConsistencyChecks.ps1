@@ -7,8 +7,8 @@ Surface AdminDbConsistencyChecks {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "ConsistencyCheckJobEnabled" -ExpectValueForChildKey "ConsistencyChecks.Enabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "ConsistencyCheckJobEnabled" -ExpectValueForChildKey "ConsistencyChecks.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -70,7 +70,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Definition "ConsistencyCheckDays" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "ConsistencyCheckDays" -ConfiguredBy "ConsistencyCheckJobEnabled" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.ExecutionDays");
@@ -85,7 +85,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Definition "Targets" -ExpectValueForChildKey "ConsistencyChecks.Targets" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "Targets" -ExpectValueForChildKey "ConsistencyChecks.Targets" -ConfiguredBy "ConsistencyCheckJobEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -105,7 +105,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Definition "StartTime" -ExpectValueForChildKey "ConsistencyChecks.StartTime" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "StartTime" -ExpectValueForChildKey "ConsistencyChecks.StartTime" -ConfiguredBy "ConsistencyCheckJobEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -114,6 +114,6 @@ Surface AdminDbConsistencyChecks {
 			}
 		}		
 		
-		# TODO: implement -IsDetailed definitions here. 
+		# TODO: implement -IsDetailed facets here. 
 	}
 }

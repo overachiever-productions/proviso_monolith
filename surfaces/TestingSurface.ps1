@@ -8,8 +8,8 @@ Surface "TestingSurface" {
 		}
 	}
 	
-	Definitions {
-		Definition "It is Tuesday" {
+	Scope {
+		Facet "It is Tuesday" {
 			Expect {
 				return "Tuesday";
 			}
@@ -27,8 +27,8 @@ Surface "TestingSurface" {
 				$PVContext.AddSurfaceState("Tuesday.PostConfig", $faked);
 			}
 		}
-
-		Definition "It is Saturday" {
+		
+		Facet "It is Saturday" {
 			Expect {
 				return "Saturday";
 			}
@@ -45,7 +45,7 @@ Surface "TestingSurface" {
 			}
 		}
 		
-		Definition "It is Friday" -Expect "Friday" {
+		Facet "It is Friday" -Expect "Friday" {
 			Test {
 				return [System.DateTime]::Now.DayOfWeek.ToString();
 			}
@@ -54,7 +54,7 @@ Surface "TestingSurface" {
 			}
 		}
 		
-		Definition "It is Sunday" -Expect "Sunday" -RequiresReboot {
+		Facet "It is Sunday" -Expect "Sunday" -RequiresReboot {
 			Test {
 				return [System.DateTime]::Now.DayOfWeek.ToString();
 			}
@@ -63,9 +63,9 @@ Surface "TestingSurface" {
 			}
 		}
 		
-		Definition "Deferred Definition" -Expect $true {
+		Facet "Deferred Facet" -Expect $true {
 			Test {
-				# Test case here is that this'll effectively NEVER get called by itself - only by the 'child' or def below that DEFERS config to this definition.
+				# Test case here is that this'll effectively NEVER get called by itself - only by the 'child' or def below that DEFERS config to this facet.
 				return $true;
 			}
 			Configure {
@@ -73,7 +73,7 @@ Surface "TestingSurface" {
 			}
 		}
 		
-		Definition "It is Deferred" -Expect "Deferred" -ConfiguredBy "Deferred Definition" {
+		Facet "It is Deferred" -Expect "Deferred" -ConfiguredBy "Deferred Facet" {
 			Test {
 				if ($PVContext.GetSurfaceState("Deferred.Deferred")) {
 					return $PVContext.GetSurfaceState("Deferred.Deferred");

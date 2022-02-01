@@ -7,5 +7,5 @@ function Test {
 	
 	Validate-SurfaceBlockUsage -BlockName "Test";
 	
-	$definition.SetTest($TestBlock);
+	$facet.SetTest($TestBlock);
 }

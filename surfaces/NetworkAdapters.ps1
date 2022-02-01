@@ -8,8 +8,8 @@ Surface -For "NetworkAdapters" {
 		Assert-HostIsWindows;
 	}
 	
-	Group-Definitions -GroupKey "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
-		Definition "Interface.Exists" -Expect $true {
+	Group-Scope -GroupKey "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
+		Facet "Interface.Exists" -Expect $true {
 			Test {
 				# Note: IfNames in the config are a bit weird... need to always look for EXPLICIT implmenations of Host.NetworkDefinitions.<AdapterName>.InterfaceAlias
 				#  		that value will ALWAYS default to the name of the <AdapterName> IF it's not specified. BUT, if it IS specified it allows a shorthand <AdapterName> of
@@ -59,7 +59,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Definition "IpAddress" -ExpectValueForChildKey "IpAddress" {
+		Facet "IpAddress" -ExpectValueForChildKey "IpAddress" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -125,7 +125,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Definition "Gateway" -ExpectValueForChildKey "Gateway" {
+		Facet "Gateway" -ExpectValueForChildKey "Gateway" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -194,7 +194,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Definition "PrimaryDns" -ExpectValueForChildKey "PrimaryDns" {
+		Facet "PrimaryDns" -ExpectValueForChildKey "PrimaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -247,7 +247,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Definition "SecondaryDns" -ExpectValueForChildKey "SecondaryDns" {
+		Facet "SecondaryDns" -ExpectValueForChildKey "SecondaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");

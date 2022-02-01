@@ -79,20 +79,20 @@ namespace Proviso
             this.RecompareActive = false;
         }
 
-        public void SetValidationState(Definition current)
+        public void SetValidationState(Facet current)
         {
-            switch (current.DefinitionType)
+            switch (current.FacetType)
             {
-                case DefinitionType.Simple:
+                case FacetType.Simple:
                     this.CurrentKey = current.Key;
                     this.CurrentKeyValue = current.KeyValue;
                     break;
-                case DefinitionType.Value:
+                case FacetType.Value:
                     this.CurrentKey = current.CurrentIteratorKey;
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
                     break;
-                case DefinitionType.Group:
-                case DefinitionType.Compound:
+                case FacetType.Group:
+                case FacetType.Compound:
                     this.CurrentKey = current.CurrentIteratorKey;
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
 
@@ -100,7 +100,7 @@ namespace Proviso
                     this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
                     break;
                 default: 
-                    throw new Exception("Proviso Exception. Invalid DefinitionType in CLR ProcessingContext for .SetValidationState().");
+                    throw new Exception("Proviso Exception. Invalid FacetType in CLR ProcessingContext for .SetValidationState().");
             }
         }
 
@@ -116,22 +116,22 @@ namespace Proviso
 
         public void SetConfigurationState(ValidationResult currentValidation)
         {
-            Definition current = currentValidation.ParentDefinition;
+            Facet current = currentValidation.ParentFacet;
             if (current == null)
-                throw new Exception("Proviso Framework Exception. ValidationResult's Parent [Definition] was/is null. ");
+                throw new Exception("Proviso Framework Exception. ValidationResult's Parent [Facet] was/is null. ");
 
             // REFACTOR: this is/was a copy/paste of SetValidationState - i.e., create an internal/private method that assigns state based on def-types... 
-            switch (current.DefinitionType)
+            switch (current.FacetType)
             {
-                case DefinitionType.Simple:
+                case FacetType.Simple:
                     this.CurrentKey = current.Key;
                     this.CurrentKeyValue = current.KeyValue;
                     break;
-                case DefinitionType.Value:
+                case FacetType.Value:
                     this.CurrentKey = current.CurrentIteratorKey;
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
                     break;
-                case DefinitionType.Group:
+                case FacetType.Group:
                     this.CurrentKey = current.CurrentIteratorKey;
                     this.CurrentKeyValue = current.CurrentIteratorKeyValue;
 

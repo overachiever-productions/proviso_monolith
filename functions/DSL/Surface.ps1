@@ -28,8 +28,8 @@
 
 					function Rebase {}
 
-					function Definitions {
-						function Definition {
+					function Scope {
+						function Facet {
 							function Expect {}
 							function Test {} 
 							function Configure {}
@@ -48,7 +48,7 @@ function Surface {
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$Scripts,
-		[Switch]$For, # syntactic sugar only... i.e., allows a block of script to accompany a surface 'definition' - for increased context/natural-language
+		[Switch]$For, # syntactic sugar only... i.e., allows a block of script to accompany a surface 'facet' - for increased context/natural-language
 		[ValidateNotNullOrEmpty()]
 		[string]$Key
 	);
@@ -74,7 +74,7 @@ function Surface {
 	
 	end {
 		
-		# vNEXT: force the surface (that's now, nearly, complete) to .Validate() and throw if it's missing key components (like, say, a Definition is missing a Test or something... etc.);
+		# vNEXT: force the surface (that's now, nearly, complete) to .Validate() and throw if it's missing key components (like, say, a Facet is missing a Test or something... etc.);
 		
 		$ProvisoCatalog.AddSurface($surface);
 	}

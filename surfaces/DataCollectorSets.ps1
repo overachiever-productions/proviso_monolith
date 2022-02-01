@@ -26,8 +26,8 @@ Surface "DataCollectorSets" {
 	
 #>
 	
-	Group-Definitions -GroupKey "DataCollectorSets.*" {
-		Definition "IsEnabled" -ExpectValueForChildKey "Enabled" {
+	Group-Scope -GroupKey "DataCollectorSets.*" {
+		Facet "IsEnabled" -ExpectValueForChildKey "Enabled" {
 			Test {
 				
 #	Write-Host "Collectors:Current Key: $($PVContext.CurrentKey)"

@@ -7,8 +7,8 @@ Surface AdminDbIndexMaintenance {
 	}
 	
 	# TODO: currently using hard-coded job-names... 
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "IndexMaintenanceEnabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "IndexMaintenanceEnabled" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -95,9 +95,9 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Definition "DailyJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
+		Facet "DailyJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
 			Expect {
-				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Definition class/object - which'll strip white-space from the expected key value.
+				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Facet class/object - which'll strip white-space from the expected key value.
 				# 		then, i won't need this expect block. The RUB is ... the name of the switch will need to indicate that we're stripping ExpectedKeySpaces ... 
 				#  	so, maybe: -StripExpectedKeyCharacters " " or something? 
 				
@@ -114,7 +114,7 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Definition "WeekendJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
+		Facet "WeekendJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -131,6 +131,6 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		# TODO: Implement -IsDetailed Defintions here... 
+		# TODO: Implement -IsDetailed Facets here... 
 	}
 }

@@ -3,10 +3,10 @@ using Proviso.Enums;
 
 namespace Proviso.Models
 {
-    public class Definition
+    public class Facet
     {
         public Surface Parent { get; private set; }
-        public DefinitionType DefinitionType { get; private set; }
+        public FacetType FacetType { get; private set; }
         public string Description { get; private set; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
@@ -21,7 +21,7 @@ namespace Proviso.Models
         public bool ExpectIsSet { get; private set; }
 
         public bool RequiresReboot { get; private set; }
-        public string Key { get; private set; }                 // 'static' key sent in via -Key "xxx" argument... (for simple/scalar Definitions).
+        public string Key { get; private set; }                 // 'static' key sent in via -Key "xxx" argument... (for simple/scalar Facets).
         public object KeyValue { get; private set; }
         
         public string IterationKey { get; private set; }        // Key used for 'looping' over Value(Array) keys or Group keys... 
@@ -35,11 +35,11 @@ namespace Proviso.Models
         public string CurrentIteratorChildKey { get; private set; }
         public object CurrentIteratorChildKeyValue { get; private set; }
 
-        public Definition(Surface parent, string description, DefinitionType type)
+        public Facet(Surface parent, string description, FacetType type)
         {
             this.Parent = parent;
             this.Description = description;
-            this.DefinitionType = type;
+            this.FacetType = type;
 
             this.RequiresReboot = false;
             this.OrderDescending = false;
@@ -49,7 +49,7 @@ namespace Proviso.Models
             this.ConfiguredBy = null;
         }
 
-        public void SetIterationKeyForValueAndGroupDefinitions(string iterationKey)
+        public void SetIterationKeyForValueAndGroupFacets(string iterationKey)
         {
             this.IterationKey = iterationKey;
         }
@@ -118,9 +118,9 @@ namespace Proviso.Models
             this.KeyValue = value;
         }
 
-        public void SetConfiguredBy(string definitionName)
+        public void SetConfiguredBy(string facetName)
         {
-            this.ConfiguredBy = definitionName;
+            this.ConfiguredBy = facetName;
             this.DefersConfiguration = true;
         }
 

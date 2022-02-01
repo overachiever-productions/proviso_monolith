@@ -6,8 +6,8 @@ Surface AdminDbBackups {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "BackupsEnabled" -ExpectValueForChildKey "BackupJobs.Enabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "BackupsEnabled" -ExpectValueForChildKey "BackupJobs.Enabled" {
 			Test {
 				# this one's a bit complex. IF no jobs exist, then $false. 
 				# otherwise, if all jobs exist: $true. 
@@ -111,7 +111,7 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Definition "UserTargets" -ExpectValueForChildKey "BackupJobs.UserDatabasesToBackup" -ConfiguredBy "BackupsEnabled" {
+		Facet "UserTargets" -ExpectValueForChildKey "BackupJobs.UserDatabasesToBackup" -ConfiguredBy "BackupsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
@@ -133,7 +133,7 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Definition "TLogFrequency" -ExpectValueForChildKey "BackupJobs.LogBackupsEvery" -ConfiguredBy "BackupsEnabled" {
+		Facet "TLogFrequency" -ExpectValueForChildKey "BackupJobs.LogBackupsEvery" -ConfiguredBy "BackupsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");

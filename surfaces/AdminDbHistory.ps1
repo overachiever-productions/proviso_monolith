@@ -9,8 +9,8 @@ Surface AdminDbHistory {
 	# TODO: add in the abililty to change the NAME of the JOB that handles these cleanups.
 	# cuz... for now, the job-name is HARD CODED to 'Regular History Cleanup' (in pretty much ALL of the following validations AND for the configure)
 	#   note... i've done with this later surfaces and ...  the CONFIG is set to allow this (for some 'surfaces' of admindb config... )
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "CleanupEnabled" -ExpectValueForChildKey "HistoryManagement.Enabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "CleanupEnabled" -ExpectValueForChildKey "HistoryManagement.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -44,7 +44,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Definition "SQLServerLogsToKeep" -ExpectValueForChildKey "HistoryManagement.SqlServerLogsToKeep" -ConfiguredBy "CleanupEnabled" {
+		Facet "SQLServerLogsToKeep" -ExpectValueForChildKey "HistoryManagement.SqlServerLogsToKeep" -ConfiguredBy "CleanupEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -61,7 +61,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Definition "AgentJobHistory" -ExpectValueForChildKey "HistoryManagement.AgentJobHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "AgentJobHistory" -ExpectValueForChildKey "HistoryManagement.AgentJobHistoryRetention" -ConfiguredBy "CleanupEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -81,7 +81,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Definition "BackupHistory" -ExpectValueForChildKey "HistoryManagement.BackupHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "BackupHistory" -ExpectValueForChildKey "HistoryManagement.BackupHistoryRetention" -ConfiguredBy "CleanupEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -101,7 +101,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Definition "EmailHistory" -ExpectValueForChildKey "HistoryManagement.EmailHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "EmailHistory" -ExpectValueForChildKey "HistoryManagement.EmailHistoryRetention" -ConfiguredBy "CleanupEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -121,6 +121,6 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		# TODO: Implement -Detailed definitions for FTI cleanup and so on... 
+		# TODO: Implement -Detailed facets for FTI cleanup and so on... 
 	}
 }

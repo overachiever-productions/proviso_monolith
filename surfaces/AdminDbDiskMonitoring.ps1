@@ -7,8 +7,8 @@ Surface AdminDbDiskMonitoring {
 	}
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "DiskMonitoringEnabled" -ExpectValueForChildKey "DiskMonitoring.Enabled" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "DiskMonitoringEnabled" -ExpectValueForChildKey "DiskMonitoring.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -39,12 +39,12 @@ Surface AdminDbDiskMonitoring {
 			}
 		}
 		
-		Definition "WarnWhenGBsGoBelow" -ConfiguredBy "DiskMonitoringEnabled" {
+		Facet "WarnWhenGBsGoBelow" -ConfiguredBy "DiskMonitoringEnabled" {
 			Expect {
 				# TODO: look at implementing a param called something like -ExpectedValueFormat = "0:xxxx" or something like that so'z I can 
 				#  use "32" treated as "32.0" or whatever, instead of having to create an 'explicit Expect {} block' like I've done here. 
 				#  that said, notice how I also have to cast/format the TEST output as well - so this'll need a bit more work.
-				#  	actually, it might just mean that there's a -Format for the Definition itself? and a -RemoveWhiteSpace switch for the Definition too? 
+				#  	actually, it might just mean that there's a -Format for the Facet itself? and a -RemoveWhiteSpace switch for the Scope too? 
 				
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedValue = $PVConfig.GetValue("AdminDb.$instanceName.DiskMonitoring.WarnWhenFreeGBsGoBelow");

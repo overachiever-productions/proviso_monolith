@@ -23,8 +23,8 @@
 Surface "HostTls" -For -Key "Host.LimitHostTls1dot2Only" {
 	
 	
-	Definitions {
-		Definition "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
+	Scope {
+		Facet "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
 			
 			Test {
 				try {

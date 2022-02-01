@@ -6,8 +6,8 @@ Surface AdminDbInstanceSettings {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Definitions -GroupKey "AdminDb.*" {
-		Definition "MAXDOP" -ExpectValueForChildKey "ConfigureInstance.MAXDOP" {
+	Group-Scope -GroupKey "AdminDb.*" {
+		Facet "MAXDOP" -ExpectValueForChildKey "ConfigureInstance.MAXDOP" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -27,7 +27,7 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Definition "MaxServerMemory" {
+		Facet "MaxServerMemory" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.ConfigureInstance.MaxServerMemoryGBs");
@@ -63,7 +63,7 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Definition "CTFP" -ExpectValueForChildKey "ConfigureInstance.CostThresholdForParallelism" {
+		Facet "CTFP" -ExpectValueForChildKey "ConfigureInstance.CostThresholdForParallelism" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -80,7 +80,7 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Definition "OptimizeForAdHoc" -ExpectValueForChildKey "ConfigureInstance.OptimizeForAdHocQueries" {
+		Facet "OptimizeForAdHoc" -ExpectValueForChildKey "ConfigureInstance.OptimizeForAdHocQueries" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;

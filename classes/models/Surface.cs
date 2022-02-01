@@ -13,11 +13,11 @@ namespace Proviso.Models
         public string ConfigKey { get; private set; }
 
         public bool RebasePresent => this.Rebase != null;
-        public bool DefersConfigurations => this.Definitions.Any(d => d.DefersConfiguration);
+        public bool DefersConfigurations => this.Facets.Any(d => d.DefersConfiguration);
 
         public List<Assertion> Assertions { get; private set; }
         public List<Assertion> FailedAssertions { get; private set; }
-        public List<Definition> Definitions { get; private set; }
+        public List<Facet> Facets { get; private set; }
         public Setup Setup { get; private set; }
         public Rebase Rebase { get; private set; }
 
@@ -29,7 +29,7 @@ namespace Proviso.Models
 
             this.Assertions = new List<Assertion>();
             this.FailedAssertions = new List<Assertion>(); // TODO: I probably don't NEED 2x different lists/sets of assertions. Probably makes MORE SENSE to mark existing assertions as FAILED... 
-            this.Definitions = new List<Definition>();
+            this.Facets = new List<Facet>();
         }
 
         public void AddAssertion(Assertion added)
@@ -53,10 +53,10 @@ namespace Proviso.Models
             this.Rebase = added;
         }
 
-        public void AddDefinition(Definition added)
+        public void AddFacet(Facet added)
         {
-            this.ValidateDefinition(added); // implemented HERE so that we can throw context info about which definitions are bad/etc. 
-            this.Definitions.Add(added);
+            this.ValidateFacet(added); // implemented HERE so that we can throw context info about which facets are bad/etc. 
+            this.Facets.Add(added);
         }
 
         public void AddConfigKey(string key)
@@ -64,49 +64,49 @@ namespace Proviso.Models
             this.ConfigKey = key;
         }
 
-        public List<Definition> GetSimpleDefinitions()
+        public List<Facet> GetSimpleFacets()
         {
-            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Simple).ToList();
+            return this.Facets.Where(d => d.FacetType == FacetType.Simple).ToList();
         }
 
-        public List<Definition> GetBaseValueDefinitions()
+        public List<Facet> GetBaseValueFacets()
         {
-            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Value).ToList();
+            return this.Facets.Where(d => d.FacetType == FacetType.Value).ToList();
         }
 
-        public List<Definition> GetBaseGroupDefinitions()
+        public List<Facet> GetBaseGroupFacets()
         {
-            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Group).ToList();
+            return this.Facets.Where(d => d.FacetType == FacetType.Group).ToList();
         }
 
-        public List<Definition> GetBaseCompoundDefinitions()
+        public List<Facet> GetBaseCompoundFacets()
         {
-            return this.Definitions.Where(d => d.DefinitionType == DefinitionType.Compound).ToList();
+            return this.Facets.Where(d => d.FacetType == FacetType.Compound).ToList();
         }
 
-        public void VerifyConfiguredBy(string currentDefinitionDescription, string handlerDefinitionDescription)
+        public void VerifyConfiguredBy(string currentFacetDescription, string handlerFacetDescription)
         {
-            Definition handler = this.Definitions.SingleOrDefault(d => d.Description == handlerDefinitionDescription);
+            Facet handler = this.Facets.SingleOrDefault(d => d.Description == handlerFacetDescription);
             if(handler == null)
-                throw new Exception($"Definition [{currentDefinitionDescription}] specifies -ConfiguredBy [{handlerDefinitionDescription}] - but a Definition with a Description of [{handlerDefinitionDescription}] does not (yet?) exist.");
+                throw new Exception($"Facet [{currentFacetDescription}] specifies -ConfiguredBy [{handlerFacetDescription}] - but a Facet with a Description of [{handlerFacetDescription}] does not (yet?) exist.");
 
             if(handler.ConfiguredBy != null)
-                throw new Exception($"Definition [{currentDefinitionDescription}] specifies -ConfiguredBy [{handlerDefinitionDescription}] - but Definition [{handlerDefinitionDescription}] specifies -ConfiguredBy as well (vs an explicit Configure block). The -ConfiguredBy switch can NOT be 'chained' or 're-pointed'.");
+                throw new Exception($"Facet [{currentFacetDescription}] specifies -ConfiguredBy [{handlerFacetDescription}] - but Facet [{handlerFacetDescription}] specifies -ConfiguredBy as well (vs an explicit Configure block). The -ConfiguredBy switch can NOT be 'chained' or 're-pointed'.");
         }
 
-        private void ValidateDefinition(Definition definition)
+        private void ValidateFacet(Facet facet)
         {
-            // TODO: need to ensure that each definition's NAME is distinct (i.e., can't have the same definition (name) 2x). 
-            // further... can't have the same definition with duplicate .ConfigKey properties either.
+            // TODO: need to ensure that each facet's NAME is distinct (i.e., can't have the same facet (name) 2x). 
+            // further... can't have the same facet with duplicate .ConfigKey properties either.
 
-            if(!definition.ExpectIsSet)
-                throw new Exception($"Definition [{definition.Description}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
+            if(!facet.ExpectIsSet)
+                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
 
-            if(definition.Test == null)
-                throw new Exception($"Definition [{definition.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");
+            if(facet.Test == null)
+                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");
 
-            if(definition.Configure == null & definition.ConfiguredBy == null)
-                throw new Exception($"Definition [{definition.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block.");
+            if(facet.Configure == null & facet.ConfiguredBy == null)
+                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block.");
         }
     }
 }

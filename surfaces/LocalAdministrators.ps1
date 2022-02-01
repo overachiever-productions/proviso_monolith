@@ -13,9 +13,9 @@ Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 		Assert-HostIsWindows;
 	}
 	
-	Value-Definitions -ValueKey "Host.LocalAdministrators" {
+	Value-Scope -ValueKey "Host.LocalAdministrators" {
 		
-		Definition "AccountExists" -ExpectValueForCurrentKey {
+		Facet "AccountExists" -ExpectValueForCurrentKey {
 			Test {
 				$expectedAccount = $PVContext.CurrentKeyValue;
 				
@@ -32,7 +32,7 @@ Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 			}
 		}
 		
-		Definition "IsLocalAdmin" -Expect $true { 
+		Facet "IsLocalAdmin" -Expect $true { 
 			Test {
 				$expectedAccount = $PVContext.CurrentKeyValue;
 				

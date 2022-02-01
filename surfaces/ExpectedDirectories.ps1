@@ -27,8 +27,8 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 #		}
 	}
 	
-	Compound-Definitions -GroupKey "ExpectedDirectories.*" {
-		Definition "SqlDirExists" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectValueForCompoundKey {
+	Compound-Scope -GroupKey "ExpectedDirectories.*" {
+		Facet "SqlDirExists" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectValueForCompoundKey {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				
@@ -45,7 +45,7 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Definition "SqlDirHasPerms" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
+		Facet "SqlDirHasPerms" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
@@ -85,7 +85,7 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Definition "RawDirExists" -CompoundValueKey "RawDirectories" -ExpectValueForCompoundKey {
+		Facet "RawDirExists" -CompoundValueKey "RawDirectories" -ExpectValueForCompoundKey {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				

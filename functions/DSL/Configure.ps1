@@ -14,7 +14,7 @@ function Configure {
 	}
 	
 	process {
-		$definition.SetConfigure($ConfigureBlock);
+		$facet.SetConfigure($ConfigureBlock);
 	}
 	
 	end {

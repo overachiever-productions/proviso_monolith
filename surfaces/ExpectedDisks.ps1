@@ -46,8 +46,8 @@ Surface "ExpectedDisks" {
 		}
 	}
 	
-	Group-Definitions -GroupKey "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
-		Definition "PhysicalDiskExists" -Expect $true {
+	Group-Scope -GroupKey "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
+		Facet "PhysicalDiskExists" -Expect $true {
 			Test {
 				$expectedDiskKey = $PVContext.CurrentKeyValue;
 				$expectedDiskLetter = ($PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeName") -split "\:")[0];

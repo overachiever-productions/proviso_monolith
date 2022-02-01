@@ -104,12 +104,12 @@ namespace Proviso.Models.Tests
         {
             var sut = Orthography.Instance;
             sut.AddSurfaceBlock("Surface");
-            sut.AddSurfaceBlock("Definitions");
-            sut.AddSurfaceBlock("Definition");
+            sut.AddSurfaceBlock("Facets");
+            sut.AddSurfaceBlock("Facet");
             sut.AddSurfaceBlock("Expect");
 
             string parent = sut.SurfaceParent();
-            StringAssert.AreEqualIgnoringCase("Definition", parent);
+            StringAssert.AreEqualIgnoringCase("Facet", parent);
         }
     }
 }

@@ -30,7 +30,7 @@ function Expect {
 	}
 	
 	process{
-		$definition.SetExpect($ExpectBlock);
+		$facet.SetExpect($ExpectBlock);
 	}
 	
 	end {

@@ -20,8 +20,8 @@ Surface SqlConfiguration {
 		Assert-SqlServerIsInstalled;
 	}
 	
-	Group-Definitions -GroupKey "SqlServerConfiguration.*" {
-		Definition "ForceEncryptedConnections" -ExpectValueForChildKey "LimitSqlServerTls1dot2Only" {
+	Group-Scope -GroupKey "SqlServerConfiguration.*" {
+		Facet "ForceEncryptedConnections" -ExpectValueForChildKey "LimitSqlServerTls1dot2Only" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				try {
@@ -65,7 +65,7 @@ Surface SqlConfiguration {
 		
 		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
 		# and... not sure if that means we HAVE to have domain creds (or not).
-#		Definition "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
+#		Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
 #			Test {
 #				
 #			}
@@ -74,7 +74,7 @@ Surface SqlConfiguration {
 #			}
 #		}
 		
-		Definition "DisableSa" -ExpectValueForChildKey "DisableSaLogin" {
+		Facet "DisableSa" -ExpectValueForChildKey "DisableSaLogin" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -109,7 +109,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Definition "ContingencySpace" -ExpectValueForChildKey "DeployContingencySpace" {
+		Facet "ContingencySpace" -ExpectValueForChildKey "DeployContingencySpace" {
 			Test {
 				
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -211,7 +211,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Definition "UserRight:LPIM" -ExpectValueForChildKey "EnabledUserRights.LockPagesInMemory" {
+		Facet "UserRight:LPIM" -ExpectValueForChildKey "EnabledUserRights.LockPagesInMemory" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -237,7 +237,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Definition "UserRight:PVMT" -ExpectValueForChildKey "EnabledUserRights.PerformVolumeMaintenanceTasks" {
+		Facet "UserRight:PVMT" -ExpectValueForChildKey "EnabledUserRights.PerformVolumeMaintenanceTasks" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -264,8 +264,9 @@ Surface SqlConfiguration {
 		}
 	}
 	
-	Compound-Definitions -GroupKey "SqlServerConfiguration" {
-		Definition "TraceFlag" -CompoundValueKey "TraceFlags" -Expect $true {
+	# Hmmm... while I CAN put 2x scopes into the same facet... why NOT move trace flags into their own facet? (i.e., WOULD that make MORE sense? I think it would)
+	Compound-Scope -GroupKey "SqlServerConfiguration" {
+		Facet "TraceFlag" -CompoundValueKey "TraceFlags" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$traceFlag = $PVContext.CurrentChildKeyValue;

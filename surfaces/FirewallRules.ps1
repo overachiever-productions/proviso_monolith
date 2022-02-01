@@ -32,9 +32,9 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 #		# b. arguably, if the config says: $false for a given rule (e.g., mirroring, or ICMP), then... I want to nuke the rule instead of recreating it as $true (open)
 #	}
 	
-	Definitions {
+	Scope {
 		
-		Definition "SQL Server" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServer" {
+		Facet "SQL Server" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServer" {
 			Test {
 				if (-not ($PVContext.GetSurfaceState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -70,7 +70,7 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 			}
 		}
 		
-		Definition "SQL Server - DAC" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerDAC" {
+		Facet "SQL Server - DAC" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerDAC" {
 			Test {
 				if (-not ($PVContext.GetSurfaceState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -107,7 +107,7 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 			}
 		}
 		
-		Definition "SQL Server - Mirroring" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerMirroring" {
+		Facet "SQL Server - Mirroring" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServerMirroring" {
 			Test {
 				if (-not ($PVContext.GetSurfaceState("WindowsFirewall.Enabled"))) {
 					return $false;
@@ -146,7 +146,7 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 		
 		# TODO: verify that this rule (name) works on instances of WIndows Server OTHER than 2019... 
 		# NOTE: ACTUAL name (vs display name) for this rule is: "FPS-ICMP4-ERQ-In"
-		Definition "ICMP" -For -ExpectKeyValue "Host.FirewallRules.EnableICMP" {
+		Facet "ICMP" -For -ExpectKeyValue "Host.FirewallRules.EnableICMP" {
 			Test {
 				$rule = Get-NetFirewallRule -DisplayName "File and Printer Sharing (Echo Request - ICMPv4-In)" -ErrorAction SilentlyContinue;
 				if (($null -eq $rule) -or (-not ($rule.Enabled))) {

@@ -13,8 +13,8 @@
     <Compile Include="..\..\classes\DomainCredential.cs" Link="DomainCredential.cs" />
     <Compile Include="..\..\classes\Formatter.cs" Link="Formatter.cs" />
     <Compile Include="..\..\classes\models\Assertion.cs" Link="Models\Assertion.cs" />
-    <Compile Include="..\..\classes\models\Definition.cs" Link="Models\Definition.cs" />
     <Compile Include="..\..\classes\models\Disk.cs" Link="Models\Disk.cs" />
+    <Compile Include="..\..\classes\models\Facet.cs" Link="Models\Facet.cs" />
     <Compile Include="..\..\classes\models\Partition.cs" Link="Models\Partition.cs" />
     <Compile Include="..\..\classes\models\Rebase.cs" Link="Models\Rebase.cs" />
     <Compile Include="..\..\classes\models\Runbook.cs" Link="Models\Runbook.cs" />
@@ -33,7 +33,7 @@
     <Compile Include="..\..\enums\AssertionsOutcome.cs" Link="Enums\AssertionsOutcome.cs" />
     <Compile Include="..\..\enums\ConfigurationsOutcome.cs" Link="Enums\ConfigurationsOutcome.cs" />
     <Compile Include="..\..\enums\CredentialsType.cs" Link="Enums\CredentialsType.cs" />
-    <Compile Include="..\..\enums\DefinitionType.cs" Link="Enums\DefinitionType.cs" />
+    <Compile Include="..\..\enums\FacetType.cs" Link="Enums\FacetType.cs" />
     <Compile Include="..\..\enums\RebaseOutcome.cs" Link="Enums\RebaseOutcome.cs" />
     <Compile Include="..\..\enums\SurfaceProcessingState.cs" Link="Enums\SurfaceProcessingState.cs" />
     <Compile Include="..\..\enums\ValidationErrorType.cs" Link="Enums\ValidationErrorType.cs" />

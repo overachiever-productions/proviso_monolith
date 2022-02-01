@@ -47,8 +47,8 @@ Surface "ServerName" {
 		}
 	}
 	
-	Definitions {
-		Definition -For "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
+	Scope {
+		Facet -For "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();
 			}
@@ -90,7 +90,7 @@ Surface "ServerName" {
 			}
 		}
 		
-		Definition -For "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
+		Facet -For "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {

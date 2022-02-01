@@ -26,14 +26,14 @@ namespace Proviso
             this._allowedSurfaceBlocks.Add("Assert");                 //    2 - child of Assertions
             this._allowedSurfaceBlocks.Add("Rebase");                 //  1 - child of surface
             this._allowedSurfaceBlocks.Add("Setup");                  //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Definitions");            //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Value-Definitions");      //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Group-Definitions");      //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Compound-Definitions");   //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Definition");             //    2 - child of definitions
-            this._allowedSurfaceBlocks.Add("Expect");                 //      3 - child of definition
-            this._allowedSurfaceBlocks.Add("Test");                   //      3 - child of definition
-            this._allowedSurfaceBlocks.Add("Configure");              //      3 - child of definition. 
+            this._allowedSurfaceBlocks.Add("Scope");                  //  1 - child of surface
+            this._allowedSurfaceBlocks.Add("Value-Scope");            //  1 - child of surface
+            this._allowedSurfaceBlocks.Add("Group-Scope");            //  1 - child of surface
+            this._allowedSurfaceBlocks.Add("Compound-Scope");         //  1 - child of surface
+            this._allowedSurfaceBlocks.Add("Facet");                  //    2 - child of facets
+            this._allowedSurfaceBlocks.Add("Expect");                 //      3 - child of facet
+            this._allowedSurfaceBlocks.Add("Test");                   //      3 - child of facet
+            this._allowedSurfaceBlocks.Add("Configure");              //      3 - child of facet. 
         }
 
         public static Orthography Instance => new Orthography();
@@ -48,15 +48,15 @@ namespace Proviso
 
             // TODO: verify that usage of the syntax is correct.... 
             //      which'll actually be semi-difficult. 
-            //          e.g, i COULD do something like .GetRankOfBlockName(block) ... which'd, return, say, 2 for Definition or Assert. 
+            //          e.g, i COULD do something like .GetRankOfBlockName(block) ... which'd, return, say, 2 for Facet or Assert. 
             //              then, I could ask for .GetRankOfBlockName(this.SurfaceParent())... 
             //                  and, if the rank of the parent (for our current rank/value of 2) wasn't ... 1... then, throw an error. 
             //              only, that's SUPER naive. 
-            //              e.g., assume that, instead of "Assert" or "Definition" the previously 'added' or 'defined' block was: 
+            //              e.g., assume that, instead of "Assert" or "Facet" the previously 'added' or 'defined' block was: 
             //                  3:Configure. 
-            //              and, now, the next 'block-name' to be added is: Test (i.e., we've just jumped into another Definition's children). 
-            //                  or, maybe the next 'block-name' is Definition (i.e., we left one definition with 'Test' and we're now moving into
-            //                      'Definition' -> 'Test' ... i'm still going to run into some ugly errors SOMEWHERE with this transition. 
+            //              and, now, the next 'block-name' to be added is: Test (i.e., we've just jumped into another Facet's children). 
+            //                  or, maybe the next 'block-name' is Facet (i.e., we left one facet with 'Test' and we're now moving into
+            //                      'Facet' -> 'Test' ... i'm still going to run into some ugly errors SOMEWHERE with this transition. 
 
             //      ultimately, i think i probably need: 
             //      this._tier1FacetStack... and this._tier2FacetStack, tier3, etc. 

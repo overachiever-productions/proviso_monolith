@@ -9,23 +9,23 @@ namespace Proviso.Processing
 {
     public class ValidationResult
     {
-        public Definition ParentDefinition { get; private set; }
+        public Facet ParentFacet { get; private set; }
 
-        public string Description => this.ParentDefinition.Description;
+        public string Description => this.ParentFacet.Description;
         public object Expected { get; private set; }
         public object Actual { get; private set; }
         public bool Matched { get; private set; }
-        public ScriptBlock Expectation => this.ParentDefinition.Expect;
-        public ScriptBlock Configure => this.ParentDefinition.Configure;
-        public ScriptBlock Test => this.ParentDefinition.Test;
+        public ScriptBlock Expectation => this.ParentFacet.Expect;
+        public ScriptBlock Configure => this.ParentFacet.Configure;
+        public ScriptBlock Test => this.ParentFacet.Test;
         public bool Failed { get; private set; }  // not the same as matched vs not-matched... but failed (i.e., an exception somewhere).
         public Guid ProcessingId { get; private set; }
 
         public List<ValidationError> ValidationErrors { get; private set; }
 
-        public ValidationResult(Definition parent, Guid processingId)
+        public ValidationResult(Facet parent, Guid processingId)
         {
-            this.ParentDefinition = parent;
+            this.ParentFacet = parent;
             this.ProcessingId = processingId;
 
             this.Failed = false;
@@ -51,12 +51,12 @@ namespace Proviso.Processing
 
         public string GetSurfaceName()
         {
-            return this.ParentDefinition.Parent.Name;
+            return this.ParentFacet.Parent.Name;
         }
 
         public string GetValidationName()
         {
-            return $"{this.ParentDefinition.Description}";
+            return $"{this.ParentFacet.Description}";
         }
 
         public string GetActualSummary()

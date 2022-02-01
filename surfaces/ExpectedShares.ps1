@@ -27,8 +27,8 @@ Surface ExpectedShares {
 		}
 	}
 	
-	Group-Definitions -GroupKey "ExpectedShares.*" {
-		Definition "DirectoryExists" -Expect $true {
+	Group-Scope -GroupKey "ExpectedShares.*" {
+		Facet "DirectoryExists" -Expect $true {
 			Test {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
@@ -43,7 +43,7 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Definition "IsShared" -Expect $true {
+		Facet "IsShared" -Expect $true {
 			Test {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
@@ -74,7 +74,7 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Definition "ReadOnlyPermsFor" {
+		Facet "ReadOnlyPermsFor" {
 			Expect {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$readOnlyUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadOnlyAccess");
@@ -127,7 +127,7 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Definition "ReadWritePermsFor" {
+		Facet "ReadWritePermsFor" {
 			Expect {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$readWriteUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadWriteAccess");

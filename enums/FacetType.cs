@@ -1,6 +1,6 @@
 ﻿namespace Proviso.Enums
 {
-    public enum DefinitionType
+    public enum FacetType
     {
         Simple, 
         Value, 

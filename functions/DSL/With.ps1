@@ -21,6 +21,7 @@ function With {
 		[switch]$CurrentHost = $false,
 		[switch]$Force = $false, # causes/forces a reload... 
 		[switch]$Strict = $false,
+		# TODO: verify if the following is even used... 
 		[switch]$AllowGlobalDefaults = $false
 	);
 	

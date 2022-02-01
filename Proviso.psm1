@@ -20,6 +20,7 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Partition.cs"
 	"$ProvisoScriptRoot\classes\models\Disk.cs"
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
+	"$ProvisoScriptRoot\classes\models\Runbook.cs"
 	"$ProvisoScriptRoot\classes\models\Setup.cs"
 	"$ProvisoScriptRoot\classes\models\Facet.cs"
 	"$ProvisoScriptRoot\classes\models\FacetsCatalog.cs"

@@ -2,65 +2,67 @@
 
 <#
 
-	So... the overall approach to how I'm addressing RunBooks (e.g., take a look at the 2x-ish ROUGH examples in the /runbooks folder)... 
-		is looking great. 
-		
-	WITH ONE BIG EXCEPTION:
-		It's dumb to have a facet for, say, "Configure"-AdminDb with a bunch of static calls to Provision-XyzFacet. 
-			As in, I LIKE the ability to control the order of operations - i.e., which facet should be processed first and so on... 
-			that's the whole point of a runbook - an ordered set of facet-processors. 
-
-		the DUMB part is ... what IF I don't want to PROVISION something and, instead, want to 'just' validate? 
-			(or, later on, what if I don't want to 'validate' or provision - and 'just' want to document?)
-
-			So... I THINK what I need to do is wire up runbooks to, instead (of calling validate or provision) ... call Process-<FacetNameHere>. 
-			and the parent object (the RunBook) can be allowed as a LEGIT caller ... i.e., only allow Process-XXXXFacetName via DSL semantics IF we're in a runbook... 
-					(or something like that). 
-
-			I COULD, also, create some sort of 'alias' like Run-<FacetName> or Execute-<FacetName> or even Process-<FacetName>
-				which would 'route' each one of these into a call against Process-Facet ... where the -Provision(swithc) would be handled ... by means of whehter the
-				run book was doing a validate, provision, or document operation... 
+	Like a Facet (or Surface), a Runbook is an object with a few BLOCKS of code inside. 
+		Unlike a Facet (Surface) it's not NEARLY as complex - i.e., it'll basically just have either: 
+			a. One block of functions or... 
+			b. MIGHT be broken up into a couple of functions like: 
+					- Assess/Setup/Stage/Prepare
+						(validation and any other similar things... )
+					- Main/Run?
+						(i.e., the main block of code).
+					- Reporting/Post-Processing/Disband/Dissolve/Resolve/CONCLUDE/Terminate
+						(where we handle stuff like ... reporting, reboots, and the likes)
 
 
-	Some verbs that might work for the above: 
-		
-		PROCESS-xxx	
-			pretty sure this one makes the most sense... 
 
-		apply / employ
-		implement
-		enforce
-		run (yeah... kinda weak-sauce but... then again, maybe not?)
-		operate
-		engage/employ
-		
-		render (hmmmm)
-			yield... 
+					- Before, During, After? 
 
-		handle-xxx (weak-sauce, but it works)
+
+		Otherwise, it, like a Facet (Scope) will have a single 'processor' or main-func that runs the Runbook, called: 
+			- Execute-Runbook
+			
+			And there will be 3x main facades for interacting with Execute-Runbook (i.e., Execute-Runbook should NOT be called directly, it'll be Internal). 
+				> Evaluate-<RunbookName>
+				> Provision-<RunbookName>
+				> Document-<RunbbookName>
+
 
 #>
 
 function Runbook {
 	
 	param (
-		[Parameter(Mandatory)]
+		[Parameter(Position = 0, ParameterSetName = "default", Mandatory)]
 		[Alias("For")]
 		[string]$Name,
+		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
+		[ScriptBlock]$Scripts,
 		[switch]$AllowReboot = $false,
-		[string]$NextRunbook,
-		[PSCustomObject]$Config
+		[string]$NextRunbook
+		
+		# Presumably... $PVConfig is what we'll expect to use in here? i.e., just need to figure out how to implement that 
+		#  		based, effectively, on the same way that Facets are currently doing this... 
+		#[PSCustomObject]$Config
 	);
 	
 	begin {
+		Validate-FacetBlockUsage -BlockName "Runbook";
 		
+		
+		
+		
+		# TODO: wire-up a new RunBook CLR object... 
 	};
 	
 	process {
 		
+		& $Scripts;
 	};
 	
 	end {
-		
+		# TODO: right now this object doesn't exist (ProvisoCatalog). There's a ProvisoFacetsCatalog... 
+		# 		so, just repurpose that to serve for Facets, Runbooks, and anything else that makes sense along the line? 
+		# 			ah... it should also keep track of Machines (configs at the specified location in \\ProvisoRoot\config\whatever or whatever... )
+		$ProvisoCatalog.AddRunbook($runbook);
 	};
 }

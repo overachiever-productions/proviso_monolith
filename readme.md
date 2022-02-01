@@ -68,7 +68,7 @@ Facet "Network Adapter" {
 
 ```
 
-
+At this point, i.e., with a full-blown facet defined, 
 
 ]
 

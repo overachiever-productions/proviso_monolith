@@ -43,7 +43,6 @@
 # vNEXT: add error-handling/try-catches... 
 
 function Facet {
-	
 	param (
 		[Parameter(Position = 0, ParameterSetName = "default")]
 		[string]$Name,

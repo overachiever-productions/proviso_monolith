@@ -63,17 +63,6 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
-		# and... not sure if that means we HAVE to have domain creds (or not).
-#		Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
-#			Test {
-#				
-#			}
-#			Configure {
-#				
-#			}
-#		}
-		
 		Facet "DisableSa" -ExpectChildKeyValue "DisableSaLogin" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -262,6 +251,19 @@ Surface SqlConfiguration {
 				$PVContext.SetSqlRestartRequired("Addition of UserRight:PerformVolumeMaintenanceTasks requires SQL Server Service RESTART.");
 			}
 		}
+		
+		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
+		# and... not sure if that means we HAVE to have domain creds (or not).
+		#		Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
+		#			Test {
+		#				
+		#			}
+		#			Configure {
+		#				
+		#			}
+		#		}		
+		
+		
 	}
 	
 	# Hmmm... while I CAN put 2x scopes into the same facet... why NOT move trace flags into their own facet? (i.e., WOULD that make MORE sense? I think it would)

@@ -8,13 +8,15 @@ filter Get-UserRightForSqlServer {
 		[string]$UserRight
 	);
 	
-	# TODO: fix this... 
+	# TODO: fix this... and the TODO below - they're one in the same... 
 	if ($InstanceName -ne "MSSQLSERVER") {
 		throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
 	}
 	
 	# TODO: base this off of named instance service-account naming-rules.
 	[string]$accountName = "NT SERVICE\MSSQLSERVER";
+	
+	
 	$sid = ConvertTo-WindowsSecurityIdentifier -Name $accountName;
 	$policy = Get-UserRightsPolicy;
 	
@@ -46,10 +48,14 @@ function Set-UserRightForSqlServer {
 	if ($InstanceName -ne "MSSQLSERVER") {
 		throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
 	}
-	
+	# TODO: fix this too - it's the same issue as the above... 
 	[string]$accountName = "NT SERVICE\MSSQLSERVER";
+	
 	$sid = ConvertTo-WindowsSecurityIdentifier -Name $accountName;
 	$policy = Get-UserRightsPolicy;
+	
+	# template for use in creating new policies:
+	$nlr = $policy | Select-String -Pattern "^SeNetworkLogonRight\s*=\s*.+";
 	
 	[bool]$modified = $false;
 	if ($UserRight -eq "PVMT") {

@@ -32,8 +32,7 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 #		# b. arguably, if the config says: $false for a given rule (e.g., mirroring, or ICMP), then... I want to nuke the rule instead of recreating it as $true (open)
 #	}
 	
-	Scope {
-		
+	Aspect {
 		Facet "SQL Server" -ExpectKeyValue "Host.FirewallRules.EnableFirewallForSqlServer" {
 			Test {
 				if (-not ($PVContext.GetSurfaceState("WindowsFirewall.Enabled"))) {
@@ -143,11 +142,11 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 				}
 			}
 		}
-		
-		# TODO: verify that this rule (name) works on instances of WIndows Server OTHER than 2019... 
-		# NOTE: ACTUAL name (vs display name) for this rule is: "FPS-ICMP4-ERQ-In"
-		Facet "ICMP" -For -ExpectKeyValue "Host.FirewallRules.EnableICMP" {
+
+		Facet "ICMP" -ExpectKeyValue "Host.FirewallRules.EnableICMP" {
 			Test {
+				# TODO: verify that this rule (name) works on instances of WIndows Server OTHER than 2019... 
+				# NOTE: ACTUAL name (vs display name) for this rule is: "FPS-ICMP4-ERQ-In"
 				$rule = Get-NetFirewallRule -DisplayName "File and Printer Sharing (Echo Request - ICMPv4-In)" -ErrorAction SilentlyContinue;
 				if (($null -eq $rule) -or (-not ($rule.Enabled))) {
 					return $false;

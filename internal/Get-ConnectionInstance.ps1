@@ -5,7 +5,6 @@ filter Get-ConnectionInstance {
 		[Parameter(Mandatory)]
 		[string]$InstanceName
 	);
-	
 	if ($InstanceName -ne "MSSQLSERVER") {
 		return ".\$InstanceName";
 	}

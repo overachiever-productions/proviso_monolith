@@ -7,8 +7,8 @@ Surface AdminDbDiskMonitoring {
 	}
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "DiskMonitoringEnabled" -ExpectValueForChildKey "DiskMonitoring.Enabled" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				

@@ -28,7 +28,7 @@
 
 					function Rebase {}
 
-					function Scope {
+					function Aspect -Scope "xxx" {
 						function Facet {
 							function Expect {}
 							function Test {} 

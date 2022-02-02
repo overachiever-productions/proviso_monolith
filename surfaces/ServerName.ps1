@@ -47,7 +47,7 @@ Surface "ServerName" {
 		}
 	}
 	
-	Scope {
+	Aspect {
 		Facet -For "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();

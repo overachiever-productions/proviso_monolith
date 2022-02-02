@@ -7,7 +7,7 @@ Surface AdminDbIndexMaintenance {
 	}
 	
 	# TODO: currently using hard-coded job-names... 
-	Group-Scope -GroupKey "AdminDb.*" {
+	Aspect -Scope "AdminDb.*" {
 		Facet "IndexMaintenanceEnabled" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -131,6 +131,6 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		# TODO: Implement -IsDetailed Facets here... 
+		# TODO: Implement -Detailed Facets here... 
 	}
 }

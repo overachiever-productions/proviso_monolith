@@ -27,7 +27,7 @@ Surface ExpectedShares {
 		}
 	}
 	
-	Group-Scope -GroupKey "ExpectedShares.*" {
+	Aspect -Scope "ExpectedShares.*" {
 		Facet "DirectoryExists" -Expect $true {
 			Test {
 				$currentKey = $PVContext.CurrentKeyValue;

@@ -17,8 +17,8 @@ Surface AdminDb -Key "AdminDb" {
 		Assert-SqlServerIsInstalled;
 	}
 	
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "Deployed" -ExpectValueForChildKey "Deploy" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "Deployed" -ExpectChildKeyValue "Deploy" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;

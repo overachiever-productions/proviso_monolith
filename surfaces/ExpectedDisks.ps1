@@ -46,7 +46,7 @@ Surface "ExpectedDisks" {
 		}
 	}
 	
-	Group-Scope -GroupKey "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
+	Aspect -Scope "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
 		Facet "PhysicalDiskExists" -Expect $true {
 			Test {
 				$expectedDiskKey = $PVContext.CurrentKeyValue;

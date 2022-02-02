@@ -12,6 +12,7 @@ Import-Module -Name Proviso -Force -DisableNameChecking;
 Assign -ProvisoRoot "\\storage\Lab\proviso\";
 With -CurrentHost | Do-Something;
 
+
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
@@ -19,7 +20,6 @@ With -CurrentHost | Do-Something;
 #>
 
 function Process-Surface {
-	
 	param (
 		[Parameter(Mandatory)]
 		[string]$SurfaceName,
@@ -138,7 +138,7 @@ function Process-Surface {
 			
 			foreach ($facets in $valueFacets) {
 				
-				$values = $PVConfig.GetValue($facet.IterationKey); #Get-ProvisoConfigValueByKey -Config $Config -Key ($facet.IterationKey);
+				$values = $PVConfig.GetValue($facet.IterationKey);
 				if ($values.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
@@ -235,7 +235,7 @@ function Process-Surface {
 					
 					$expandedGroupFacet.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
 					
-					$expandedFacets += $expandedGroupFacets;
+					$expandedFacets += $expandedGroupFacet;
 				}
 			}
 			

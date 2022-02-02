@@ -11,7 +11,7 @@ Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
 		Assert-ProvisoResourcesRootDefined;
 	}
 	
-	Scope {
+	Aspect {
 		Facet -For "WSFCRequired" -ExpectKeyValue "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
 			Test {
 				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;

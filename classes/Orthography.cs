@@ -26,10 +26,10 @@ namespace Proviso
             this._allowedSurfaceBlocks.Add("Assert");                 //    2 - child of Assertions
             this._allowedSurfaceBlocks.Add("Rebase");                 //  1 - child of surface
             this._allowedSurfaceBlocks.Add("Setup");                  //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Scope");                  //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Value-Scope");            //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Group-Scope");            //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Compound-Scope");         //  1 - child of surface
+            this._allowedSurfaceBlocks.Add("Aspect");                  //  1 - child of surface
+            //this._allowedSurfaceBlocks.Add("Value-Scope");            //  1 - child of surface
+            //this._allowedSurfaceBlocks.Add("Group-Scope");            //  1 - child of surface
+            //this._allowedSurfaceBlocks.Add("Compound-Scope");         //  1 - child of surface
             this._allowedSurfaceBlocks.Add("Facet");                  //    2 - child of facets
             this._allowedSurfaceBlocks.Add("Expect");                 //      3 - child of facet
             this._allowedSurfaceBlocks.Add("Test");                   //      3 - child of facet

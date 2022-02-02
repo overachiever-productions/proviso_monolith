@@ -17,6 +17,7 @@
 		}
 		
 		LocalAdministrators = @(
+			"Administrator"  # TODO: this is a HACK... 
 		)
 		
 		WindowsPreferences  = @{
@@ -235,7 +236,7 @@
 				WarnWhenFreeGBsGoBelow = "32"
 			}
 			
-			Alerts		     = @{
+			Alerts = @{
 				IOAlertsEnabled	       = $true
 				IOAlertsFiltered	   = $false
 				SeverityAlertsEnabled  = $true

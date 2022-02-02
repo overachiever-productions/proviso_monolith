@@ -8,7 +8,7 @@ Surface "TestingSurface" {
 		}
 	}
 	
-	Scope {
+	Aspect {
 		Facet "It is Tuesday" {
 			Expect {
 				return "Tuesday";

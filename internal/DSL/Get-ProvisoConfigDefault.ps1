@@ -42,7 +42,7 @@ filter Get-ProvisoConfigDefault {
 	}
 
 	# Non-SQL-Instance Partials (pattern):
-	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
+	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.LocalAdministrators|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
 	if ($match) {
 		$partialName = $match[0].Groups['partialName'];
 		

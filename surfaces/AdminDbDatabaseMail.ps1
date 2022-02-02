@@ -8,8 +8,8 @@ Surface AdminDbDatabaseMail {
 	}
 	
 	# TODO: add options that map to server.display_name, server.replyto_address, account.display_name, account.replyto_address
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "DatabaseMail Enabled" -ExpectValueForChildKey "DatabaseMail.Enabled" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -53,7 +53,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpAccountName" -ExpectValueForChildKey "DatabaseMail.SmtpAccountName" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "SmtpAccountName" -ExpectChildKeyValue "DatabaseMail.SmtpAccountName" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -64,7 +64,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "OperatorEmail" -ExpectValueForChildKey "DatabaseMail.OperatorEmail" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "OperatorEmail" -ExpectChildKeyValue "DatabaseMail.OperatorEmail" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -76,7 +76,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpServerName" -ExpectValueForChildKey "DatabaseMail.SmtpServerName" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "SmtpServerName" -ExpectChildKeyValue "DatabaseMail.SmtpServerName" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -87,7 +87,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "OutgoingSmtpAddress" -ExpectValueForChildKey "DatabaseMail.SmtpOutgoingEmailAddress" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "OutgoingSmtpAddress" -ExpectChildKeyValue "DatabaseMail.SmtpOutgoingEmailAddress" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -99,7 +99,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpPortNumber" -ExpectValueForChildKey "DatabaseMail.SmtpPortNumber" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "SmtpPortNumber" -ExpectChildKeyValue "DatabaseMail.SmtpPortNumber" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -111,7 +111,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "RequireSSL" -ExpectValueForChildKey "DatabaseMail.SmtpRequiresSSL" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "RequireSSL" -ExpectChildKeyValue "DatabaseMail.SmtpRequiresSSL" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -127,7 +127,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpAuthType" -ExpectValueForChildKey "DatabaseMail.SmtpAuthType" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "SmtpAuthType" -ExpectChildKeyValue "DatabaseMail.SmtpAuthType" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -145,7 +145,7 @@ Surface AdminDbDatabaseMail {
 		#   	auth-type = anonymous then send <ANONYMOUS> out as the expect. 
 		# 		auth-type = windows then ... <WINDOWS> ... 
 		#       else, if auth-type = basic ... then "username"(from the config)
-		Facet "SmptUserName" -ExpectValueForChildKey "DatabaseMail.SmptUserName" -ConfiguredBy "DatabaseMail Enabled" {
+		Facet "SmptUserName" -ExpectChildKeyValue "DatabaseMail.SmptUserName" -ConfiguredBy "DatabaseMail Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;

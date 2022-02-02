@@ -20,8 +20,8 @@ Surface SqlConfiguration {
 		Assert-SqlServerIsInstalled;
 	}
 	
-	Group-Scope -GroupKey "SqlServerConfiguration.*" {
-		Facet "ForceEncryptedConnections" -ExpectValueForChildKey "LimitSqlServerTls1dot2Only" {
+	Aspect -Scope "SqlServerConfiguration.*" {
+		Facet "ForceEncryptedConnections" -ExpectChildKeyValue "LimitSqlServerTls1dot2Only" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				try {
@@ -74,7 +74,7 @@ Surface SqlConfiguration {
 #			}
 #		}
 		
-		Facet "DisableSa" -ExpectValueForChildKey "DisableSaLogin" {
+		Facet "DisableSa" -ExpectChildKeyValue "DisableSaLogin" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -109,7 +109,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "ContingencySpace" -ExpectValueForChildKey "DeployContingencySpace" {
+		Facet "ContingencySpace" -ExpectChildKeyValue "DeployContingencySpace" {
 			Test {
 				
 				$instanceName = $PVContext.CurrentKeyValue;
@@ -211,7 +211,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "UserRight:LPIM" -ExpectValueForChildKey "EnabledUserRights.LockPagesInMemory" {
+		Facet "UserRight:LPIM" -ExpectChildKeyValue "EnabledUserRights.LockPagesInMemory" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -237,7 +237,7 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "UserRight:PVMT" -ExpectValueForChildKey "EnabledUserRights.PerformVolumeMaintenanceTasks" {
+		Facet "UserRight:PVMT" -ExpectChildKeyValue "EnabledUserRights.PerformVolumeMaintenanceTasks" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -265,8 +265,8 @@ Surface SqlConfiguration {
 	}
 	
 	# Hmmm... while I CAN put 2x scopes into the same facet... why NOT move trace flags into their own facet? (i.e., WOULD that make MORE sense? I think it would)
-	Compound-Scope -GroupKey "SqlServerConfiguration" {
-		Facet "TraceFlag" -CompoundValueKey "TraceFlags" -Expect $true {
+	Aspect -Scope "SqlServerConfiguration.*" {
+		Facet "TraceFlag" -IterationKey "TraceFlags" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$traceFlag = $PVContext.CurrentChildKeyValue;

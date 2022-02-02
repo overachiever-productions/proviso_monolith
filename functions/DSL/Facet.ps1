@@ -8,240 +8,88 @@ function Facet {
 		$ConfiguredBy,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$FacetBlock,
-		[string]$CompoundValueKey = $null,  		# basically the same as the -ValueKey ... but has to be implemented per Facet (instead of 'up' at Facets-block level).
-		[string]$ExpectKeyValue = $null,
-		[switch]$ExpectValueForCurrentKey = $false,
-		[string]$ExpectValueForChildKey = $null,
-		[switch]$ExpectValueForCompoundKey = $false,
-		[Alias("Has")]
-		[switch]$For,   # noise/syntactic-sugar doesn't DO anything... 
-		[switch]$RequiresReboot = $false,
-		[switch]$IgnoreOnEmptyConfig = $false,
-		[ValidateNotNullOrEmpty()]
-		[string]$Key
+		[Alias("Has")] 	# noise/syntactic-sugar doesn't DO anything... 
+		[switch]$For,
+		[string]$ExpectKeyValue = $null, 			# expect a single, specific, key. e.g., -ExpectKeyValue "Host.FirewallRules.EnableICMP"
+		[switch]$ExpectCurrentKeyValue = $false,   	# expect the current key value for Value or Group Keys e.g., if the key is "Host.LocalAdministrators", 'expect' an entry for each key-value. Whereas, if the key is "AdminDb.*", expect a value/key for each SQL Server instance (MSSQLSERVER, X3, etc.)
+		[string]$ExpectChildKeyValue = $null,		# e.g., -ExpectChildKeyValue "Enabled" would return the key for, say, AdminDb.RestoreTestJobs..... Enabled (i.e., parent/iterator + current child-key)
+		[string]$IterationKey, 						# e.g., if the -Scope is "ExpectedDirectories.*", then -IterationKey could be "RawDirectories" or "VirtualSqlServerServiceAccessibleDirectories"
+		[switch]$ExpectIterationKeyValue = $false,  # e.g., if we're working through an -IterationKey of "RawDirectories" (for a -Scope of "ExpectedDirectories"), then we'd Expect one entry/value her for each 'Raw Directory' (or path) defined in the config
+		[switch]$RequiresReboot = $false
 	)
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Facet";
+		
+		$facetType = [Proviso.Enums.FacetType]::Simple;
+		if ($Scope) {
+			$trimmedScopeKey = $Scope -replace ".\*", "";
+			$keyType = Get-ProvisoConfigDefault -Key $trimmedScopeKey -ValidateOnly;
+			
+			if ($null -eq $keyType) {
+				throw "Invalid -Scope value ([$($Scope)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
+			}
+			
+			switch ($keyType.GetType()) {
+				"bool" {
+				}
+				"string" {
+				}
+				{ "hashtable" -or "System.Collections.Hashtable" } {
+					if ($IterationKey) {
+						$facetType = [Proviso.Enums.FacetType]::Compound;
+					}
+					else {
+						$facetType = [Proviso.Enums.FacetType]::Group;
+					}
+				}
+				"system.object[]" {
+					$facetType = [Proviso.Enums.FacetType]::Value;
+				}
+				default {
+					throw "Invalid DataType for -Scope ([$($Scope)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
+				}
+			}
+		}
+		
+		# additional, per type, validations:
 		switch ($facetType) {
 			Simple {
-				if ($ExpectValueForCurrentKey) {
-					throw "Invalid Argument. -ExpectValueForCurrentKey can ONLY be used with [Facet] methods in [Group-Facets] and [Value-Facets] blocks. Use -ExpectKey instead.";
-				}
-				
-				if ($ExpectValueForChildKey) {
-					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Facet] methods within [Group-Facets] blocks";
-				}
-				
-				if ($ExpectValueForCompoundKey) {
-					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Facet] methods within [Compound-Facets] blocks";
-				}
-				
-				if ($OrderByChildKey) {
-					throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Facet] methods within [Group-Facets] blocks.";
-				}
-				
-				if ($ValueKey) {
-					throw "Invalid Argument -ValueKey can ONLY be specified for [Facet] methods within [Value-Facets] blocks.";
-				}
-				
-				if ($GroupKey) {
-					throw "Invalid Argument. -GroupKey can ONLY be specified for [Facet] methods within [Group-Facets] blocks.";
-				}
-				
-				if ($CompoundValueKey) {
-					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Facet] methods within [Compound-Facets] blocks.";
-				}
-				
-				if ($OrderDescending) {
-					throw "Invalid Argument. -OrderDescending can ONLY be used for [Facet] methods within [Value-Facets] blocks.";
-				}
-				
-				if ($ExpectKeyValue) {
-					$keyType = (Get-ProvisoConfigDefault -Key $ExpectKeyValue -ValidateOnly);
-					if ($null -eq $keyType) {
-						throw "Invalid -ExpectKeyValuevalue ([$($ExpectKeyValue)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
-					}
-					
-					if ($keyType.GetType() -notin "bool", "string", "hashtable", "system.object[]") {
-						throw "Invalid -ExpectKeyValue.DataType for Key ([$($ExpectKeyValue)]) specified for Facet [$Description] within Surface [$($surface.Name)]."
-					}
+				# OrderBy operations can only be set by specific facet types: 
+				if ($OrderByChildKey -or $OrderDescending) {
+					throw "Aspects may NOT specify an -OrderByChildKey or -OrderDescending directive unless they specify -Scope arguments for configuration keys to evaluate.";
 				}
 			}
 			Value {
-				if ($ExpectKeyValue) {
-					throw "Invalid Argument. -ExpectKeyValue can NOT be used in [Group-Facets] or [Value-Facets] blocks - it can only be used in [Facets] blocks.";
-				}
 				
-				if ($ExpectValueForChildKey) {
-					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Facet] methods within [Group-Facets] blocks";
-				}
-								
-				if ($ExpectValueForCompoundKey) {
-					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Facet] methods within [Compound-Facets] blocks";
-				}
-				
-				if ($OrderByChildKey) {
-					throw "Invalid Argument. -OrderByChildKey can ONLY be specified for [Facet] methods within [Group-Facets] and [Compound-Facets] blocks.";
-				}
-
-				if ($GroupKey) {
-					throw "Invalid Argument. -GroupKey can ONLY be specified for [Facet] methods within [Group-Facets] and [Compound-Facets] blocks.";
-				}
-				
-				if ($CompoundValueKey) {
-					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Facet] methods within [Compound-Facets] blocks.";
-				}
-				
-				if ($null -eq $ValueKey) {
-					throw "Invalid Argument. [Value-Facets] blocks MUST include the -ValueKey argument.";
-				}
 			}
 			Group {
-				if ($ExpectKeyValue) {
-					throw "Invalid Argument. -ExpectKeyValue can NOT be used in [Group-Facets] or [Value-Facets] blocks - it can only be used in [Facets] blocks.";
-				}
 				
-				if ($ValueKey) {
-					throw "Invalid Argument. -ValueKey can ONLY be specified for [Facet] methods within [Value-Facets] blocks.";
-				}
-				
-				if ($CompoundValueKey) {
-					throw "Invalid Argument. -CompoundValueKey can ONLY be specified for [Facet] methods within [Compound-Facets] blocks.";
-				}
-				
-				if ($OrderDescending) {
-					throw "Invalid Argument. -OrderDescending can ONLY be used for [Facet] methods within [Value-Facets] and [Compound-Facets] blocks.";
-				}
-				
-				if ($null -eq $GroupKey) {
-					throw "Invalid Argument. [Group-Facets] blocks MUST include the -GroupKey argument.";
-				}
-				
-				if ($ExpectValueForChildKey) {
-					if ($Expect) {
-						throw "Invalid Argument. -ExpectValueForChildKey and the -Expect argument can NOT both be used - use one or the other.";
-					}
-					
-					if ($ExpectBlock) {
-						throw "Invalid Argument. -ExpectValueForChildKey and an explicit [Expect] block can NOT both be used - use one or the other.";
-					}
-					
-					if ($ExpectValueForCurrentKey) {
-						throw "Invalid Argument. -ExpectValueForChildKey and -ExpectValueForCurrentKey can NOT both be used - use one or the other.";
-					}
-				}
-				
-				if ($ExpectValueForCompoundKey) {
-					throw "Invalid Argument. -ExpectValueForCompoundKey can ONLY be used for [Facet] methods within [Compound-Facets] blocks";
-				}
 			}
 			Compound {
-				if ($ExpectKeyValue) {
-					throw "Invalid Argument. -ExpectKeyValue can NOT be used in [Group-Facets] or [Value-Facets] blocks - it can only be used in [Facets] blocks.";
-				}
 				
-				if ($ValueKey) {
-					throw "Invalid Argument -ValueKey can ONLY be specified for [Facet] methods within [Value-Facets] blocks.";
-				}
-				
-				if ($null -eq $GroupKey) {
-					throw "Invalid Argument. [Group-Facets] blocks MUST include the -GroupKey and -ValueKey arguments.";
-				}
-				
-				if ($null -eq $CompoundValueKey) {
-					throw "Invalid Argument. [Compound-Facets] blocks MUST include the -GroupKey and -CompoundValueKey arguments.";
-				}
-				
-				if ($ExpectValueForChildKey) {
-					throw "Invalid Argument. -ExpectValueForChildKey can ONLY be used for [Facet] methods within [Group-Facets] blocks";
-				}
-				
-				if ($ExpectValueForCompoundKey) {
-					if ($Expect) {
-						throw "Invalid Argument. -ExpectValueForCompoundKey and the -Expect argument can NOT both be used - use one or the other.";
-					}
-					
-					if ($ExpectBlock) {
-						throw "Invalid Argument. -ExpectValueForCompoundKey and an explicit [Expect] block can NOT both be used - use one or the other.";
-					}
-					
-					if ($ExpectValueForCurrentKey) {
-						throw "Invalid Argument. -ExpectValueForCompoundKey and -ExpectValueForCurrentKey can NOT both be used - use one or the other.";
-					}
-				}
-			}
-			default {
-				throw "Proviso Framework Exception. Unable to validate Facet of type [$facetType].";
-			}
-		}
-		
-		if ($ExpectValueForCurrentKey) {
-			if ($ExpectKeyValue) {
-				throw "Invalid Argument. -ExpectValueForCurrentKey and -ExpectKeyValue can NOT both be used - use one or the other.";
-			}
-			
-			if ($ExpectValueForChildKey) {
-				throw "Invalid Argument. -ExpectValueForCurrentKey and -ExpectValueForChildKey can NOT both be used - use one or the other.";
-			}
-			
-			if ($Expect) {
-				throw "Invalid Argument. -ExpectValueForCurrentKey can NOT be used with the -Expect switch - use one or the other.";
-			}
-			
-			if ($ExpectBlock) {
-				throw "Invalid Argument. -ExpectValueForCurrentKey can NOT be used with an explicit [Expect] block - use one or the other.";
-			}
-		}
-		
-		if ($ExpectBlock) {
-			if ($Expect) {
-				throw "Invalid Argument. -Expect can NOT be used with an explicit [Expect] block - use one or the other.";
-			}
-			
-			if ($ExpectKeyValue){
-				throw "Invalid Argument. -ExpectKeyValue can NOT be used with an explicit [Expect] block - use one or the other.";
-			}
-			
-			if ($ExpectValueForChildKey) {
-				throw "Invalid Argument. -ExpectValueForChildKey can NOT be used with an explicit [Expect] block - use one or the other.";
-			}
-		}
-		
-		if ($Key){
-			$keyType = (Get-ProvisoConfigDefault -Key $Key -ValidateOnly);
-			if ($null -eq $keyType) {
-				throw "Invalid -Key value ([$($Key)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
-			}
-			
-			if ($keyType.GetType() -notin "bool", "string", "hashtable", "system.object[]") {
-				throw "Invalid -Key.DataType for Key ([$($Key)]) specified for Facet [$Description] within Surface [$($surface.Name)]."
 			}
 		}
 	}
 	
 	process {
 		$facet = New-Object Proviso.Models.Facet($surface, $Description, $facetType);
-			
+		
 		if ($RequiresReboot) {
 			$facet.SetRequiresReboot();
 		}
 		
-		if ($Key) {
-			$facet.SetStaticKey($Key);
+		if ($ExpectKeyValue) {
+			$facet.SetStaticKey($ExpectKeyValue);
+			$facet.SetExpectAsStaticKeyValue();  # TODO: see if there's any reason to NOT combine these 2x calls down/into a single operation... 
 		}
 		
 		switch ($facet.FacetType) {
-			Simple {
-				if ($ExpectKeyValue) {
-					$facet.SetStaticKey($ExpectKeyValue)
-					$facet.SetExpectAsStaticKeyValue();
-				}
-			}
+			Simple {}
 			Value {
-				$facet.SetIterationKeyForValueAndGroupFacets($ValueKey);
+				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
 				
-				if ($ExpectValueForCurrentKey) {
+				if ($ExpectCurrentKeyValue) {
 					$facet.SetExpectAsCurrentIterationKeyValue();
 				}
 				
@@ -250,14 +98,14 @@ function Facet {
 				}
 			}
 			Group {
-				$facet.SetIterationKeyForValueAndGroupFacets($GroupKey);
+				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
 				
-				if ($ExpectValueForCurrentKey) {
+				if ($ExpectCurrentKeyValue) {
 					$facet.SetExpectAsCurrentIterationKeyValue();
 				}
-				
-				if ($ExpectValueForChildKey) {
-					$facet.SetExpectAsCurrentChildKeyValue($ExpectValueForChildKey);
+
+				if ($ExpectChildKeyValue) {
+					$facet.SetExpectAsCurrentChildKeyValue($ExpectChildKeyValue);
 				}
 				
 				if ($OrderByChildKey) {
@@ -265,14 +113,14 @@ function Facet {
 				}
 			}
 			Compound {
-				$facet.SetIterationKeyForValueAndGroupFacets($GroupKey);
-				$facet.SetCompoundIterationValueKey($CompoundValueKey);
+				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
+				$facet.SetCompoundIterationValueKey($IterationKey);
 				
-				if ($ExpectValueForCurrentKey) {
+				if ($ExpectCurrentKeyValue) {
 					$facet.SetExpectAsCurrentIterationKeyValue();
 				}
 				
-				if ($ExpectValueForCompoundKey) {
+				if ($ExpectIterationKeyValue) {
 					$facet.SetExpectAsCompoundKeyValue();
 				}
 				

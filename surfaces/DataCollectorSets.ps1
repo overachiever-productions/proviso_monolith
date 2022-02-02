@@ -26,23 +26,23 @@ Surface "DataCollectorSets" {
 	
 #>
 	
-	Group-Scope -GroupKey "DataCollectorSets.*" {
-		Facet "IsEnabled" -ExpectValueForChildKey "Enabled" {
+	Aspect -Scope "DataCollectorSets.*" {
+		Facet "IsEnabled" -ExpectChildKeyValue "Enabled" {
 			Test {
 				
-#	Write-Host "Collectors:Current Key: $($PVContext.CurrentKey)"
-#	Write-Host "Collectors:Current Key VALUE: $($PVContext.CurrentKeyValue)"
-#	Write-Host "Collectors:Current _CHILD_ Key: $($PVContext.CurrentChildKey)"
-#	Write-Host "Collectors:Current _CHILD_ Key VALUE: $($PVContext.CurrentChildKeyValue)"
+				#	Write-Host "Collectors:Current Key: $($PVContext.CurrentKey)"
+				#	Write-Host "Collectors:Current Key VALUE: $($PVContext.CurrentKeyValue)"
+				#	Write-Host "Collectors:Current _CHILD_ Key: $($PVContext.CurrentChildKey)"
+				#	Write-Host "Collectors:Current _CHILD_ Key VALUE: $($PVContext.CurrentChildKeyValue)"
 				
 				# is xxx enabled? 
 				
 				# simulated results: 
-#				if ($group -eq "Consolidated") {
-#					return $false;
-#				}
-#				
-#				return $false;
+			#				if ($group -eq "Consolidated") {
+			#					return $false;
+			#				}
+			#				
+			#				return $false;
 			}
 			Configure {
 				# do whatever it takes to turn xxx on... 

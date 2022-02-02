@@ -6,8 +6,8 @@ Surface AdminDbAlerts {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "IOAlertsEnabled" -ExpectValueForChildKey "Alerts.IOAlertsEnabled" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "IOAlertsEnabled" -ExpectChildKeyValue "Alerts.IOAlertsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -91,7 +91,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsEnabled" -ExpectValueForChildKey "Alerts.SeverityAlertsEnabled" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -ConfiguredBy "IOAlertsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -117,7 +117,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "IOAlertsFiltered" -ExpectValueForChildKey "Alerts.IOAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -136,7 +136,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsFiltered" -ExpectValueForChildKey "Alerts.SeverityAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;

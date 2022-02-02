@@ -7,8 +7,8 @@ Surface AdminDbConsistencyChecks {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "ConsistencyCheckJobEnabled" -ExpectValueForChildKey "ConsistencyChecks.Enabled" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "ConsistencyCheckJobEnabled" -ExpectChildKeyValue "ConsistencyChecks.Enabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -85,7 +85,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Facet "Targets" -ExpectValueForChildKey "ConsistencyChecks.Targets" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "Targets" -ExpectChildKeyValue "ConsistencyChecks.Targets" -ConfiguredBy "ConsistencyCheckJobEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -105,7 +105,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Facet "StartTime" -ExpectValueForChildKey "ConsistencyChecks.StartTime" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "StartTime" -ExpectChildKeyValue "ConsistencyChecks.StartTime" -ConfiguredBy "ConsistencyCheckJobEnabled" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				

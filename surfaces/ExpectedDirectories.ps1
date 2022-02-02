@@ -18,17 +18,17 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 		
 		Assert-UserIsAdministrator;
 		
-#		Assert "Config Is -Strict" {
-#			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
-#			$currentHostName = [System.Net.Dns]::GetHostName();
-#			if ($targetHostName -ne $currentHostName) {
-#				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure DIRECTORIES on systems where Host/TargetServer names do NOT match.";
-#			}
-#		}
+		Assert "Config Is -Strict" {
+			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
+			$currentHostName = [System.Net.Dns]::GetHostName();
+			if ($targetHostName -ne $currentHostName) {
+				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure DIRECTORIES on systems where Host/TargetServer names do NOT match.";
+			}
+		}
 	}
 	
-	Compound-Scope -GroupKey "ExpectedDirectories.*" {
-		Facet "SqlDirExists" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectValueForCompoundKey {
+	Aspect -Scope "ExpectedDirectories.*" {
+		Facet "SqlDirExists" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectIterationKeyValue {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				
@@ -45,7 +45,7 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Facet "SqlDirHasPerms" -CompoundValueKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
+		Facet "SqlDirHasPerms" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
@@ -85,7 +85,7 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Facet "RawDirExists" -CompoundValueKey "RawDirectories" -ExpectValueForCompoundKey {
+		Facet "RawDirExists" -IterationKey "RawDirectories" -ExpectIterationKeyValue {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				

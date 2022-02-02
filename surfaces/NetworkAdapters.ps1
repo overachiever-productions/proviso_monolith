@@ -8,7 +8,7 @@ Surface -For "NetworkAdapters" {
 		Assert-HostIsWindows;
 	}
 	
-	Group-Scope -GroupKey "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
+	Aspect -Scope "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
 		Facet "Interface.Exists" -Expect $true {
 			Test {
 				# Note: IfNames in the config are a bit weird... need to always look for EXPLICIT implmenations of Host.NetworkDefinitions.<AdapterName>.InterfaceAlias
@@ -59,7 +59,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "IpAddress" -ExpectValueForChildKey "IpAddress" {
+		Facet "IpAddress" -ExpectChildKeyValue "IpAddress" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -125,7 +125,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "Gateway" -ExpectValueForChildKey "Gateway" {
+		Facet "Gateway" -ExpectChildKeyValue "Gateway" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -194,7 +194,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "PrimaryDns" -ExpectValueForChildKey "PrimaryDns" {
+		Facet "PrimaryDns" -ExpectChildKeyValue "PrimaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
@@ -247,7 +247,7 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "SecondaryDns" -ExpectValueForChildKey "SecondaryDns" {
+		Facet "SecondaryDns" -ExpectChildKeyValue "SecondaryDns" {
 			Test {
 				$expectedAdapterKey = $PVContext.CurrentKeyValue;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");

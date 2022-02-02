@@ -8,7 +8,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 		Assert-HostIsWindows;
 	}
 	
-	Scope {
+	Aspect {
 		Facet -For "DvdDriveToZ" -ExpectKeyValue "Host.WindowsPreferences.DvdDriveToZ" {
 			Test {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';

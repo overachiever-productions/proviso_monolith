@@ -65,24 +65,6 @@ namespace Proviso.Models
             this.ExpectIsSet = true;
         }
 
-        public void SetTest(ScriptBlock testBlock)
-        {
-            this.Test = testBlock;
-        }
-
-        public void SetConfigure(ScriptBlock configurationBlock) => this.SetConfigure(configurationBlock, null);
-
-        public void SetConfigure(ScriptBlock configurationBlock, string configuredBy)
-        {
-            this.Configure = configurationBlock;
-
-            if (configuredBy != null & !string.IsNullOrEmpty(configuredBy))
-            {
-                this.ConfiguredBy = configuredBy;
-                this.DefersConfiguration = true;
-            }
-        }
-
         public void SetExpectAsStaticKeyValue()
         {
             this.ExpectStaticKey = true;
@@ -108,6 +90,30 @@ namespace Proviso.Models
             this.ExpectIsSet = true;
         }
 
+        public void SetTest(ScriptBlock testBlock)
+        {
+            this.Test = testBlock;
+        }
+
+        public void SetConfigure(ScriptBlock configurationBlock) => this.SetConfigure(configurationBlock, null);
+
+        public void SetConfigure(ScriptBlock configurationBlock, string configuredBy)
+        {
+            this.Configure = configurationBlock;
+
+            if (configuredBy != null & !string.IsNullOrEmpty(configuredBy))
+            {
+                this.ConfiguredBy = configuredBy;
+                this.DefersConfiguration = true;
+            }
+        }
+
+        public void SetConfiguredBy(string facetName)
+        {
+            this.ConfiguredBy = facetName;
+            this.DefersConfiguration = true;
+        }
+
         public void SetStaticKey(string key)
         {
             this.Key = key;
@@ -116,12 +122,6 @@ namespace Proviso.Models
         public void SetStaticKeyValue(object value)
         {
             this.KeyValue = value;
-        }
-
-        public void SetConfiguredBy(string facetName)
-        {
-            this.ConfiguredBy = facetName;
-            this.DefersConfiguration = true;
         }
 
         public void SetRequiresReboot()

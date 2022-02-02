@@ -22,11 +22,6 @@ function Expect {
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Expect";
-		
-		If ($Expect) { 
-			# because we're IN here (i.e., within Expect (the verb), we know that there's an Expect{} and that -Expect is also defined)
-			throw "Invalid Argument. Define blocks can use EITHER an Expect{} block OR the -Expect parameter (not both).";
-		}
 	}
 	
 	process{

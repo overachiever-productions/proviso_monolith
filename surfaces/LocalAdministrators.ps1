@@ -13,9 +13,8 @@ Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 		Assert-HostIsWindows;
 	}
 	
-	Value-Scope -ValueKey "Host.LocalAdministrators" {
-		
-		Facet "AccountExists" -ExpectValueForCurrentKey {
+	Aspect -Scope "Host.LocalAdministrators.*" {
+		Facet "AccountExists" -ExpectCurrentKeyValue {
 			Test {
 				$expectedAccount = $PVContext.CurrentKeyValue;
 				

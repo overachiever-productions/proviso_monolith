@@ -21,9 +21,7 @@
 #>
 
 Surface "HostTls" -For -Key "Host.LimitHostTls1dot2Only" {
-	
-	
-	Scope {
+	Aspect {
 		Facet "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
 			
 			Test {

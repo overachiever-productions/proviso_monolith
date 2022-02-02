@@ -32,11 +32,11 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <width>12</width>
-            <Label>Validations</Label>
+            <Label>Validate</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <width>14</width>
-            <Label>Configurations</Label>
+            <width>12</width>
+            <Label>Configure</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>60</Width>

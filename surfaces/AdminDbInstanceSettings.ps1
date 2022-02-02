@@ -6,8 +6,8 @@ Surface AdminDbInstanceSettings {
 		Assert-AdminDbInstalled;
 	}
 	
-	Group-Scope -GroupKey "AdminDb.*" {
-		Facet "MAXDOP" -ExpectValueForChildKey "ConfigureInstance.MAXDOP" {
+	Aspect -Scope "AdminDb.*" {
+		Facet "MAXDOP" -ExpectChildKeyValue "InstanceSettings.MAXDOP" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -63,7 +63,7 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Facet "CTFP" -ExpectValueForChildKey "ConfigureInstance.CostThresholdForParallelism" {
+		Facet "CTFP" -ExpectChildKeyValue "InstanceSettings.CostThresholdForParallelism" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -80,7 +80,7 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Facet "OptimizeForAdHoc" -ExpectValueForChildKey "ConfigureInstance.OptimizeForAdHocQueries" {
+		Facet "OptimizeForAdHoc" -ExpectChildKeyValue "InstanceSettings.OptimizeForAdHocQueries" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;

@@ -67,7 +67,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	try {
 		. $file.FullName;
 		
-		$currentSurface = $script:ProvisoCatalog.GetSurfaceByFileName(($file.Basename));
+		$currentSurface = $PVCatalog.GetSurfaceByFileName(($file.Basename));
 		if ($null -ne $currentSurface) {
 			$surfaceName = $currentSurface.Name;
 			$allowsRebase = $currentSurface.RebasePresent;

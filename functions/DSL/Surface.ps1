@@ -76,6 +76,6 @@ function Surface {
 		
 		# vNEXT: force the surface (that's now, nearly, complete) to .Validate() and throw if it's missing key components (like, say, a Facet is missing a Test or something... etc.);
 		
-		$ProvisoCatalog.AddSurface($surface);
+		$global:PVCatalog.AddSurface($surface);
 	}
 }

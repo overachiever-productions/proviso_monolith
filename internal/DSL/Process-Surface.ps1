@@ -33,7 +33,7 @@ function Process-Surface {
 	begin {
 		Validate-MethodUsage -MethodName "Process-Surface";
 		
-		$surface = $ProvisoCatalog.GetSurface($SurfaceName);
+		$surface = $global:PVCatalog.GetSurface($SurfaceName);
 		if ($null -eq $surface) {
 			throw "Invalid Surface-Name. [$SurfaceName] does not exist or has not yet been loaded. If this is a custom Surface, verify that [Import-Surface] has been executed.";
 		}

@@ -20,10 +20,10 @@ namespace Proviso
             this._surfacesByFileName.Add(added.FileName, added.Name);
         }
 
-        public Surface GetSurface(string facetName)
+        public Surface GetSurface(string surfaceName)
         {
-            if (this._surfaces.ContainsKey(facetName))
-                return this._surfaces[facetName];
+            if (this._surfaces.ContainsKey(surfaceName))
+                return this._surfaces[surfaceName];
 
             return null;
         }
@@ -32,11 +32,11 @@ namespace Proviso
         {
             if (this._surfacesByFileName.ContainsKey(filename))
             {
-                string facetName = this._surfacesByFileName[filename];
+                string surfaceName = this._surfacesByFileName[filename];
 
-                if (this._surfaces.ContainsKey(facetName))
+                if (this._surfaces.ContainsKey(surfaceName))
                 {
-                    return this._surfaces[facetName];
+                    return this._surfaces[surfaceName];
                 }
             }
 

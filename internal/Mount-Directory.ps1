@@ -8,6 +8,11 @@ filter Mount-Directory {
 	);
 	
 	if (!(Test-Path -Path $Path)) {
-		New-Item -ItemType Directory -Path $Path | Out-Null;
+		try {
+			New-Item -ItemType Directory -Path $Path -ErrorAction Stop | Out-Null;
+		}
+		catch {
+			throw "Exception Adding Directory: $_ ";
+		}
 	}
 }

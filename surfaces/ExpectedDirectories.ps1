@@ -18,6 +18,8 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 		
 		Assert-UserIsAdministrator;
 		
+		Assert-SqlServerIsInstalled; # can't establish (sqlserver)virtual-service account perms if SQL Server hasn't been installed.
+		
 		Assert "Config Is -Strict" {
 			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
 			$currentHostName = [System.Net.Dns]::GetHostName();

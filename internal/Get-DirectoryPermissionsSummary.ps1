@@ -7,6 +7,10 @@ function Get-DirectoryPermissionsSummary {
 		[string]$Directory
 	);
 	
+	if (-not (Test-Path $Directory)) {
+		return $null;
+	}
+	
 	(Get-Acl $Directory).Access | Select-Object -Property @{
 		Name = 'Access'; Expression = "FileSystemRights";
 	}, @{

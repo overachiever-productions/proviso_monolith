@@ -48,7 +48,7 @@ Surface "ServerName" {
 	}
 	
 	Aspect {
-		Facet -For "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
+		Facet "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();
 			}
@@ -90,7 +90,7 @@ Surface "ServerName" {
 			}
 		}
 		
-		Facet -For "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
+		Facet "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {

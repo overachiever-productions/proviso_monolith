@@ -12,7 +12,7 @@ Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
 	}
 	
 	Aspect {
-		Facet -For "WSFCRequired" -ExpectKeyValue "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
+		Facet "WSFCRequired" -ExpectKeyValue "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
 			Test {
 				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 				
@@ -42,7 +42,7 @@ Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
 			}
 		}
 		
-		Facet -For "NetFXRequired" -ExpectKeyValue "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
+		Facet "NetFXRequired" -ExpectKeyValue "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
 			Test {
 				# check to see if v3.5 is installed: 
 				$allInstalled = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -recurse |	Get-ItemProperty -name Version, Release -EA 0 | Where-Object {	$_.PSChildName -match '^(?!S)\p{L}' } | Select-Object PSChildName, Version;

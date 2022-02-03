@@ -8,8 +8,7 @@ function Facet {
 		$ConfiguredBy,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$FacetBlock,
-		[Alias("Has")] 	# noise/syntactic-sugar doesn't DO anything... 
-		[switch]$For,
+		[string]$For = "",
 		[string]$ExpectKeyValue = $null, 			# expect a single, specific, key. e.g., -ExpectKeyValue "Host.FirewallRules.EnableICMP"
 		[switch]$ExpectCurrentKeyValue = $false,   	# expect the current key value for Value or Group Keys e.g., if the key is "Host.LocalAdministrators", 'expect' an entry for each key-value. Whereas, if the key is "AdminDb.*", expect a value/key for each SQL Server instance (MSSQLSERVER, X3, etc.)
 		[string]$ExpectChildKeyValue = $null,		# e.g., -ExpectChildKeyValue "Enabled" would return the key for, say, AdminDb.RestoreTestJobs..... Enabled (i.e., parent/iterator + current child-key)

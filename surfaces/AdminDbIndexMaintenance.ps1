@@ -95,6 +95,47 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
+		Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." {
+			Expect {
+				$instanceName = $PVContext.CurrentKeyValue;
+				
+				$ixMaintExpected = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.Enabled");
+				if ($ixMaintExpected) {
+					return $true;
+				}
+			}
+			Test {
+				$instanceName = $PVContext.CurrentKeyValue;
+				
+				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT COUNT(*) [count] FROM master.sys.[objects] WHERE [name] IN (N'CommandLog', N'CommandExecute', N'IndexOptimize'); ").count;
+				if ($count -eq 3) {
+					return $true;
+				}
+				
+				if ($count -gt 0) {
+					return "<MIXED>";
+				}
+				
+				return $false;
+			}
+			Configure {
+				$instanceName = $PVContext.CurrentKeyValue;
+				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				
+				if ($expectedSetting) {
+					$scriptPath = $PVResources.GetAsset("hallengren_ix_optimize_only", "sql");
+					if (-not (Test-Path $scriptPath)) {
+						throw "Unable to locate asset [hallengren_ix_optimize_only.sql] at expected location of: [$scriptPath].";
+					}
+					
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $scriptPath -DisableVariables;
+				}
+				else {
+					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.IndexMaintenance.Enabled] is set to `$false - and Ola Hallengren's CommandLog (table), IndexOptimize (sproc), and CommandExecute (sproc) objects exist in the master database. Proviso will NOT drop these objects. Please make changes manually.", "Critical");
+				}
+			}
+		}
+		
 		Facet "DailyJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
 			Expect {
 				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Facet class/object - which'll strip white-space from the expected key value.

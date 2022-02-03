@@ -13,7 +13,7 @@ filter Get-SqlServerDefaultServiceAccount {
 	
 	# vNEXT: spin this up to use the defined SVC accounts for named-instances as well... i.e., not hard to do at all... 
 	
-Write-Host "InstanceName: $InstanceName -> account: $AccountType "
+#Write-Host "InstanceName: $InstanceName -> account: $AccountType "
 	
 	switch ($AccountType) {
 		"SqlServiceAccountName" {

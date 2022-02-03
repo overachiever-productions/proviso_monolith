@@ -67,12 +67,7 @@ Surface SqlConfiguration {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
-				if ($instanceName -ne "MSSQLSERVER") {
-					# TODO: address this... (i.e., just need to tweak the Invoke-SqlCmd call to his a non-default instance (or an instance BY NAME))
-					throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-				}
-				
-				$result = (Invoke-SqlCmd "SELECT [is_disabled] FROM master.sys.[server_principals] WHERE [name] = 'sa';").is_disabled;
+				$result = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [is_disabled] FROM master.sys.[server_principals] WHERE [name] = 'sa';").is_disabled;
 				
 				if ($null -eq $result) {
 					return $false;
@@ -85,12 +80,7 @@ Surface SqlConfiguration {
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				if ($expectedSetting) {
-					if ($instanceName -ne "MSSQLSERVER") {
-						# TODO: address this... (i.e., just need to tweak the Invoke-SqlCmd call to his a non-default instance (or an instance BY NAME))
-						throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-					}
-					
-					Invoke-SqlCmd -Query "ALTER LOGIN [sa] DISABLE; ";
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER LOGIN [sa] DISABLE; ";
 				}
 				else{
 					$PVContext.WriteLog("Config setting for [SqlServerConfiguration.$instanceName.DisableSaLogin] is set to `$false - but the sa login for $instanceName is already disabled. Proviso will NOT remove this configuration. Please make changes manually.", "Critical");
@@ -100,7 +90,6 @@ Surface SqlConfiguration {
 		
 		Facet "ContingencySpace" -ExpectChildKeyValue "DeployContingencySpace" {
 			Test {
-				
 				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$sqlDirectories = @{};
@@ -273,12 +262,7 @@ Surface SqlConfiguration {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$traceFlag = $PVContext.CurrentChildKeyValue;
 				
-				if ($instanceName -ne "MSSQLSERVER") {
-					# TODO: address this... (i.e., just need to tweak the Invoke-SqlCmd call to his a non-default instance (or an instance BY NAME))
-					throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-				}
-				
-				$enabled = (Invoke-SqlCmd "DBCC TRACESTATUS(`$(FLAG));" -Variable "FLAG=$traceFlag").Global;
+				$enabled = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DBCC TRACESTATUS(`$(FLAG));" -Variable "FLAG=$traceFlag").Global;
 				
 				if ($enabled -eq 0) {
 					return $false;
@@ -290,10 +274,15 @@ Surface SqlConfiguration {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$traceFlag = $PVContext.CurrentChildKeyValue;
 				
+				if ($instanceName -ne "MSSQLSERVER") {
+					# TODO: address this... (i.e., just need to tweak the Invoke-SqlCmd call to his a non-default instance (or an instance BY NAME))
+					throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
+				}
+				
 				# NOTE: if we're in here (i.e., doing configuration 'stuff') it's because 'required' trace flag is missing - i.e., no worries about needing to REMOVE them.
 				try {
-					Add-TraceFlag -Flag $traceFlag;
-					$PVContext.WriteLog("Trace Flag [$traceFlag] enabled for instance [$inatnacerName]. Restart of SQL Server instance is NOT required.", "Verbose");
+					Add-TraceFlag -Flag $traceFlag;  # TODO: expand Add-TraceFlag to account for $InstanceName as part of the operation... 
+					$PVContext.WriteLog("Trace Flag [$traceFlag] enabled for instance [$instanceName]. Restart of SQL Server instance is NOT required.", "Verbose");
 				}
 				catch {
 					$PVContext.WriteLog("Failure to enable Trace Flag [$traceFlag] against SQL Server Instance [$instanceName]: $_ `r`t$($_.ScriptStackTrace) ", "Critical");

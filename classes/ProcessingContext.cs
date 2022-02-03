@@ -81,27 +81,7 @@ namespace Proviso
 
         public void SetValidationState(Facet current)
         {
-            switch (current.FacetType)
-            {
-                case FacetType.Simple:
-                    this.CurrentKey = current.Key;
-                    this.CurrentKeyValue = current.KeyValue;
-                    break;
-                case FacetType.Value:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-                    break;
-                case FacetType.Group:
-                case FacetType.Compound:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-
-                    this.CurrentChildKey = current.CurrentIteratorChildKey;
-                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
-                    break;
-                default: 
-                    throw new Exception("Proviso Exception. Invalid FacetType in CLR ProcessingContext for .SetValidationState().");
-            }
+            this.SetContextStateFromFacet(current);
         }
 
         public void ClearValidationState()
@@ -120,25 +100,7 @@ namespace Proviso
             if (current == null)
                 throw new Exception("Proviso Framework Exception. ValidationResult's Parent [Facet] was/is null. ");
 
-            // REFACTOR: this is/was a copy/paste of SetValidationState - i.e., create an internal/private method that assigns state based on def-types... 
-            switch (current.FacetType)
-            {
-                case FacetType.Simple:
-                    this.CurrentKey = current.Key;
-                    this.CurrentKeyValue = current.KeyValue;
-                    break;
-                case FacetType.Value:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-                    break;
-                case FacetType.Group:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-
-                    this.CurrentChildKey = current.CurrentIteratorChildKey;
-                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
-                    break;
-            }
+            this.SetContextStateFromFacet(current);
 
             this.Expected = currentValidation.Expected;
             this.Actual = currentValidation.Actual;
@@ -240,5 +202,31 @@ namespace Proviso
             return null;
         }
         #endregion
+
+
+        private void SetContextStateFromFacet(Facet current)
+        {
+            switch (current.FacetType)
+            {
+                case FacetType.Simple:
+                    this.CurrentKey = current.Key;
+                    this.CurrentKeyValue = current.KeyValue;
+                    break;
+                case FacetType.Value:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+                    break;
+                case FacetType.Group:
+                case FacetType.Compound:
+                    this.CurrentKey = current.CurrentIteratorKey;
+                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
+
+                    this.CurrentChildKey = current.CurrentIteratorChildKey;
+                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
+                    break;
+                default:
+                    throw new Exception("Proviso Exception. Invalid FacetType in CLR ProcessingContext for SetContextStateFromFacet().");
+            }
+        }
     }
 }

@@ -44,7 +44,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "SQLServerLogsToKeep" -ExpectChildKeyValue "HistoryManagement.SqlServerLogsToKeep" -ConfiguredBy "CleanupEnabled" {
+		Facet "SQLServerLogsToKeep" -ExpectChildKeyValue "HistoryManagement.SqlServerLogsToKeep" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -61,7 +61,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "AgentJobHistory" -ExpectChildKeyValue "HistoryManagement.AgentJobHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "AgentJobHistory" -ExpectChildKeyValue "HistoryManagement.AgentJobHistoryRetention" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -81,7 +81,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "BackupHistory" -ExpectChildKeyValue "HistoryManagement.BackupHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "BackupHistory" -ExpectChildKeyValue "HistoryManagement.BackupHistoryRetention" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -101,7 +101,7 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "EmailHistory" -ExpectChildKeyValue "HistoryManagement.EmailHistoryRetention" -ConfiguredBy "CleanupEnabled" {
+		Facet "EmailHistory" -ExpectChildKeyValue "HistoryManagement.EmailHistoryRetention" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$retentionSettings = $PVContext.CurrentChildKeyValue;
@@ -119,6 +119,14 @@ Surface AdminDbHistory {
 					return Translate-AdminDbVectorFromDays -Days $days -ComparisonVectorFormat $retentionSettings;
 				}
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
 		}
 		
 		# TODO: Implement -Detailed facets for FTI cleanup and so on... 

@@ -136,7 +136,7 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Facet "DailyJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
+		Facet "DailyJobEnabled" -UsesBuild{
 			Expect {
 				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Facet class/object - which'll strip white-space from the expected key value.
 				# 		then, i won't need this expect block. The RUB is ... the name of the switch will need to indicate that we're stripping ExpectedKeySpaces ... 
@@ -155,7 +155,7 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Facet "WeekendJobEnabled" -ConfiguredBy "IndexMaintenanceEnabled"{
+		Facet "WeekendJobEnabled" -UsesBuild{
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -170,6 +170,14 @@ Surface AdminDbIndexMaintenance {
 				$jobName = "Index Maintenance - Weekend";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
 		}
 		
 		# TODO: Implement -Detailed Facets here... 

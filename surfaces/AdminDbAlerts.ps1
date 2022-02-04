@@ -91,7 +91,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -117,7 +117,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -136,7 +136,7 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -ConfiguredBy "IOAlertsEnabled" {
+		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -153,6 +153,15 @@ Surface AdminDbAlerts {
 				
 				return "<MIXED>";
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
+			
 		}
 	}
 }

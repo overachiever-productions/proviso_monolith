@@ -148,19 +148,10 @@ function Process-Surface {
 					$newDescription = "$($facet.Description):$($value)";
 					
 					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Value);
-					
 					$expandedValueFacet.SetTest(($facet.Test));
+					$expandedValueFacet.SetConfigure(($facet.ConfiguredBy), ($facet.UsesBuild));
 					
-					if ($facet.ConfiguredBy) {
-						$configuredByRenamed = "$($facet.ConfiguredBy):$($value)";
-						
-						$expandedValueFacet.SetConfigure($newDescription, $configuredByRenamed);
-					}
-					else{
-						$expandedValueFacet.SetConfigure(($facet.Configure));
-					}
-					
- 					if ($facet.ExpectCurrentIterationKey) {
+					if ($facet.ExpectCurrentIterationKey) {
 						$script = "return '$value';";
 						$expectedBlock = [scriptblock]::Create($script);
 						
@@ -195,14 +186,7 @@ function Process-Surface {
 					$expandedGroupFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Group);
 					
 					$expandedGroupFacet.SetTest(($facet.Test));
-					
-					if ($facet.ConfiguredBy) {
-						$configuredByRenamed = "$($facet.ConfiguredBy):$($groupName)";
-						$expandedGroupFacet.SetConfigure(($facet.Configure), $configuredByRenamed);
-					}
-					else {
-						$expandedGroupFacet.SetConfigure(($facet.Configure));
-					}
+					$expandedGroupFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
 					
 					$currentIteratorKey = "$($trimmedKey).$($groupName)";
 					$currentIteratorKeyValue = $groupName;
@@ -266,14 +250,7 @@ function Process-Surface {
 							
 							$compoundFacet = New-Object Proviso.Models.Facet(($facet.Parent), $compoundDescription, [Proviso.Enums.FacetType]::Compound);
 							$compoundFacet.SetTest($facet.Test);
-							
-							if ($facet.ConfiguredBy) {
-								$compoundNewname = "$($facet.ConfiguredBy):$($groupName).$compoundValue";
-								$compoundFacet.SetConfigure($compoundDescription, $compoundNewname);
-							}
-							else{
-								$compoundFacet.SetConfigure(($facet.Configure));
-							}
+							$compoundFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
 							
 							$iteratorKey = "$($trimmedKey).$($groupName)";
 							$iteratorValue = $groupName;
@@ -365,7 +342,7 @@ function Process-Surface {
 				}
 			}
 			
-			$PVContext.ClearValidationState();
+			$PVContext.ClearCurrentState();
 		}
 		
 		$surfaceProcessingResult.EndValidations($validationsOutcome, $validations);
@@ -446,20 +423,17 @@ function Process-Surface {
 					$configurationResult.SetBypassed();
 					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected and Actual values already matched.", "Debug");
 				}
-				elseif ($validation.ParentFacet.DefersConfiguration) {
-					$configurationResult.SetDeferred($validation.ParentFacet.ConfiguredBy);
-							
-					if ($configuredByFacetsCalledThroughDeferredOperations -notcontains $validation.ParentFacet.ConfiguredBy) {
-						$configuredByFacetsCalledThroughDeferredOperations += $validation.ParentFacet.ConfiguredBy;
-					}
-					
-					$PVContext.WriteLog("Temporarily deferring configuration of [$($validation.Description)] - because Configuration has been deferred to [$($validation.ParentFacet.ConfiguredBy)].");
-				}
 				else {
 					$PVContext.SetConfigurationState($validation);
 					
 					try {
-						[ScriptBlock]$configureBlock = $validation.Configure;
+						[ScriptBlock]$configureBlock = $null;
+						if ($validation.ParentFacet.UsesBuild) {
+							$configureBlock = $surface.Build.BuildBlock;
+						}
+						else {
+							$configureBlock = $validation.Configure;
+						}
 						
 						& $configureBlock;
 					}
@@ -469,34 +443,23 @@ function Process-Surface {
 						$configurationResult.AddConfigurationError($configurationError);
 					}
 					
-					$PVContext.ClearConfigurationState();
+					$PVContext.ClearCurrentState();
 				}
 			}
 			
-			# For any Facet that SHOULD have been processed above, but which deferred Configuration operations to its -ConfiguredBy target... process those as needed: 
-			foreach ($facetName in $configuredByFacetsCalledThroughDeferredOperations) {
-				$validation = $surfaceProcessingResult.GetValidationResultByFacetName($facetName);
-				
-				$PVContext.WriteLog("Executing previously deferred Facet [$facetName] - as it was required for a -ConfiguredBy declaration.", "Debug");
-				
-				# TODO: this is an EXACT copy/past of the same logic up above... i.e., DRY violation. Guess I might want to move all of this into some 'helper' funcs... 
-				# er, well, it was... before i enabled the idea of .IsChildCall().
-				$PVContext.SetDeferredExecution();
-				$PVContext.SetConfigurationState($validation);
-				
+			if ($surface.UsesBuild) {
+				# NOTE: there's no 'state' within a Deploy operation... (e.g., Configure operations use .SetConfigurationState(), validations use .SetValidationState(), but ... there's NO state here.)
 				try {
-					[ScriptBlock]$configureBlock = $validation.Configure;
+					[ScriptBlock]$deployBlock = $surface.Deploy.DeployBlock;
 					
-					& $configureBlock;
+					& $deployBlock;
 				}
 				catch {
+					# TODO: MIGHT want to create a specific type of error: Deploy Error... 
 					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
 					$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 					$configurationResult.AddConfigurationError($configurationError);
 				}
-				
-				$PVContext.ClearConfigurationState();
-				$PVContext.ClearDeferredExecution();
 			}
 			
 			# Now that we're done running configuration operations, time to execute Re-Compare operations:
@@ -522,7 +485,7 @@ function Process-Surface {
 				}
 				
 				$PVContext.SetRecompareInactive();
-				$PVContext.ClearConfigurationState();
+				$PVContext.ClearCurrentState();
 			}
 			
 			$surfaceProcessingResult.EndConfigurations($configurationsOutcome, $configurations);

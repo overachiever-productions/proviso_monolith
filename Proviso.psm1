@@ -22,6 +22,8 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
 	"$ProvisoScriptRoot\classes\models\Runbook.cs"
 	"$ProvisoScriptRoot\classes\models\Setup.cs"
+	"$ProvisoScriptRoot\classes\models\Build.cs"
+	"$ProvisoScriptRoot\classes\models\Deploy.cs"
 	"$ProvisoScriptRoot\classes\models\Surface.cs"
 	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"

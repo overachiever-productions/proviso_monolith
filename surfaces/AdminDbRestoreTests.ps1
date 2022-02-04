@@ -87,7 +87,7 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		Facet "StartTime" -ExpectChildKeyValue "RestoreTestJobs.JobStartTime" -ConfiguredBy "RestoreTestsEnabled" {
+		Facet "StartTime" -ExpectChildKeyValue "RestoreTestJobs.JobStartTime" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -96,7 +96,7 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		Facet "DatabasesToRestore" -ExpectChildKeyValue "RestoreTestJobs.DatabasesToRestore"  -ConfiguredBy "RestoreTestsEnabled" {
+		Facet "DatabasesToRestore" -ExpectChildKeyValue "RestoreTestJobs.DatabasesToRestore"  -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -116,6 +116,14 @@ Surface AdminDbRestoreTests {
 					return $targets;
 				}
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
 		}
 		
 		# TODO: Implement -Detailed facets... 

@@ -63,17 +63,14 @@ Surface "TestingSurface" {
 			}
 		}
 		
-		Facet "Deferred Facet" -Expect $true {
+		Facet "Deferred Facet" -Expect $true -UsesBuild {
 			Test {
 				# Test case here is that this'll effectively NEVER get called by itself - only by the 'child' or def below that DEFERS config to this facet.
 				return $true;
 			}
-			Configure {
-				$PVContext.AddSurfaceState("Deferred.Deferred", "Deferred");
-			}
 		}
 		
-		Facet "It is Deferred" -Expect "Deferred" -ConfiguredBy "Deferred Facet" {
+		Facet "It is Deferred" -Expect "Deferred" -UsesBuild {
 			Test {
 				if ($PVContext.GetSurfaceState("Deferred.Deferred")) {
 					return $PVContext.GetSurfaceState("Deferred.Deferred");
@@ -81,6 +78,15 @@ Surface "TestingSurface" {
 				
 				# otherwise, we'll get empty... 
 			}
+		}
+		
+		Build {
+			$PVContext.AddSurfaceState("Deferred.Deferred", "Deferred");
+		}
+		
+		Deploy {
+			
+			Write-Host "	running DEPLOY from within TestSurface... ";
 		}
 	}
 }

@@ -39,7 +39,7 @@ Surface AdminDbDiskMonitoring {
 			}
 		}
 		
-		Facet "WarnWhenGBsGoBelow" -ConfiguredBy "DiskMonitoringEnabled" {
+		Facet "WarnWhenGBsGoBelow" -UsesBuild {
 			Expect {
 				# TODO: look at implementing a param called something like -ExpectedValueFormat = "0:xxxx" or something like that so'z I can 
 				#  use "32" treated as "32.0" or whatever, instead of having to create an 'explicit Expect {} block' like I've done here. 
@@ -70,6 +70,14 @@ Surface AdminDbDiskMonitoring {
 					return $double.ToString("###0.0");
 				}
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
 		}
 	}
 }

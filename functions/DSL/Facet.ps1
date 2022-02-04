@@ -5,7 +5,8 @@ function Facet {
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
 		[string]$Description,
 		$Expect,
-		$ConfiguredBy,
+		#$ConfiguredBy,
+		[switch]$UsesBuild = $false,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$FacetBlock,
 		[string]$For = "",
@@ -141,9 +142,9 @@ function Facet {
 			$facet.SetExpect($ExpectBlock);
 		}
 		
-		if ($ConfiguredBy -and ($null -eq $facet.Configure)) {
-			$surface.VerifyConfiguredBy($Description, $ConfiguredBy);	# throws if the name isn't valid (i.e., found (already) within the current surface)
-			$facet.SetConfiguredBy($ConfiguredBy);
+		if ($UsesBuild -and ($null -eq $facet.Configure)) {
+			#$surface.VerifyCanUseBuild(); # throws if there aren't BUILD/DEPLOY funcs. 
+			$facet.SetUsesBuild();
 		}
 		
 		$surface.AddFacet($facet);

@@ -27,6 +27,8 @@ namespace Proviso
 
         public int SurfaceStateObjectsCount => this._temporarySurfaceState.Count;
 
+        public Facet CurrentFacet { get; private set; }
+        public string CurrentFacetDescription { get; private set; }
         public string CurrentKey { get; private set; }
         public object CurrentKeyValue { get; private set; }
 
@@ -45,6 +47,8 @@ namespace Proviso
             this.RebootRequired = false;
             this.SqlRestartRequired = false;
             this.RecompareActive = false;
+
+            this.ClearCurrentState();
         }
 
         public SurfaceProcessingResult[] GetAllResults()
@@ -84,16 +88,6 @@ namespace Proviso
             this.SetContextStateFromFacet(current);
         }
 
-        public void ClearValidationState()
-        {
-            this.CurrentKey = null;
-            this.CurrentKeyValue = null;
-            this.CurrentChildKey = null;
-            this.CurrentChildKeyValue = null;
-
-            this.Expected = null;  // can/will be set after SetValidationState() is called...
-        }
-
         public void SetConfigurationState(ValidationResult currentValidation)
         {
             Facet current = currentValidation.ParentFacet;
@@ -106,21 +100,11 @@ namespace Proviso
             this.Actual = currentValidation.Actual;
         }
 
-        public void SetDeferredExecution()
+        public void ClearCurrentState()
         {
-            // Hmm... this could just be a switch on/against .SetConfigurationState ... i.e., "bool isDeferred"... 
-        }
+            this.CurrentFacet = null;
+            this.CurrentFacetDescription = null;
 
-        public void ClearDeferredExecution()
-        {
-
-        }
-
-
-        public void ClearConfigurationState()
-        {
-            // REFACTOR ... this is damned near the same as ClearValidationState... to the point where I probably don't need 2x methods... 
-            //      could just call it something like "Reset or Clear State"
             this.CurrentKey = null;
             this.CurrentKeyValue = null;
             this.CurrentChildKey = null;
@@ -167,7 +151,7 @@ namespace Proviso
 
         public void CloseCurrentSurface()
         {
-            this.ClearConfigurationState();
+            this.ClearCurrentState();
             this._temporarySurfaceState = new Dictionary<string, object>();
         }
 
@@ -203,9 +187,11 @@ namespace Proviso
         }
         #endregion
 
-
         private void SetContextStateFromFacet(Facet current)
         {
+            this.CurrentFacet = current;
+            this.CurrentFacetDescription = current.Description;
+
             switch (current.FacetType)
             {
                 case FacetType.Simple:

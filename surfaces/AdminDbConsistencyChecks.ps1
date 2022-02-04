@@ -70,7 +70,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Facet "ConsistencyCheckDays" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "ConsistencyCheckDays" -UsesBuild {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.ExecutionDays");
@@ -85,7 +85,7 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Facet "Targets" -ExpectChildKeyValue "ConsistencyChecks.Targets" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "Targets" -ExpectChildKeyValue "ConsistencyChecks.Targets" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -105,15 +105,23 @@ Surface AdminDbConsistencyChecks {
 			}
 		}
 		
-		Facet "StartTime" -ExpectChildKeyValue "ConsistencyChecks.StartTime" -ConfiguredBy "ConsistencyCheckJobEnabled" {
+		Facet "StartTime" -ExpectChildKeyValue "ConsistencyChecks.StartTime" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$jobName = "Database Consistency Checks";
 				return Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
-		}		
+		}
 		
-		# TODO: implement -IsDetailed facets here. 
+		Build {
+			
+			
+		}
+		
+		Deploy {
+		}
+		
+		# TODO: implement -Detailed facets here. 
 	}
 }

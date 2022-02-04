@@ -5,15 +5,15 @@ namespace Proviso.Models
 {
     public class Facet
     {
-        public Surface Parent { get; private set; }
-        public FacetType FacetType { get; private set; }
-        public string Description { get; private set; }
+        public Surface Parent { get; }
+        public FacetType FacetType { get; }
+        public string Description { get; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
-        public bool DefersConfiguration { get; private set; }
-        public string ConfiguredBy { get; private set; }
-
         public ScriptBlock Expect { get; private set; }
+
+        public bool UsesBuild { get; private set; }
+
         public bool ExpectStaticKey { get; private set; }
         public bool ExpectCurrentIterationKey { get; private set; }
         public bool ExpectCompoundValueKey { get; private set; }
@@ -45,8 +45,7 @@ namespace Proviso.Models
             this.OrderDescending = false;
             this.ExpectIsSet = false;
 
-            this.DefersConfiguration = false;
-            this.ConfiguredBy = null;
+            this.UsesBuild = false;
         }
 
         public void SetIterationKeyForValueAndGroupFacets(string iterationKey)
@@ -95,23 +94,21 @@ namespace Proviso.Models
             this.Test = testBlock;
         }
 
-        public void SetConfigure(ScriptBlock configurationBlock) => this.SetConfigure(configurationBlock, null);
-
-        public void SetConfigure(ScriptBlock configurationBlock, string configuredBy)
+        public void SetConfigure(ScriptBlock configurationBlock) => this.SetConfigure(configurationBlock, false);
+        
+        public void SetConfigure(ScriptBlock configurationBlock, bool usesBuild)
         {
             this.Configure = configurationBlock;
 
-            if (configuredBy != null & !string.IsNullOrEmpty(configuredBy))
+            if (usesBuild)
             {
-                this.ConfiguredBy = configuredBy;
-                this.DefersConfiguration = true;
+                this.UsesBuild = true;
             }
         }
 
-        public void SetConfiguredBy(string facetName)
+        public void SetUsesBuild()
         {
-            this.ConfiguredBy = facetName;
-            this.DefersConfiguration = true;
+            this.UsesBuild = true;
         }
 
         public void SetStaticKey(string key)

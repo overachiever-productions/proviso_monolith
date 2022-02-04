@@ -111,7 +111,7 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -ConfiguredBy "BackupsEnabled" {
+		Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
@@ -133,7 +133,7 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -ConfiguredBy "BackupsEnabled" {
+		Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
@@ -142,6 +142,15 @@ Surface AdminDbBackups {
 				
 				return Get-AgentJobRecurringMinutes -SqlServerAgentJob $tLogJobName -SqlServerInstanceName $instanceName;
 			}
+		}
+		
+		Build {
+			
+			
+		}
+		
+		Deploy {
+			
 		}
 	}
 }

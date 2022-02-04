@@ -13,13 +13,20 @@ namespace Proviso.Models
         public string ConfigKey { get; private set; }
 
         public bool RebasePresent => this.Rebase != null;
-        public bool DefersConfigurations => this.Facets.Any(d => d.DefersConfiguration);
+        public bool UsesBuild => this.Facets.Any(f => f.UsesBuild);
 
         public List<Assertion> Assertions { get; private set; }
         public List<Assertion> FailedAssertions { get; private set; }
         public List<Facet> Facets { get; private set; }
         public Setup Setup { get; private set; }
         public Rebase Rebase { get; private set; }
+
+        // vNEXT: 
+        //public List<Aspect> Aspects { get; private set; }
+        //public List<Build> Builds { get; private set; }
+        //public List<Deploy> Deploys { get; private set; }
+        public Build Build { get; private set; }
+        public Deploy Deploy { get; private set; }
 
         public Surface(string name, string fileName, string sourcePath)
         {
@@ -40,7 +47,7 @@ namespace Proviso.Models
         public void AddSetup(Setup setup)
         {
             if (this.Setup != null)
-                throw new ArgumentException("Setup my ONLY be defined 1x per surface.");
+                throw new ArgumentException("Setup my ONLY be defined 1x per Surface.");
 
             this.Setup = setup;
         }
@@ -55,8 +62,27 @@ namespace Proviso.Models
 
         public void AddFacet(Facet added)
         {
+            // vNEXT: this needs to be added to it's current ASPECT... i.e., aspects own facets, builds, and deploys
             this.ValidateFacet(added); // implemented HERE so that we can throw context info about which facets are bad/etc. 
             this.Facets.Add(added);
+        }
+
+        public void AddBuild(Build build)
+        {
+            // vNEXT: this needs to be added to it's current ASPECT... i.e., aspects own facets, builds, and deploys
+            if (this.Build != null)
+                throw new ArgumentException("Build may ONLY be defined 1x per Surface.");
+
+            this.Build = build;
+        }
+
+        public void AddDeploy(Deploy deploy)
+        {
+            // vNEXT: this needs to be added to it's current ASPECT... i.e., aspects own facets, builds, and deploys
+            if (this.Deploy != null)
+                throw new ArgumentException("Deploy may ONLY be defined 1x per Surface.");
+
+            this.Deploy = deploy;
         }
 
         public void AddConfigKey(string key)
@@ -84,14 +110,14 @@ namespace Proviso.Models
             return this.Facets.Where(d => d.FacetType == FacetType.Compound).ToList();
         }
 
-        public void VerifyConfiguredBy(string currentFacetDescription, string handlerFacetDescription)
+        public void VerifyCanUseBuild()
         {
-            Facet handler = this.Facets.SingleOrDefault(d => d.Description == handlerFacetDescription);
-            if(handler == null)
-                throw new Exception($"Facet [{currentFacetDescription}] specifies -ConfiguredBy [{handlerFacetDescription}] - but a Facet with a Description of [{handlerFacetDescription}] does not (yet?) exist.");
+            // vNEXT: this'll have to be per Aspect... i.e., one aspect could use Build/Deploy - while another might NOT. 
+            if (this.Build == null)
+                throw new ArgumentException("Facet can not specify -UsesBuild unless a Build{} block (function) exists within the current Surface.");
 
-            if(handler.ConfiguredBy != null)
-                throw new Exception($"Facet [{currentFacetDescription}] specifies -ConfiguredBy [{handlerFacetDescription}] - but Facet [{handlerFacetDescription}] specifies -ConfiguredBy as well (vs an explicit Configure block). The -ConfiguredBy switch can NOT be 'chained' or 're-pointed'.");
+            if (this.Deploy == null)
+                throw new ArgumentException("Facet can not specify -UsesBuild unless a Deploy{} block (function) exists within the current Surface.");
         }
 
         private void ValidateFacet(Facet facet)
@@ -105,8 +131,14 @@ namespace Proviso.Models
             if(facet.Test == null)
                 throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");
 
-            if(facet.Configure == null & facet.ConfiguredBy == null)
-                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block.");
+            if(facet.Configure == null & facet.UsesBuild == false)
+                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block or use the -UsesBuild switch - along with Build{{}} and Deploy{{}} functions.");
+        }
+
+        public void Validate()
+        {
+            if (this.UsesBuild)
+                this.VerifyCanUseBuild(); // throws if either Build or Deploy funcs haven't been loaded. 
         }
     }
 }

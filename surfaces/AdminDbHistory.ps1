@@ -7,10 +7,8 @@ Surface AdminDbHistory {
 	}
 	
 	# TODO: add in the abililty to change the NAME of the JOB that handles these cleanups.
-	# cuz... for now, the job-name is HARD CODED to 'Regular History Cleanup' (in pretty much ALL of the following validations AND for the configure)
-	#   note... i've done with this later surfaces and ...  the CONFIG is set to allow this (for some 'surfaces' of admindb config... )
 	Aspect -Scope "AdminDb.*" {
-		Facet "CleanupEnabled" -ExpectChildKeyValue "HistoryManagement.Enabled" {
+		Facet "CleanupEnabled" -ExpectChildKeyValue "HistoryManagement.Enabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -20,27 +18,6 @@ Surface AdminDbHistory {
 				}
 				
 				return $true;
-			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				if ($expectedSetting) {
-					[string]$logCount = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.SqlServerLogsToKeep");
-					[string]$agentJobRetention = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.AgentJobHistoryRetention");
-					[string]$backupHistory = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.BackupHistoryRetention");
-					[string]$emailRetention = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.EmailHistoryRetention");
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[manage_server_history]
-						@NumberOfServerLogsToKeep = $logCount,
-						@AgentJobHistoryRetention = N'$agentJobRetention',
-						@BackupHistoryRetention = N'$backupHistory',
-						@EmailHistoryRetention = N'$emailRetention', 
-						@OverWriteExistingJob = 1; ";
-				}
-				else {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.HistoryManagement.Enabled] is set to `$false - but a Job Entitled 'Regular History Cleanup' already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
-				}
 			}
 		}
 		
@@ -121,14 +98,57 @@ Surface AdminDbHistory {
 			}
 		}
 		
+		# TODO: Implement -Detailed facets for FTI cleanup and so on... 
+		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
 			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"CleanupEnabled" {
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.HistoryManagement.Enabled] is set to `$false - but a Job Entitled 'Regular History Cleanup' already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
+						#$jobName = $PVConfig.GetValue("AdminDb.$sqlServerInstance.RestoreTestJobs.JobName");
+						#$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.RestoreTests.Enabled] is set to `$false - but a job entitled [$jobName] already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
+			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 			
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				[string]$logCount = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.SqlServerLogsToKeep");
+				[string]$agentJobRetention = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.AgentJobHistoryRetention");
+				[string]$backupHistory = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.BackupHistoryRetention");
+				[string]$emailRetention = $PVConfig.GetValue("AdminDb.$instanceName.HistoryManagement.EmailHistoryRetention");
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[manage_server_history]
+						@NumberOfServerLogsToKeep = $logCount,
+						@AgentJobHistoryRetention = N'$agentJobRetention',
+						@BackupHistoryRetention = N'$backupHistory',
+						@EmailHistoryRetention = N'$emailRetention', 
+						@OverWriteExistingJob = 1; ";
+			}
+			
 		}
-		
-		# TODO: Implement -Detailed facets for FTI cleanup and so on... 
 	}
 }

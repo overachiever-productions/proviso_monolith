@@ -8,7 +8,7 @@ Surface AdminDbConsistencyChecks {
 	}
 	
 	Aspect -Scope "AdminDb.*" {
-		Facet "ConsistencyCheckJobEnabled" -ExpectChildKeyValue "ConsistencyChecks.Enabled" {
+		Facet "ConsistencyCheckJobEnabled" -ExpectChildKeyValue "ConsistencyChecks.Enabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -19,54 +19,6 @@ Surface AdminDbConsistencyChecks {
 				}
 				
 				return $true;
-			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				if ($expectedSetting) {
-					
-					$dbccStartTime = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.StartTime");
-					$dbccTargets = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Targets");
-					$dbccExclusions = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Exclusions");
-					$dbccPriorities = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Priorities");
-					$dbccLogicalChecks = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.IncludeExtendedLogicalChecks");
-					$dbccTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.TimeZoneForUtcOffset");
-					$dbccJobName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobName");
-					$dbccJobCategoryName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobCategoryName");
-					$dbccOperator = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Operator");
-					$dbccProfile = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Profile");
-					$dbccSubject = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobEmailPrefix");
-					
-					$dbccExtended = "0";
-					if ($dbccLogicalChecks) {
-						$dbccExtended = "1";
-					}
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_consistency_checks_job]
-						@ExecutionDays = N'$dbccDays', 
-						@JobStartTime = N'$dbccStartTime', 
-						@JobName = N'$dbccJobName', 
-						@JobCategoryName = N'$dbccJobCategoryName', 
-						@TimeZoneForUtcOffset = N'$dbccTimeZone', 
-						@Targets = N'$dbccTargets', 
-						@Exclusions = N'$dbccExclusions', 
-						@Priorities = N'$dbccPriorities', 
-						@IncludeExtendedLogicalChecks = $dbccExtended, 
-						@OperatorName = N'$dbccOperator', 
-						@MailProfileName = N'$dbccProfile', 
-						@EmailSubjectPrefix = N'$dbccSubject', 
-						@OverWriteExistingJobs = 1; ";
-					
-				}
-				else {
-					if ($PVContext.Actual) {
-						$PVContext.WriteLog("Config setting for [Admindb.$instanceName.ConsistencyChecks.Enabled] is set to `$false - but a Consistency Check Job exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
-					}
-					# otherwise, expected config was "False" and current config is "False";
-					# crap... unless we've got deferred.
-					# see comment for https://overachieverllc.atlassian.net/browse/PRO-201
-				}
 			}
 		}
 		
@@ -115,11 +67,72 @@ Surface AdminDbConsistencyChecks {
 		}
 		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
 			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"ConsistencyCheckJobEnabled" {
+						$jobName = $PVConfig.GetValue("AdminDb.$sqlServerInstance.ConsistencyChecks.JobName");
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.ConsistencyChecks.Enabled] is set to `$false - but a job entitled [$jobName] already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
+			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 			
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				$dbccStartTime = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.StartTime");
+				$dbccTargets = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Targets");
+				$dbccExclusions = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Exclusions");
+				$dbccPriorities = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Priorities");
+				$dbccLogicalChecks = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.IncludeExtendedLogicalChecks");
+				$dbccTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.TimeZoneForUtcOffset");
+				$dbccJobName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobName");
+				$dbccJobCategoryName = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobCategoryName");
+				$dbccOperator = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Operator");
+				$dbccProfile = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.Profile");
+				$dbccSubject = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.JobEmailPrefix");
+				
+				$dbccExtended = "0";
+				if ($dbccLogicalChecks) {
+					$dbccExtended = "1";
+				}
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_consistency_checks_job]
+						@ExecutionDays = N'$dbccDays', 
+						@JobStartTime = N'$dbccStartTime', 
+						@JobName = N'$dbccJobName', 
+						@JobCategoryName = N'$dbccJobCategoryName', 
+						@TimeZoneForUtcOffset = N'$dbccTimeZone', 
+						@Targets = N'$dbccTargets', 
+						@Exclusions = N'$dbccExclusions', 
+						@Priorities = N'$dbccPriorities', 
+						@IncludeExtendedLogicalChecks = $dbccExtended, 
+						@OperatorName = N'$dbccOperator', 
+						@MailProfileName = N'$dbccProfile', 
+						@EmailSubjectPrefix = N'$dbccSubject', 
+						@OverWriteExistingJobs = 1; ";
+			}
 		}
 		
 		# TODO: implement -Detailed facets here. 

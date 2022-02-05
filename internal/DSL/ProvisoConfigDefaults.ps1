@@ -224,7 +224,8 @@
 			}
 			
 			HistoryManagement = @{
-				Enabled 				 = $true
+				Enabled				     = $true
+				# TODO: add a jobName: "Regular History Cleanup"
 				SqlServerLogsToKeep	     = 18
 				AgentJobHistoryRetention = "6 weeks"
 				BackupHistoryRetention   = "6 weeks"
@@ -232,7 +233,8 @@
 			}
 			
 			DiskMonitoring   = @{
-				Enabled = $true
+				Enabled			       = $true
+				# TODO: add a jobName: "Regular Drive Space Checks"
 				WarnWhenFreeGBsGoBelow = "32"
 			}
 			
@@ -241,29 +243,30 @@
 				IOAlertsFiltered	   = $false
 				SeverityAlertsEnabled  = $true
 				SeverityAlertsFiltered = $true
+				# Hmmm... add a job name for the filter? 
 			}
 			
 			IndexMaintenance = @{
 				Enabled = $false
+				JobsNamePrefix		    = "Index Maintenance - "
 				DailyJobRunsOnDays = "M,W,F"
 				WeekendJobRunsOnDays = "Su"
 				StartTime		     = "21:50:00"
 				TimeZoneForUtcOffset = "" # vNEXT, make this one {~DYNAMIC~} 
-				JobsNamePrefix	     = "Index Maintenance - "
 				JobsCategoryName	 = "Database Maintenance"
 				OperatorToAlertOnErrors = "Alerts"
 			}
 			
 			ConsistencyChecks = @{
-				Enabled = $false
-				ExecutionDays = "M,W,F,Su"
-				StartTime	  = "04:10:00"
-				Targets	      = "{USER}"
-				Exclusions    = ""
-				Priorities    = ""
+				Enabled 		= $false
+				JobName	 		= "Database Consistency Checks"
+				ExecutionDays 	= "M,W,F,Su"
+				StartTime	  	= "04:10:00"
+				Targets	      	= "{USER}"
+				Exclusions    	= ""
+				Priorities    	= ""
 				IncludeExtendedLogicalChecks = $false
 				TimeZoneForUtcOffset		 = "" # vNEXT, make this one {~DYNAMIC~} 
-				JobName					     = "Database Consistency Checks"
 				JobCategoryName			     = "Database Maintenance"
 				Operator					 = "Alerts"
 				Profile					     = "General"
@@ -272,6 +275,7 @@
 			
 			BackupJobs	     = @{
 				Enabled = $true
+				JobsNamePrefix			    = "Database Backups - "
 				
 				UserDatabasesToBackup	    = "{USER}"
 				UserDbsToExclude		    = ""
@@ -292,7 +296,6 @@
 				LogBackupsStart			    = "00:02:00"
 				LogBackupsEvery			    = "10 minutes"
 				TimeZoneForUtcOffset	    = ""
-				JobsNamePrefix			    = "Database Backups - "
 				JobsCategoryName		    = "Backups"
 				Operator				    = "Alerts"
 				Profile					    = "General"

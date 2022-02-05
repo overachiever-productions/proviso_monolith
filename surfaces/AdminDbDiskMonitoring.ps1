@@ -8,7 +8,7 @@ Surface AdminDbDiskMonitoring {
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 
 	Aspect -Scope "AdminDb.*" {
-		Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" {
+		Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -19,23 +19,6 @@ Surface AdminDbDiskMonitoring {
 				}
 				
 				return $true;
-			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				if ($expectedSetting) {
-					
-					[string]$GBsThreshold = $PVConfig.GetValue("AdminDb.$instanceName.DiskMonitoring.WarnWhenFreeGBsGoBelow");
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC [admindb].dbo.[enable_disk_monitoring]
-						@WarnWhenFreeGBsGoBelow = $GBsThreshold, 
-						@OverWriteExistingJob = 1; ";
-					
-				}
-				else {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.DiskMonitoring.Enabled] is set to `$false - but a Job Entitled 'Regular Drive Space Checks' already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
-				}
 			}
 		}
 		
@@ -73,11 +56,46 @@ Surface AdminDbDiskMonitoring {
 		}
 		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
 			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"DiskMonitoringEnabled" {
+						#$jobName = $PVConfig.GetValue("AdminDb.$sqlServerInstance.DiskMonitoring.JobName");
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.DiskMonitoring.Enabled] is set to `$false - but a Disk Monitoring job already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
+			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 			
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				[string]$GBsThreshold = $PVConfig.GetValue("AdminDb.$instanceName.DiskMonitoring.WarnWhenFreeGBsGoBelow");
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC [admindb].dbo.[enable_disk_monitoring]
+						@WarnWhenFreeGBsGoBelow = $GBsThreshold, 
+						@OverWriteExistingJob = 1; ";
+			}
 		}
 	}
 }

@@ -42,7 +42,7 @@ Surface AdminDb -Key "AdminDb" {
 					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables;
 					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC [admindb].dbo.[enable_advanced_capabilities]; ";
 					
-					$PVContext.AddSurfaceState("$instanceName.AdminDb.JustInstalled", $true);
+					$PVContext.SetSurfaceState("$instanceName.AdminDb.JustInstalled", $true);
 					$PVContext.WriteLog("AdminDb installed (not found previously).", "Verbose");
 				}
 				else {

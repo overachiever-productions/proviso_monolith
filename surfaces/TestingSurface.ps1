@@ -24,7 +24,7 @@ Surface "TestingSurface" {
 			Configure {
 				
 				$faked = (Get-Date -Year 2021 -Month 12 -Day 28).DayOfWeek.ToString();
-				$PVContext.AddSurfaceState("Tuesday.PostConfig", $faked);
+				$PVContext.SetSurfaceState("Tuesday.PostConfig", $faked);
 			}
 		}
 		
@@ -41,7 +41,7 @@ Surface "TestingSurface" {
 			Configure {
 				
 				$faked = (Get-Date -Year 2021 -Month 12 -Day 25).DayOfWeek.ToString();
-				$PVContext.AddSurfaceState("Saturday.PostConfig", $faked);
+				$PVContext.SetSurfaceState("Saturday.PostConfig", $faked);
 			}
 		}
 		
@@ -81,7 +81,7 @@ Surface "TestingSurface" {
 		}
 		
 		Build {
-			$PVContext.AddSurfaceState("Deferred.Deferred", "Deferred");
+			$PVContext.SetSurfaceState("Deferred.Deferred", "Deferred");
 		}
 		
 		Deploy {

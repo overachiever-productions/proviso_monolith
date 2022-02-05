@@ -28,7 +28,7 @@ namespace Proviso
         public int SurfaceStateObjectsCount => this._temporarySurfaceState.Count;
 
         public Facet CurrentFacet { get; private set; }
-        public string CurrentFacetDescription { get; private set; }
+        public string CurrentFacetName { get; private set; }
         public string CurrentKey { get; private set; }
         public object CurrentKeyValue { get; private set; }
 
@@ -37,8 +37,9 @@ namespace Proviso
 
         public object Expected { get; private set; }
         public object Actual { get; private set; }
+        public bool Matched { get; private set; }
         
-        public Dictionary<string, object> TemporarySurfaceState => this._temporarySurfaceState;
+        //public Dictionary<string, object> TemporarySurfaceState => this._temporarySurfaceState;
 
         public static ProcessingContext Instance => new ProcessingContext();
         
@@ -72,7 +73,9 @@ namespace Proviso
         {
             this.Expected = value;
         }
-        
+
+        // TODO: see if these are really needed. they were a bit of a hack around the whole AddSurfaceState vs SETSurfaceState... so..
+        //      i'm really curious as to whether they're truly needed or not. 
         public void SetRecompareActive()
         {
             this.RecompareActive = true;
@@ -98,12 +101,13 @@ namespace Proviso
 
             this.Expected = currentValidation.Expected;
             this.Actual = currentValidation.Actual;
+            this.Matched = currentValidation.Matched;
         }
 
         public void ClearCurrentState()
         {
             this.CurrentFacet = null;
-            this.CurrentFacetDescription = null;
+            this.CurrentFacetName = null;
 
             this.CurrentKey = null;
             this.CurrentKeyValue = null;
@@ -156,21 +160,7 @@ namespace Proviso
         }
 
         #region Surface State
-        public void AddSurfaceState(string key, object value)
-        {
-            // vNEXT: this idea of SETTING state may not be the best approach - i.e., I could see something getting 'lost' or 'stuck open' here... 
-            //      cuz this is a bit 'fiddly'. 
-            //      MIGHT make better sense to simply CHECK to see if the key's value exists and ... if so, simply RESET it to the new value? 
-            //      AND, note: this all exists because of RECOMPARE operations - i.e., imagine we do $PVContext.AddSurfaceState("myKey", $someVal); within 
-            //          the scope of a test ... well, that's spiffy and all - cuz that value is then available inside of the CONFIGURE operation. 
-            //          BUT: when CONFIGURE is done running, we RE-COMPARE results - meaning that TEST is re-run and ... attempting to add _tempFacetState.Add(keyAlreadyDefined, someVal) obviously ... throws. 
-
-            //  THE ABOVE SAID: I've added an explicit: void OverwriteSurfaceState... which addresses SOME concerns - but not all. 
-            if (!this.RecompareActive)
-                this._temporarySurfaceState.Add(key, value);
-        }
-
-        public void OverwriteSurfaceState(string key, object value)
+        public void SetSurfaceState(string key, object value)
         {
             if (this._temporarySurfaceState.ContainsKey(key))
                 this._temporarySurfaceState[key] = value;
@@ -190,7 +180,7 @@ namespace Proviso
         private void SetContextStateFromFacet(Facet current)
         {
             this.CurrentFacet = current;
-            this.CurrentFacetDescription = current.Description;
+            this.CurrentFacetName = current.Description;
 
             switch (current.FacetType)
             {

@@ -19,8 +19,8 @@ Surface "ExpectedDisks" {
 		
 		#$physicalDisks | Format-List;
 		
-		$PVContext.AddSurfaceState("CurrentPhysicalDisks", $physicalDisks);
-		$PVContext.AddSurfaceState("CurrentVolumes", $volumes);
+		$PVContext.SetSurfaceState("CurrentPhysicalDisks", $physicalDisks);
+		$PVContext.SetSurfaceState("CurrentVolumes", $volumes);
 	}
 	
 	Assertions {
@@ -103,8 +103,8 @@ Surface "ExpectedDisks" {
 				Initialize-TargetDisk -DiskNumber ($matchedDiskToConfigure.DiskNumber) -DiskName $expectedDiskKey -VolumeName $volumeName -VolumeLabel $volumeLabel;
 				
 				# Re-set CACHED disk info now that we've changed details: 
-				$PVContext.OverwriteSurfaceState("CurrentPhysicalDisks", (Get-ExistingPhysicalDisks));
-				$PVContext.OverwriteSurfaceState("CurrentVolumes", (Get-ExistingVolumeLetters));
+				$PVContext.SetSurfaceState("CurrentPhysicalDisks", (Get-ExistingPhysicalDisks));
+				$PVContext.SetSurfaceState("CurrentVolumes", (Get-ExistingVolumeLetters));
 			}
 		}
 	}

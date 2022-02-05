@@ -8,7 +8,7 @@ Surface AdminDbIndexMaintenance {
 	
 	# TODO: currently using hard-coded job-names... 
 	Aspect -Scope "AdminDb.*" {
-		Facet "IndexMaintenanceEnabled" {
+		Facet "IndexMaintenanceEnabled" -UsesBuild {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -64,35 +64,6 @@ Surface AdminDbIndexMaintenance {
 				
 				return $false;
 			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				if ($expectedSetting) {
-					
-					$weekDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.DailyJobRunsOnDays");
-					$weekEnds = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.WeekendJobRunsOnDays");
-					$ixJobStartTime = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.StartTime");
-					$ixJobTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.TimeZoneForUtcOffset");
-					$ixJobPrefix = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.JobsNamePrefix");
-					$ixJobCategory = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.JobsCategoryName");
-					$ixJobOperator = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.OperatorToAlertOnErrors");
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_index_maintenance_jobs]
-						@DailyJobRunsOnDays = N'$weekDays',
-						@WeekendJobRunsOnDays = N'$weekEnds',
-						@IXMaintenanceJobStartTime = N'$ixJobStartTime',
-						@TimeZoneForUtcOffset = N'$ixJobTimeZone',
-						@JobsNamePrefix = N'$ixJobPrefix',
-						@JobsCategoryName = N'$ixJobCategory',
-						@JobOperatorToAlertOnErrors = N'$ixJobOperator',
-						@OverWriteExistingJobs = 1; ";
-					
-				}
-				else{
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.IndexMaintenance.Enabled] is set to `$false - but one or more Index Maintenance Jobs exist. Proviso will NOT drop these jobs. Please make changes manually.", "Critical");
-				}
-			}
 		}
 		
 		Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." {
@@ -120,19 +91,13 @@ Surface AdminDbIndexMaintenance {
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
-				if ($expectedSetting) {
-					$scriptPath = $PVResources.GetAsset("hallengren_ix_optimize_only", "sql");
-					if (-not (Test-Path $scriptPath)) {
-						throw "Unable to locate asset [hallengren_ix_optimize_only.sql] at expected location of: [$scriptPath].";
-					}
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $scriptPath -DisableVariables;
+				$scriptPath = $PVResources.GetAsset("hallengren_ix_optimize_only", "sql");
+				if (-not (Test-Path $scriptPath)) {
+					throw "Unable to locate asset [hallengren_ix_optimize_only.sql] at expected location of: [$scriptPath].";
 				}
-				else {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.IndexMaintenance.Enabled] is set to `$false - and Ola Hallengren's CommandLog (table), IndexOptimize (sproc), and CommandExecute (sproc) objects exist in the master database. Proviso will NOT drop these objects. Please make changes manually.", "Critical");
-				}
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $scriptPath -DisableVariables;
 			}
 		}
 		
@@ -172,14 +137,49 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
+		# TODO: Implement -Detailed Facets here... 
+		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$matched = $PVContext.Matched;
 			
-			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				
+				$weekDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.DailyJobRunsOnDays");
+				$weekEnds = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.WeekendJobRunsOnDays");
+				$ixJobStartTime = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.StartTime");
+				$ixJobTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.TimeZoneForUtcOffset");
+				$ixJobPrefix = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.JobsNamePrefix");
+				$ixJobCategory = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.JobsCategoryName");
+				$ixJobOperator = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.OperatorToAlertOnErrors");
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[create_index_maintenance_jobs]
+						@DailyJobRunsOnDays = N'$weekDays',
+						@WeekendJobRunsOnDays = N'$weekEnds',
+						@IXMaintenanceJobStartTime = N'$ixJobStartTime',
+						@TimeZoneForUtcOffset = N'$ixJobTimeZone',
+						@JobsNamePrefix = N'$ixJobPrefix',
+						@JobsCategoryName = N'$ixJobCategory',
+						@JobOperatorToAlertOnErrors = N'$ixJobOperator',
+						@OverWriteExistingJobs = 1; ";				
+			}
 		}
-		
-		# TODO: Implement -Detailed Facets here... 
 	}
 }

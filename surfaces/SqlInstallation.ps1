@@ -24,105 +24,18 @@ Surface SqlInstallation {
 	}
 		
 	Aspect -Scope "SQLServerInstallation.*" {
-		Facet "InstanceExists" -ExpectCurrentKeyValue {
+		Facet "InstanceExists" -ExpectCurrentKeyValue -UsesBuild {
 			Test {
 				$instanceKey = $PVContext.CurrentKeyValue;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
 				
 				if ($instanceKey -in $installedInstances) {
-					$PVContext.AddSurfaceState("$instanceKey.Installed", $true);
+					$PVContext.SetSurfaceState("$instanceKey.Installed", $true);
 					return $instanceKey;
 				}
 				
-				$PVContext.AddSurfaceState("$instanceKey.Installed", $false);
+				$PVContext.SetSurfaceState("$instanceKey.Installed", $false);
 				return "";
-			}
-			Configure {
-				$instanceKey = $PVContext.CurrentKeyValue;
-				
-				$version = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Version");
-				$sqlExePathKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlExePath");
-				$mediaLocation = $PVResources.GetSqlSetupExe($sqlExePathKey);
-				$features = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Features");
-				
-				# vNEXT: if the $sqlExePathKey endsWith .iso ... then, mount the iso and then return the path to the iso's setup.exe... 
-				# https://overachieverllc.atlassian.net/browse/PRO-98
-				if (-not (Test-Path $mediaLocation)) {
-					throw "Specified [SqlExePath] for SQL Server Instance [$instanceKey] is NOT valid and/or the path could not be located.";
-				}
-				
-				$strictInstallOnly = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.StrictInstallOnly");
-				
-				$settings = @{};
-				$settings["Collation"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Collation");
-				$settings["FileStreamLevel"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.FileStreamLevel");
-				$settings["InstantFileInit"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstantFileInit");
-				$settings["NamedPipesEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.NamedPipesEnabled");
-				$settings["TcpEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.TcpEnabled");
-				$settings["SQLAuthEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.EnableSqlAuth");
-				$settings["SaPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.SaPassword");
-				
-				[string[]]$membersOfSysAdmin = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.MembersOfSysAdmin");
-				$addCurrent = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.AddCurrentUserAsAdmin");
-				if ($addCurrent) {
-					$current = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-					if ($membersOfSysAdmin -notcontains $current) {
-						$membersOfSysAdmin += $current;
-					}
-				}
-				
-				$installDirs = @{};
-				$installDirs["InstallDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallDirectory");
-				$installDirs["InstallSharedDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedDirectory");
-				$installDirs["InstallSharedWowDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedWowDirectory");
-				
-				$serviceAccounts = @{};
-				$serviceAccounts["SqlServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountName");
-				$serviceAccounts["SqlServiceAccountPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountPassword");
-				$serviceAccounts["AgentServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.AgentServiceAccountName");
-				$serviceAccounts["AgentServiceAccountPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.AgentServiceAccountPassword");
-				$serviceAccounts["FullTextServiceAccount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServiceAccount");
-				$serviceAccounts["FullTextServicePassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServicePassword");
-				
-				$sqlDirectories = @{};
-				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.InstallSqlDataDir");
-				$sqlDirectories["SqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlDataPath");
-				$sqlDirectories["SqlLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlLogsPath");
-				$sqlDirectories["SqlBackupsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlBackupsPath");
-				$sqlDirectories["TempDbPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbPath");
-				$sqlDirectories["TempDbLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbLogsPath");
-				
-				$tempDbDetails = @{};
-				$tempDbDetails["SqlTempDbFileCount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileCount");
-				$tempDbDetails["SqlTempDbFileSize"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileSize");
-				$tempDbDetails["SqlTempDbFileGrowth"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileGrowth");
-				$tempDbDetails["SqlTempDbLogFileSize"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbLogFileSize");
-				$tempDbDetails["SqlTempDbLogFileGrowth"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbLogFileGrowth");
-				
-				$licenseKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.LicenseKey");
-				
-				try {
-					
-					$PVContext.WriteLog("Starting Installation of SQL Server.", "Important");
-					Install-SqlServer `
-						-Version $version `
-						-StrictInstallOnly:$strictInstallOnly `
-						-InstanceName $instanceKey `
-						-MediaLocation $mediaLocation `
-						-Features $features `
-						-Settings $settings `
-						-SysAdminMembers $membersOfSysAdmin `
-						-InstallationDirectories $installDirs `
-						-ServiceAccounts $serviceAccounts `
-						-SqlDirectories $sqlDirectories `
-						-SqlTempDbDirectives $tempDbDetails `
-						-LicenseKey $licenseKey;
-					
-					$PVContext.WriteLog("SQL Server Installation Complete.", "Important");
-				}
-				catch {
-					$PVContext.WriteLog("SQL Server Installation Failure: $_ `r`t$($_.ScriptStackTrace) ", "Critical");
-				}
 			}
 		}
 		
@@ -252,12 +165,117 @@ Surface SqlInstallation {
 		}
 		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$matched = $PVContext.Matched;
 			
-			
-			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("InstallationInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("InstallationInstances", $currentInstances);
+			}
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("InstallationInstances");
+			
+			foreach ($instanceKey in $currentInstances) {
+				
+				$version = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Version");
+				$sqlExePathKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlExePath");
+				$mediaLocation = $PVResources.GetSqlSetupExe($sqlExePathKey);
+				$features = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Features");
+				
+				# vNEXT: if the $sqlExePathKey endsWith .iso ... then, mount the iso and then return the path to the iso's setup.exe... 
+				# https://overachieverllc.atlassian.net/browse/PRO-98
+				if (-not (Test-Path $mediaLocation)) {
+					throw "Specified [SqlExePath] for SQL Server Instance [$instanceKey] is NOT valid and/or the path could not be located.";
+				}
+				
+				$strictInstallOnly = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.StrictInstallOnly");
+				
+				$settings = @{
+				};
+				$settings["Collation"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Collation");
+				$settings["FileStreamLevel"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.FileStreamLevel");
+				$settings["InstantFileInit"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstantFileInit");
+				$settings["NamedPipesEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.NamedPipesEnabled");
+				$settings["TcpEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.TcpEnabled");
+				$settings["SQLAuthEnabled"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.EnableSqlAuth");
+				$settings["SaPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.SaPassword");
+				
+				[string[]]$membersOfSysAdmin = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.MembersOfSysAdmin");
+				$addCurrent = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SecuritySetup.AddCurrentUserAsAdmin");
+				if ($addCurrent) {
+					$current = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
+					if ($membersOfSysAdmin -notcontains $current) {
+						$membersOfSysAdmin += $current;
+					}
+				}
+				
+				$installDirs = @{
+				};
+				$installDirs["InstallDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallDirectory");
+				$installDirs["InstallSharedDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedDirectory");
+				$installDirs["InstallSharedWowDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedWowDirectory");
+				
+				$serviceAccounts = @{
+				};
+				$serviceAccounts["SqlServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountName");
+				$serviceAccounts["SqlServiceAccountPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountPassword");
+				$serviceAccounts["AgentServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.AgentServiceAccountName");
+				$serviceAccounts["AgentServiceAccountPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.AgentServiceAccountPassword");
+				$serviceAccounts["FullTextServiceAccount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServiceAccount");
+				$serviceAccounts["FullTextServicePassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServicePassword");
+				
+				$sqlDirectories = @{
+				};
+				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.InstallSqlDataDir");
+				$sqlDirectories["SqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlDataPath");
+				$sqlDirectories["SqlLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlLogsPath");
+				$sqlDirectories["SqlBackupsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlBackupsPath");
+				$sqlDirectories["TempDbPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbPath");
+				$sqlDirectories["TempDbLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbLogsPath");
+				
+				$tempDbDetails = @{
+				};
+				$tempDbDetails["SqlTempDbFileCount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileCount");
+				$tempDbDetails["SqlTempDbFileSize"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileSize");
+				$tempDbDetails["SqlTempDbFileGrowth"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileGrowth");
+				$tempDbDetails["SqlTempDbLogFileSize"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbLogFileSize");
+				$tempDbDetails["SqlTempDbLogFileGrowth"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbLogFileGrowth");
+				
+				$licenseKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.LicenseKey");
+				
+				try {
+					
+					$PVContext.WriteLog("Starting Installation of SQL Server.", "Important");
+					Install-SqlServer `
+									  -Version $version `
+									  -StrictInstallOnly:$strictInstallOnly `
+									  -InstanceName $instanceKey `
+									  -MediaLocation $mediaLocation `
+									  -Features $features `
+									  -Settings $settings `
+									  -SysAdminMembers $membersOfSysAdmin `
+									  -InstallationDirectories $installDirs `
+									  -ServiceAccounts $serviceAccounts `
+									  -SqlDirectories $sqlDirectories `
+									  -SqlTempDbDirectives $tempDbDetails `
+									  -LicenseKey $licenseKey;
+					
+					$PVContext.WriteLog("SQL Server Installation Complete.", "Important");
+				}
+				catch {
+					$PVContext.WriteLog("SQL Server Installation Failure: $_ `r`t$($_.ScriptStackTrace) ", "Critical");
+				}
+			}
 		}
 		
 		

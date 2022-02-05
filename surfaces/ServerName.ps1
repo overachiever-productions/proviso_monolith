@@ -63,7 +63,7 @@ Surface "ServerName" {
 				
 				if ($targetDomainName -ne $currentDomain) {
 					# OUTCOME D
-					$PVContext.AddSurfaceState("JoiningDomainAsPartOfRename", $true);
+					$PVContext.SetSurfaceState("JoiningDomainAsPartOfRename", $true);
 					
 					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName] and joining the [$targetDomainName] Domain.", "Important");
 					try {
@@ -97,7 +97,7 @@ Surface "ServerName" {
 					$domain = "";
 				}
 				
-				$PVContext.AddSurfaceState("CurrentDomain", $domain);
+				$PVContext.SetSurfaceState("CurrentDomain", $domain);
 				
 				return $domain; 
 			}

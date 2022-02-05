@@ -10,11 +10,11 @@ Surface "FirewallRules" -For -Key "Host.FirewallRules" {
 		Assert -Is "WindowsFirewallEnabled" -NonFatal {
 			$states = Get-NetFirewallProfile | Select-Object -Property Enabled;
 			if (-not ($states)) {
-				$PVContext.AddSurfaceState("WindowsFirewall.Enabled", $false);
+				$PVContext.SetSurfaceState("WindowsFirewall.Enabled", $false);
 				return $false;
 			}
 			
-			$PVContext.AddSurfaceState("WindowsFirewall.Enabled", $true);
+			$PVContext.SetSurfaceState("WindowsFirewall.Enabled", $true);
 			return $true;
 		}
 	}

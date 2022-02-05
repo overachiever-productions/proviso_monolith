@@ -23,7 +23,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 					$drive = $dvdDrive | Select-Object DriveLetter;
 					$driveLetter = $drive.DriveLetter;
 					
-					$PVContext.AddSurfaceState("DvdDrive", $dvdDrive);
+					$PVContext.SetSurfaceState("DvdDrive", $dvdDrive);
 					
 					return $driveLetter;
 				}

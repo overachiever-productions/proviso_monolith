@@ -9,7 +9,7 @@ Surface AdminDbDatabaseMail {
 	
 	# TODO: add options that map to server.display_name, server.replyto_address, account.display_name, account.replyto_address
 	Aspect -Scope "AdminDb.*" {
-		Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" {
+		Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				
@@ -25,31 +25,6 @@ Surface AdminDbDatabaseMail {
 				}
 				
 				return $true;
-			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				
-				[string]$operatorEmail = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.OperatorEmail");
-				[string]$smtpAccountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
-				[string]$smtpOutAddy = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpOutgoingEmailAddress");
-				[string]$smtpServer = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpServerName");
-				[string]$portNumber = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpPortNumber");
-				[string]$requiresSsl = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpRequiresSSL");
-				[string]$authType = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAuthType");
-				[string]$userName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmptUserName");
-				[string]$password = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpPassword");
-				[string]$sendEmail = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SendTestEmailUponCompletion");
-				
-				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[configure_database_mail]
-					@OperatorEmail = N'$operatorEmail',
-					@SmtpAccountName = N'$smtpAccountName',
-					@SmtpOutgoingEmailAddress = N'$smtpOutAddy',
-					@SmtpServerName = N'$smtpServer',
-					@SmtpPortNumber = $portNumber, 
-					@SmtpRequiresSSL = $requiresSsl, 
-				    @SmptUserName = N'$userName',
-				    @SmtpPassword = N'$password', 
-					@SendTestEmailUponCompletion = $sendEmail ; ";
 			}
 		}
 		
@@ -158,12 +133,62 @@ Surface AdminDbDatabaseMail {
 		}
 		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
 			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"DatabaseMail Enabled" {
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.DatabaseMail.Enabled] is set to `$false - but Database Mail has already been configured. Proviso will NOT tear-down Database Mail. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
 			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
 			
+			foreach ($instanceName in $currentInstances) {
+				$instanceName = $PVContext.CurrentKeyValue;
+				
+				[string]$operatorEmail = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.OperatorEmail");
+				[string]$smtpAccountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
+				[string]$smtpOutAddy = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpOutgoingEmailAddress");
+				[string]$smtpServer = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpServerName");
+				[string]$portNumber = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpPortNumber");
+				[string]$requiresSsl = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpRequiresSSL");
+				[string]$authType = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAuthType");
+				[string]$userName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmptUserName");
+				[string]$password = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpPassword");
+				[string]$sendEmail = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SendTestEmailUponCompletion");
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[configure_database_mail]
+					@OperatorEmail = N'$operatorEmail',
+					@SmtpAccountName = N'$smtpAccountName',
+					@SmtpOutgoingEmailAddress = N'$smtpOutAddy',
+					@SmtpServerName = N'$smtpServer',
+					@SmtpPortNumber = $portNumber, 
+					@SmtpRequiresSSL = $requiresSsl, 
+				    @SmptUserName = N'$userName',
+				    @SmtpPassword = N'$password', 
+					@SendTestEmailUponCompletion = $sendEmail ; ";
+			}
 		}
 	}
 }

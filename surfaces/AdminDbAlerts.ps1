@@ -7,7 +7,7 @@ Surface AdminDbAlerts {
 	}
 	
 	Aspect -Scope "AdminDb.*" {
-		Facet "IOAlertsEnabled" -ExpectChildKeyValue "Alerts.IOAlertsEnabled" {
+		Facet "IOAlertsEnabled" -ExpectChildKeyValue "Alerts.IOAlertsEnabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -28,31 +28,121 @@ Surface AdminDbAlerts {
 					return $false;
 				}
 				
-				$PVContext.AddSurfaceState("$instanceName.IoAlertsEnabled", $true);
 				return $true;
 			}
-			Configure {
+		}
+		
+		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -UsesBuild {
+			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
+				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				
+				[int[]]$expected = 17 .. 25;
+				$severities = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [severity] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1; ").severity;
+				
+				$missing = "";
+				foreach ($id in $expected) {
+					if ($severities -notcontains $id) {
+						$missing += "$id, ";
+					}
+				}
+				
+				if ($missing) {
+					$missing = $missing.Substring(0, $missing.length - 2);
+					$PVContext.WriteLog("Severity Alerts on Instance [$instanceName] is missing severities $missing. (They may be present - but DISABLED.)", "Verbose");
+					return $false;
+				}
+				
+				return $true;
+			}
+		}
+		
+		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -UsesBuild {
+			Test {
+				$instanceName = $PVContext.CurrentKeyValue;
+				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				
+				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT([job_id]) [count] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000'; ").count;
+				if ($count -eq 0){
+					return $false;
+				}
+				
+				if ($count -eq 4){
+					return $true;
+				}
+				
+				return "<MIXED>";
+			}
+		}
+		
+		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -UsesBuild {
+			Test {
+				$instanceName = $PVContext.CurrentKeyValue;
+				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				
+				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT(job_id) [count] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000' ").count;
+				if ($count -eq 0) {
+					return $false;
+				}
+				
+				if ($count -eq 9) {
+					return $true;
+				}
+				
+				return "<MIXED>";
+			}
+		}
+		
+		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
+			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"IOAlertsEnabled" {
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.Alerts.IOAlertsEnabled] is set to `$false - but 4x alerts for IO problems already exist. Proviso will NOT remove these 4x alerts (605, 823, 824, 825). Please make changes manually.", "Critical");
+						return; # don't redo the deploy... it WON'T remove these alerts... so no sense in running it.
+					}
+					"SeverityAlertsEnabled" {
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.Alerts.SeverityAlertsEnabled] is set to `$false - but Severity alerts already exist. Proviso will NOT remove Severity alerts. Please make changes manually.", "Critical");
+						return; # don't redo the deploy... it WON'T remove these alerts... so no sense in running it.
+					}
+					# TODO: verify that setting filters OFF will... turn them off (via reconfig)
+#					"IOAlertsFiltered" {
+#						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.Alerts.IOAlertsFiltered] is set to `$false - but IO Alert Filtering ALREADY exists. Proviso will NOT remove Alert Filtering. Please make changes manually.", "Critical");
+#					}
+#					"SeverityAlertsFiltered" {
+#						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.Alerts.SeverityAlertsFiltered] is set to `$false - but Severity Alert Filtering ALREADY exists. Proviso will NOT remove Alert Filtering. Please make changes manually.", "Critical");
+#					}
+				}
+			}
+			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
+			
+		}
+		
+		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
 				
 				# Expected Values:
 				$ioAlertsEnabled = $PVConfig.GetValue("AdminDb.$instanceName.Alerts.IOAlertsEnabled");
 				$severityAlertsEnabled = $PVConfig.GetValue("AdminDb.$instanceName.Alerts.SeverityAlertsEnabled");
 				$ioAlertsFiltered = $PVConfig.GetValue("AdminDb.$instanceName.Alerts.IOAlertsFiltered");
 				$severityAlertsFiltered = $PVConfig.GetValue("AdminDb.$instanceName.Alerts.SeverityAlertsFiltered");
-				
-				# this is a bit ugly (these next 4x checks)
-				if ($PVContext.GetSurfaceState("$instanceName.IoAlertsEnabled") -and (-not ($ioAlertsEnabled))) {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.Alerts.IOAlertsEnabled] is set to `$false - but 4x alerts for IO problems already exist. Proviso will NOT remove these 4x alerts (605, 823, 824, 825). Please make changes manually.", "Critical");
-				}
-				if ($PVContext.GetSurfaceState("$instanceName.SeverityAlertsEnabled") -and (-not ($severityAlertsEnabled))) {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.Alerts.SeverityAlertsEnabled] is set to `$false - but Severity alerts already exist. Proviso will NOT remove Severity alerts. Please make changes manually.", "Critical");
-				}
-				if ($PVContext.GetSurfaceState("$instanceName.IOAlertsFiltered") -and (-not ($ioAlertsFiltered))) {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.Alerts.IOAlertsFiltered] is set to `$false - but IO Alert Filtering ALREADY exists. Proviso will NOT remove Alert Filtering. Please make changes manually.", "Critical");
-				}
-				if ($PVContext.GetSurfaceState("$instanceName.SeverityAlertsFiltered") -and (-not ($severityAlertsFiltered))) {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.Alerts.SeverityAlertsFiltered] is set to `$false - but Severity Alert Filtering ALREADY exists. Proviso will NOT remove Alert Filtering. Please make changes manually.", "Critical");
-				}
 				
 				# Alerts:
 				$alertTypes = "";
@@ -87,81 +177,7 @@ Surface AdminDbAlerts {
 				
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC admindb.dbo.[enable_alert_filtering]
 					@TargetAlerts = N'$alertFilters'; ";
-	
 			}
-		}
-		
-		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -UsesBuild {
-			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				[int[]]$expected = 17 .. 25;
-				$severities = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [severity] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1; ").severity;
-				
-				$missing = "";
-				foreach ($id in $expected) {
-					if ($severities -notcontains $id) {
-						$missing += "$id, ";
-					}
-				}
-				
-				if ($missing) {
-					$missing = $missing.Substring(0, $missing.length - 2);
-					$PVContext.WriteLog("Severity Alerts on Instance [$instanceName] is missing severities $missing. (They may be present - but DISABLED.)", "Verbose");
-					return $false;
-				}
-				
-				$PVContext.AddSurfaceState("$instanceName.SeverityAlertsEnabled", $true);
-				return $true;
-			}
-		}
-		
-		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -UsesBuild {
-			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT([job_id]) [count] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000'; ").count;
-				if ($count -eq 0){
-					return $false;
-				}
-				
-				$PVContext.AddSurfaceState("$instanceName.IOAlertsFiltered", $true);
-				if ($count -eq 4){
-					return $true;
-				}
-				
-				return "<MIXED>";
-			}
-		}
-		
-		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -UsesBuild {
-			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				
-				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT(job_id) [count] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000' ").count;
-				if ($count -eq 0) {
-					return $false;
-				}
-				
-				$PVContext.AddSurfaceState("$instanceName.SeverityAlertsFiltered", $true);
-				if ($count -eq 9) {
-					return $true;
-				}
-				
-				return "<MIXED>";
-			}
-		}
-		
-		Build {
-			
-			
-		}
-		
-		Deploy {
-			
 		}
 	}
 }

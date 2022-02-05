@@ -7,7 +7,7 @@ Surface AdminDbBackups {
 	}
 	
 	Aspect -Scope "AdminDb.*" {
-		Facet "BackupsEnabled" -ExpectChildKeyValue "BackupJobs.Enabled" {
+		Facet "BackupsEnabled" -ExpectChildKeyValue "BackupJobs.Enabled" -UsesBuild {
 			Test {
 				# this one's a bit complex. IF no jobs exist, then $false. 
 				# otherwise, if all jobs exist: $true. 
@@ -50,7 +50,76 @@ Surface AdminDbBackups {
 				return "<MIXED>";
 				
 			}
-			Configure {
+		}
+		
+		Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -UsesBuild {
+			Test {
+				$instanceName = $PVContext.CurrentKeyValue;
+				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
+				
+				$fullBackupsJobName = "$($jobsPrefix)USER - Full";
+				
+				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $fullBackupsJobName -JobStepName "FULL Backup of USER Databases" -SqlServerInstanceName $instanceName;
+				if ($jobStepBody -like "<*") {
+					return $jobStepBody;
+				}
+				
+				$regex = New-Object System.Text.RegularExpressions.Regex("@DatabasesToBackup = N'(?<targets>[^']+)", [System.Text.RegularExpressions.RegexOptions]::Multiline);
+				$matches = $regex.Match($jobStepBody);
+				if ($matches) {
+					$targets = $matches.Groups[1].Value;
+					
+					return $targets;
+				}
+			}
+		}
+		
+		Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -UsesBuild {
+			Test {
+				$instanceName = $PVContext.CurrentKeyValue;
+				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
+				
+				$tLogJobName = "$($jobsPrefix)USER - Log";
+				
+				return Get-AgentJobRecurringMinutes -SqlServerAgentJob $tLogJobName -SqlServerInstanceName $instanceName;
+			}
+		}
+		
+		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
+			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"BackupsEnabled" {
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.BackupJobs.Enabled] is set to `$false - but one or more Backup Jobs currently exist. Proviso will NOT drop these jobs. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
+			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
+			
+		}
+		
+		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				
 				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$userDbTargets = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.UserDatabasesToBackup");
@@ -107,50 +176,7 @@ Surface AdminDbBackups {
 					@JobOperatorToAlertOnErrors = N'$backupsOperator',
 					@ProfileToUseForAlerts = N'$backupsProfile',
 					@OverWriteExistingJobs = 1; ";
-				
 			}
-		}
-		
-		Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -UsesBuild {
-			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
-				
-				$fullBackupsJobName = "$($jobsPrefix)USER - Full";
-				
-				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $fullBackupsJobName -JobStepName "FULL Backup of USER Databases" -SqlServerInstanceName $instanceName;
-				if ($jobStepBody -like "<*") {
-					return $jobStepBody;
-				}
-				
-				$regex = New-Object System.Text.RegularExpressions.Regex("@DatabasesToBackup = N'(?<targets>[^']+)", [System.Text.RegularExpressions.RegexOptions]::Multiline);
-				$matches = $regex.Match($jobStepBody);
-				if ($matches) {
-					$targets = $matches.Groups[1].Value;
-					
-					return $targets;
-				}
-			}
-		}
-		
-		Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -UsesBuild {
-			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
-				
-				$tLogJobName = "$($jobsPrefix)USER - Log";
-				
-				return Get-AgentJobRecurringMinutes -SqlServerAgentJob $tLogJobName -SqlServerInstanceName $instanceName;
-			}
-		}
-		
-		Build {
-			
-			
-		}
-		
-		Deploy {
-			
 		}
 	}
 }

@@ -4,7 +4,7 @@ Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 	
 	Setup {
 		$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-		$PVContext.AddSurfaceState("CurrentAdmins", $admins);
+		$PVContext.SetSurfaceState("CurrentAdmins", $admins);
 	}
 	
 	Assertions {
@@ -50,7 +50,7 @@ Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
 				
 				# reset/reload local admins: 
 				$newAdmins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-				$PVContext.OverwriteSurfaceState("CurrentAdmins", $newAdmins);
+				$PVContext.SetSurfaceState("CurrentAdmins", $newAdmins);
 			}
 		}
 	}

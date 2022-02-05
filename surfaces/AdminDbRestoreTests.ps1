@@ -8,7 +8,7 @@ Surface AdminDbRestoreTests {
 	}
 	
 	Aspect -Scope "AdminDb.*" {
-		Facet "RestoreTestsEnabled" -ExpectChildKeyValue "RestoreTestJobs.Enabled" {
+		Facet "RestoreTestsEnabled" -ExpectChildKeyValue "RestoreTestJobs.Enabled" -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
@@ -20,70 +20,6 @@ Surface AdminDbRestoreTests {
 				}
 				
 				return $true;
-			}
-			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
-				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-				
-				if ($expectedSetting) {
-					
-					$restoreJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-					$restoreJobStart = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobStartTime");
-					$restoreJobTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.TimeZoneForUtcOffset");
-					$restoreJobCategory = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobCategoryName");
-					$allowSecondaries = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowForSecondaries");
-					$dbsToRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToRestore");
-					$dbsToExclude = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToExclude");
-					$priorities = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Priorities");
-					$backupsRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.BackupsRootPath");
-					$restoreDataRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreDataPath");
-					$restoreLogRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreLogsPath");
-					$restorePattern = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoredDbNamePattern");
-					$allowReplace = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowReplace");
-					$rpoThreshold = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RpoThreshold");
-					$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDbsAfterRestore");
-					$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxFailedDrops");
-					$restoreOperator = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Operator");
-					$restoreProfile = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Profile");
-					$emailPrefix = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobEmailPrefix");
-					
-					$secondaries = "0";
-					if ($allowSecondaries) {
-						$secondaries = "1";
-					}
-					
-					$drop = "0";
-					if ($dropAfterRestore) {
-						$drop = "1";
-					}
-					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC [admindb].[dbo].[create_restore_test_job]
-						@JobName = N'$restoreJobName',
-						@RestoreTestStartTime = N'$restoreJobStart',
-						@TimeZoneForUtcOffset = N'$restoreJobTimeZone',
-						@JobCategoryName = N'$restoreJobCategory',
-						@AllowForSecondaries = N'$secondaries',
-						@DatabasesToRestore = N'$dbsToRestore',
-						@DatabasesToExclude = N'$dbsToExclude',
-						@Priorities = N'$priorities',
-						@BackupsRootPath = N'$backupsRoot',
-						@RestoredRootDataPath = N'$restoreDataRoot',
-						@RestoredRootLogPath = N'$restoreLogRoot',
-						@RestoredDbNamePattern = N'$restorePattern',
-						@AllowReplace = N'$allowReplace',
-						@RpoWarningThreshold = N'$rpoThreshold',
-						@DropDatabasesAfterRestore = $($drop),
-						@MaxNumberOfFailedDrops = $maxFailedDrops,
-						@OperatorName = N'$restoreOperator',
-						@MailProfileName = N'$restoreProfile',
-						@EmailSubjectPrefix = N'$emailPrefix',
-						@OverWriteExistingJob = 1; ";
-					
-				}
-				else {
-					$PVContext.WriteLog("Config setting for [Admindb.$instanceName.RestoreTests.Enabled] is set to `$false - but a job entitled [$expectedJobName] already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
-				}
 			}
 		}
 		
@@ -119,11 +55,92 @@ Surface AdminDbRestoreTests {
 		}
 		
 		Build {
+			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$facetName = $PVContext.CurrentFacetName;
+			$matched = $PVContext.Matched;
+			$expected = $PVContext.Expected;
 			
+			if ($false -eq $expected) {
+				switch ($facetName) {
+					"RestoreTestsEnabled" {
+						$jobName = $PVConfig.GetValue("AdminDb.$sqlServerInstance.RestoreTestJobs.JobName");
+						$PVContext.WriteLog("Config setting for [Admindb.$sqlServerInstance.RestoreTests.Enabled] is set to `$false - but a job entitled [$jobName] already exists. Proviso will NOT drop this job. Please make changes manually.", "Critical");
+						return; # i.e., don't LOAD current instance-name as a name that needs to be configured (all'z that'd do would be to re-run SETUP... not tear-down.);
+					}
+				}
+			}
 			
+			if (-not ($matched)) {
+				$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+				if ($null -eq $currentInstances) {
+					$currentInstances = @();
+				}
+				
+				if ($currentInstances -notcontains $sqlServerInstance) {
+					$currentInstances += $sqlServerInstance
+				}
+				
+				$PVContext.SetSurfaceState("TargetInstances", $currentInstances);
+			}
 		}
 		
 		Deploy {
+			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
+			
+			foreach ($instanceName in $currentInstances) {
+				
+				$restoreJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
+				$restoreJobStart = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobStartTime");
+				$restoreJobTimeZone = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.TimeZoneForUtcOffset");
+				$restoreJobCategory = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobCategoryName");
+				$allowSecondaries = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowForSecondaries");
+				$dbsToRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToRestore");
+				$dbsToExclude = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DatabasesToExclude");
+				$priorities = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Priorities");
+				$backupsRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.BackupsRootPath");
+				$restoreDataRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreDataPath");
+				$restoreLogRoot = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoreLogsPath");
+				$restorePattern = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoredDbNamePattern");
+				$allowReplace = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowReplace");
+				$rpoThreshold = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RpoThreshold");
+				$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDbsAfterRestore");
+				$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxFailedDrops");
+				$restoreOperator = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Operator");
+				$restoreProfile = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Profile");
+				$emailPrefix = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobEmailPrefix");
+				
+				$secondaries = "0";
+				if ($allowSecondaries) {
+					$secondaries = "1";
+				}
+				
+				$drop = "0";
+				if ($dropAfterRestore) {
+					$drop = "1";
+				}
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "EXEC [admindb].[dbo].[create_restore_test_job]
+						@JobName = N'$restoreJobName',
+						@RestoreTestStartTime = N'$restoreJobStart',
+						@TimeZoneForUtcOffset = N'$restoreJobTimeZone',
+						@JobCategoryName = N'$restoreJobCategory',
+						@AllowForSecondaries = N'$secondaries',
+						@DatabasesToRestore = N'$dbsToRestore',
+						@DatabasesToExclude = N'$dbsToExclude',
+						@Priorities = N'$priorities',
+						@BackupsRootPath = N'$backupsRoot',
+						@RestoredRootDataPath = N'$restoreDataRoot',
+						@RestoredRootLogPath = N'$restoreLogRoot',
+						@RestoredDbNamePattern = N'$restorePattern',
+						@AllowReplace = N'$allowReplace',
+						@RpoWarningThreshold = N'$rpoThreshold',
+						@DropDatabasesAfterRestore = $($drop),
+						@MaxNumberOfFailedDrops = $maxFailedDrops,
+						@OperatorName = N'$restoreOperator',
+						@MailProfileName = N'$restoreProfile',
+						@EmailSubjectPrefix = N'$emailPrefix',
+						@OverWriteExistingJob = 1; ";
+			}
 		}
 		
 		# TODO: Implement -Detailed facets... 

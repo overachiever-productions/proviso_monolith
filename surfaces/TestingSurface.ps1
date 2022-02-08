@@ -1,5 +1,16 @@
 ﻿Set-StrictMode -Version 1.0;
 
+<#
+
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1"; 
+
+	Configure-TestingSurface;
+	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
+
+#>
+
+
 Surface "TestingSurface" {
 	
 	Assertions  {
@@ -86,7 +97,6 @@ Surface "TestingSurface" {
 		
 		Deploy {
 			
-			Write-Host "	running DEPLOY from within TestSurface... ";
 		}
 	}
 }

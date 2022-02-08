@@ -23,14 +23,13 @@ function Process-Surface {
 	param (
 		[Parameter(Mandatory)]
 		[string]$SurfaceName,
-		[Parameter(Mandatory, ValueFromPipelineByPropertyName, ValueFromPipeline)]
-		[PSCustomObject]$Config,
 		[switch]$Configure = $false,
 		[switch]$ExecuteRebase = $false,
 		[switch]$Force = $false
 	);
 	
 	begin {
+		Validate-Config;
 		Validate-MethodUsage -MethodName "Process-Surface";
 		
 		$surface = $global:PVCatalog.GetSurface($SurfaceName);
@@ -176,7 +175,7 @@ function Process-Surface {
 				
 				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
 	
-				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
+				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
@@ -231,7 +230,7 @@ function Process-Surface {
 			
 			foreach ($facet in $compoundFacets){
 				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-				$groupNames = Get-ProvisoConfigGroupNames -Config $Config -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
+				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
 				}
@@ -239,7 +238,7 @@ function Process-Surface {
 				foreach ($groupName in $groupNames){
 					$fullCompoundKey = "$trimmedKey.$groupName.$($facet.CompoundIterationKey)";
 					# TODO: implement the .OrderDescending logic in this helper func... 
-					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $Config -FullCompoundKey $fullCompoundKey -OrderDescending:$($facet.OrderDescending);
+					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $PVConfig -FullCompoundKey $fullCompoundKey -OrderDescending:$($facet.OrderDescending);
 					
 					if ($compoundChildElements.Count -lt 1){
 						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
@@ -293,7 +292,7 @@ function Process-Surface {
 			[ScriptBlock]$expectedBlock = $facet.Expect;
 			if ($null -eq $expectedBlock) {
 				if ($facet.ExpectStaticKey) {
-					$script = "return `$Config.GetValue('$($facet.Key)');";
+					$script = "return `$PVConfig.GetValue('$($facet.Key)');";
 					$expectedBlock = [scriptblock]::Create($script);
 				}
 				else {

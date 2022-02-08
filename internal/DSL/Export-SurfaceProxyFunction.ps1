@@ -16,20 +16,9 @@ filter Export-SurfaceProxyFunction {
 
 function {0}-{1} {{
 	
-	param (
-		[Parameter(ValueFromPipelineByPropertyName, ValueFromPipeline)]
-		[PSCustomObject]$Config{2}
-	);
-	
 	Validate-MethodUsage -MethodName "{0}";
 
-	if(($global:PVExecuteActive -eq $true) -or ($global:PVRunBookActive -eq $true)) {{
-		if($null -eq $Config) {{
-			$Config = $global:PVConfig;
-		}}
-	}}
-
-	Process-Surface -SurfaceName "{1}" -Config $Config {3}{4};
+	Process-Surface -SurfaceName "{1}" {3}{4};
 }}';
 		
 	

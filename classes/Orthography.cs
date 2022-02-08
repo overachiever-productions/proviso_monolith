@@ -12,13 +12,12 @@ namespace Proviso
 
         private Orthography()
         {
-            this._allowedMethods.Add("With");                       // 0
-            this._allowedMethods.Add("Secured-By");                 //  1   will be replaced by Assign (i.e., Assign is a verb vs a phrase...)
-            this._allowedMethods.Add("Assign");                     //  1
+            this._allowedMethods.Add("Map");                        // 0
+            this._allowedMethods.Add("Add");                        //  1
+            
             this._allowedMethods.Add("Validate");                   //    2
             this._allowedMethods.Add("Configure");                  //    2
-            this._allowedMethods.Add("Execute");                    //    2 - wrapper to allow processing of one or more facets... 
-            this._allowedMethods.Add("Process-Surface");            //      3 - CAN be called directly... not sure why anyone would want to... but permitted. 
+            this._allowedMethods.Add("Process-Surface");            //      3 - should NOT be called directly... 
             
 
             this._allowedSurfaceBlocks.Add("Surface");                // 0

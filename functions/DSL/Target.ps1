@@ -7,7 +7,8 @@
 		3. Enables validation of Proviso data files/contents if/as needed. 
 #>
 
-function With {
+function Target {
+	[Alias("With")]
 	
 	[CmdletBinding()]
 	param (
@@ -21,12 +22,12 @@ function With {
 		[switch]$CurrentHost = $false,
 		[switch]$Force = $false, # causes/forces a reload... 
 		[switch]$Strict = $false,
-		# TODO: verify if the following is even used... 
+		# TODO: verify if the following is even used... (it's used in this func... but I'm not sure I ever allow for it to be used/not-used via 'callers'/etc. )
 		[switch]$AllowGlobalDefaults = $false
 	);
 	
 	begin {
-		Validate-MethodUsage -MethodName "With";
+		Validate-MethodUsage -MethodName "Map";
 	
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {
@@ -90,7 +91,7 @@ function With {
 			
 			$currentHostName = [System.Net.Dns]::GetHostName();
 			if ($currentHostName -ne $Config.Host.TargetServer) {
-				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] <> [$($Config.Host.TargetServer)].";
+				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] does not match [$($Config.Host.TargetServer)].";
 			}
 		}
 		
@@ -216,8 +217,7 @@ function With {
 	}
 	
 	end {
-		$global:PVConfig = $Config; # expose globally... 
-		return $Config; # emit to pipeline.
+		$global:PVConfig = $Config; 
 	}
 }
 

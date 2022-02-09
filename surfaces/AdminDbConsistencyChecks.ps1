@@ -15,7 +15,7 @@ Surface AdminDbConsistencyChecks {
 				$jobName = "Database Consistency Checks";
 				$start = Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 				if ($start -like "<*") {
-					return $false;
+					return $start;
 				}
 				
 				return $true;

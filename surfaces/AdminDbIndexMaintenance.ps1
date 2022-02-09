@@ -42,6 +42,10 @@ Surface AdminDbIndexMaintenance {
 				$weekDayStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
 				$weekendStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
 				
+				if (($weekDayStart -eq "<DISABLED>") -and ($weekendStart -eq "<DISABLED>")) {
+					return "<DISABLED>";
+				}
+				
 				$weekDayJobs = $weekendJobs = $false;
 				if ($weekDayStart -notlike "<*") {
 					$weekDayJobs = $true;

@@ -20,6 +20,10 @@ Surface AdminDbBackups {
 				$fullStart = Get-AgentJobStartTime -SqlServerAgentJob "$($jobsPrefix)USER - Full" -SqlServerInstanceName $instanceName;
 				$logsStart = Get-AgentJobStartTime -SqlServerAgentJob "$($jobsPrefix)USER - Log" -SqlServerInstanceName $instanceName;
 				
+				if (($systemStart -eq "<DISABLED>") -and ($fullStart -eq "<DISABLED>") -and ($logsStart -eq "<DISABLED>")) {
+					return "<DISABLED>";
+				}
+				
 				$system = $full = $log = $false;
 				if ($systemStart -notlike "<*") {
 					$system = $true;
@@ -119,8 +123,6 @@ Surface AdminDbBackups {
 			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
 			
 			foreach ($instanceName in $currentInstances) {
-				
-				$instanceName = $PVContext.CurrentKeyValue;
 				
 				$userDbTargets = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.UserDatabasesToBackup");
 				$userDbExclusions = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.UserDbsToExclude");

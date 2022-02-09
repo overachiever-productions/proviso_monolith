@@ -7,7 +7,7 @@ Surface AdminDbDatabaseMail {
 		Assert-AdminDbInstalled;
 	}
 	
-	# TODO: add options that map to server.display_name, server.replyto_address, account.display_name, account.replyto_address
+	
 	Aspect -Scope "AdminDb.*" {
 		Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" -UsesBuild {
 			Test {
@@ -114,13 +114,14 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		# TODO: account for scenarios where ... SmtpAuthType is WindowsAuth or Anonymous... 
-		#   probably makes the most sense to implement an explicit Expect {} block to handle this... 
-		#   as in: what 'username' we expect should depend upon the AUTH type - i.e., :
-		#   	auth-type = anonymous then send <ANONYMOUS> out as the expect. 
-		# 		auth-type = windows then ... <WINDOWS> ... 
-		#       else, if auth-type = basic ... then "username"(from the config)
+		
 		Facet "SmptUserName" -ExpectChildKeyValue "DatabaseMail.SmptUserName" -UsesBuild {
+			# TODO: account for scenarios where ... SmtpAuthType is WindowsAuth or Anonymous... 
+			#   probably makes the most sense to implement an explicit Expect {} block to handle this... 
+			#   as in: what 'username' we expect should depend upon the AUTH type - i.e., :
+			#   	auth-type = anonymous then send <ANONYMOUS> out as the expect. 
+			# 		auth-type = windows then ... <WINDOWS> ... 
+			#       else, if auth-type = basic ... then "username"(from the config)			
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
@@ -131,6 +132,8 @@ Surface AdminDbDatabaseMail {
 				return $username;
 			}
 		}
+		
+		# TODO: add options that map to server.display_name, server.replyto_address, account.display_name, account.replyto_address
 		
 		Build {
 			$sqlServerInstance = $PVContext.CurrentKeyValue;
@@ -165,7 +168,6 @@ Surface AdminDbDatabaseMail {
 			$currentInstances = $PVContext.GetSurfaceState("TargetInstances");
 			
 			foreach ($instanceName in $currentInstances) {
-				$instanceName = $PVContext.CurrentKeyValue;
 				
 				[string]$operatorEmail = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.OperatorEmail");
 				[string]$smtpAccountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");

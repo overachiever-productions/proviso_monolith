@@ -344,24 +344,24 @@
 	}
 	
 	DataCollectorSets = @{
-		Enabled   = $false
-		
+		# NOTE: Data Collector Sets do NOT have an instance... 
 		"{~ANY~}" = @{
+			Enabled			      = $false
 			EnableStartWithOS	  = $false
 			DaysWorthOfLogsToKeep = 180
 		}
 	}
 	
 	ExtendedEvents = @{
-		DisableTelemetry = $true
-		
-		"{~ANY~}"	     = @{
+		"{~ANY~}" = @{
+			DisableTelemetry = $true
 		}
 	}
 	
 	SqlServerManagementStudio = @{
-		InstallSsms	       = $false
-		IncludeAzureStudio = $false
+		InstallSsms	       	= $false
+		IncludeAzureStudio 	= $false
+		InstallPath			= "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
 	}
 	
 	ResourceGovernor = @{

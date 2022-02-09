@@ -10,11 +10,16 @@
 Install-Module -Name Proviso -Repository Pro2 -Force;
 Import-Module -Name Proviso -Force -DisableNameChecking;
 Assign -ProvisoRoot "\\storage\Lab\proviso\";
-With -CurrentHost | Do-Something;
+Target -CurrentHost;
+Do-Something;
+
 
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+
+	Configure-TestingSurface;
 	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
 
 #>

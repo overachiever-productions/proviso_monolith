@@ -3,7 +3,7 @@
 function Facet {
 	param (
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
-		[string]$Description,
+		[string]$Name,
 		$Expect,
 		#$ConfiguredBy,
 		[switch]$UsesBuild = $false,
@@ -27,7 +27,7 @@ function Facet {
 			$keyType = Get-ProvisoConfigDefault -Key $trimmedScopeKey -ValidateOnly;
 			
 			if ($null -eq $keyType) {
-				throw "Invalid -Scope value ([$($Scope)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
+				throw "Invalid -Scope value ([$($Scope)]) specified for Facet [$Name] within Surface [$($surface.Name)].";
 			}
 			
 			switch ($keyType.GetType()) {
@@ -47,7 +47,7 @@ function Facet {
 					$facetType = [Proviso.Enums.FacetType]::Value;
 				}
 				default {
-					throw "Invalid DataType for -Scope ([$($Scope)]) specified for Facet [$Description] within Surface [$($surface.Name)].";
+					throw "Invalid DataType for -Scope ([$($Scope)]) specified for Facet [$Name] within Surface [$($surface.Name)].";
 				}
 			}
 		}
@@ -73,7 +73,7 @@ function Facet {
 	}
 	
 	process {
-		$facet = New-Object Proviso.Models.Facet($surface, $Description, $facetType);
+		$facet = New-Object Proviso.Models.Facet($surface, $Name, $facetType);
 		
 		if ($RequiresReboot) {
 			$facet.SetRequiresReboot();

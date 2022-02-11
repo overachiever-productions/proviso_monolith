@@ -180,7 +180,7 @@ namespace Proviso
         private void SetContextStateFromFacet(Facet current)
         {
             this.CurrentFacet = current;
-            this.CurrentFacetName = current.Description;
+            this.CurrentFacetName = current.Name;
 
             switch (current.FacetType)
             {

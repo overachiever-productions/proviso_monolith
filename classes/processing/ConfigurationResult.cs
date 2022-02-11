@@ -67,7 +67,7 @@ namespace Proviso.Processing
 
         public string GetConfigurationName()
         {
-            return $"{this.Validation.ParentFacet.Description}";
+            return $"{this.Validation.ParentFacet.Name}";
         }
 
         public string GetRecompareSummary()

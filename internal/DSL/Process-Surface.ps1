@@ -144,14 +144,14 @@ function Process-Surface {
 				
 				$values = $PVConfig.GetValue($facet.IterationKey);
 				if ($values.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
 				
 				# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 				foreach ($value in $values) {
-					$newDescription = "$($facet.Description):$($value)";
+					$newName = "$($facet.Name):$($value)";
 					
-					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Value);
+					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newName, [Proviso.Enums.FacetType]::Value);
 					$expandedValueFacet.SetTest(($facet.Test));
 					$expandedValueFacet.SetConfigure(($facet.ConfiguredBy), ($facet.UsesBuild));
 					
@@ -182,12 +182,12 @@ function Process-Surface {
 	
 				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames) {
-					$newDescription = "$($facet.Description):$($groupName)";
-					$expandedGroupFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newDescription, [Proviso.Enums.FacetType]::Group);
+					$newName = "$($facet.Name):$($groupName)";
+					$expandedGroupFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newName, [Proviso.Enums.FacetType]::Group);
 					
 					$expandedGroupFacet.SetTest(($facet.Test));
 					$expandedGroupFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
@@ -237,7 +237,7 @@ function Process-Surface {
 				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
 				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
+					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
 				
 				foreach ($groupName in $groupNames){
@@ -246,13 +246,13 @@ function Process-Surface {
 					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $PVConfig -FullCompoundKey $fullCompoundKey -OrderDescending:$($facet.OrderDescending);
 					
 					if ($compoundChildElements.Count -lt 1){
-						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Description)].", "Important");
+						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 					}
 					else{
 						foreach ($compoundValue in $compoundChildElements){
-							$compoundDescription = "$($facet.Description):$($groupName).$compoundValue";
+							$compoundName = "$($facet.Name):$($groupName).$compoundValue";
 							
-							$compoundFacet = New-Object Proviso.Models.Facet(($facet.Parent), $compoundDescription, [Proviso.Enums.FacetType]::Compound);
+							$compoundFacet = New-Object Proviso.Models.Facet(($facet.Parent), $compoundName, [Proviso.Enums.FacetType]::Compound);
 							$compoundFacet.SetTest($facet.Test);
 							$compoundFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
 							

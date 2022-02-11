@@ -126,13 +126,13 @@ namespace Proviso.Models
             // further... can't have the same facet with duplicate .ConfigKey properties either.
 
             if(!facet.ExpectIsSet)
-                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
+                throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
 
             if(facet.Test == null)
-                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");
+                throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");
 
             if(facet.Configure == null & facet.UsesBuild == false)
-                throw new Exception($"Facet [{facet.Description}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block or use the -UsesBuild switch - along with Build{{}} and Deploy{{}} functions.");
+                throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain a Configure-Block or use the -UsesBuild switch - along with Build{{}} and Deploy{{}} functions.");
         }
 
         public void Validate()

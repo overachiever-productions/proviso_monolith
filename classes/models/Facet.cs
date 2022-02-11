@@ -7,7 +7,7 @@ namespace Proviso.Models
     {
         public Surface Parent { get; }
         public FacetType FacetType { get; }
-        public string Description { get; }
+        public string Name { get; }
         public ScriptBlock Test { get; private set; }
         public ScriptBlock Configure { get; private set; }
         public ScriptBlock Expect { get; private set; }
@@ -35,10 +35,10 @@ namespace Proviso.Models
         public string CurrentIteratorChildKey { get; private set; }
         public object CurrentIteratorChildKeyValue { get; private set; }
 
-        public Facet(Surface parent, string description, FacetType type)
+        public Facet(Surface parent, string name, FacetType type)
         {
             this.Parent = parent;
-            this.Description = description;
+            this.Name = name;
             this.FacetType = type;
 
             this.RequiresReboot = false;

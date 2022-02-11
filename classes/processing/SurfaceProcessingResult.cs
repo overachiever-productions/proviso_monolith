@@ -78,7 +78,7 @@ namespace Proviso.Processing
 
         public ValidationResult GetValidationResultByFacetName(string facetName)
         {
-            return this.ValidationResults.First(v => v.ParentFacet.Description == facetName);
+            return this.ValidationResults.First(v => v.ParentFacet.Name == facetName);
         }
 
         public void StartAssertions()

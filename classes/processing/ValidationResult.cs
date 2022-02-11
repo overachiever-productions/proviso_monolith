@@ -11,7 +11,7 @@ namespace Proviso.Processing
     {
         public Facet ParentFacet { get; private set; }
 
-        public string Description => this.ParentFacet.Name;
+        public string Name => this.ParentFacet.Name;
         public object Expected { get; private set; }
         public object Actual { get; private set; }
         public bool Matched { get; private set; }

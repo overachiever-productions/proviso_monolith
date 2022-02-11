@@ -425,7 +425,7 @@ function Process-Surface {
 				
 				if ($validation.Matched) {
 					$configurationResult.SetBypassed();
-					$PVContext.WriteLog("Bypassing configuration of [$($validation.Description)] - Expected: [$($validation.Expected)] and Actual: [$($validation.Actual)] values already matched.", "Debug");
+					$PVContext.WriteLog("Bypassing configuration of [$($validation.Name)] - Expected: [$($validation.Expected)] and Actual: [$($validation.Actual)] values already matched.", "Debug");
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);

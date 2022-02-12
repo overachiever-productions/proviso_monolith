@@ -141,7 +141,7 @@ namespace Proviso.Processing
                 if (this.Validation.ParentFacet.RequiresReboot)
                     return "Reboot Pending...";
 
-                return "Failure - Expected and Actual did NOT match after Configuration operations.";
+                return "Expected != Actual after Configuration.";
             }
 
             return "Success.";

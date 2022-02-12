@@ -29,6 +29,8 @@ namespace Proviso
 
         public Runbook CurrentRunbook { get; private set; }
         public string CurrentRunbookVerb { get; private set; }
+        public bool CurrentRunbookAllowsReboot { get; private set; }
+        public bool CurrentRunbookAllowsSqlRestart { get; private set; }
 
         public Facet CurrentFacet { get; private set; }
         public string CurrentFacetName { get; private set; }
@@ -135,15 +137,20 @@ namespace Proviso
                 this.SqlRestartReason = reason;
         }
 
-        public void StartRunbookProcessing(Runbook started, string verb)
+        public void StartRunbookProcessing(Runbook started, string verb, bool allowReboot, bool allowSqlRestart)
         {
             this.CurrentRunbook = started;
             this.CurrentRunbookVerb = verb;
+            this.CurrentRunbookAllowsReboot = allowReboot;
+            this.CurrentRunbookAllowsSqlRestart = allowSqlRestart;
         }
 
         public void EndRunbookProcessing()
         {
             this.CurrentRunbook = null;
+            this.CurrentRunbookVerb = null;
+            this.CurrentRunbookAllowsReboot = false;
+            this.CurrentRunbookAllowsSqlRestart = false;
         }
 
         public void SetCurrentSurface(Surface added, bool executeRebase, bool executeConfiguration, SurfaceProcessingResult processingResult)

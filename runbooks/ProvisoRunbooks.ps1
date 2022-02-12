@@ -28,7 +28,7 @@
 #---------------------------------------------------------------------------------------------------------------
 # Test Runbook
 #---------------------------------------------------------------------------------------------------------------
-Runbook Tests {
+Runbook Tests -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 5Seconds {
 	Run-TestingSurface;
 	Run-TestingSurface;
 }
@@ -38,7 +38,7 @@ Runbook Tests {
 # GreenField Runbooks
 #---------------------------------------------------------------------------------------------------------------
 
-runbook ServerInitialization -RequiresDomainCredentials -SummarizeProblemsOnly -WaitBeforeRebootFor 60Seconds {
+runbook ServerInitialization -RequiresDomainCredentials -SummarizeProblemsOnly -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 60Seconds {
 	
 	Run-NetworkAdapters;
 	Run-ServerName;

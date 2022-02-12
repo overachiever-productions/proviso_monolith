@@ -21,12 +21,13 @@ function Evaluate-{0} {{
 function Provision-{0} {{
 	param(
 		[switch]$AllowReboot = $false, 
-		[switch]$AllowSqlRestart = $false
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
 	);
 
 	Validate-MethodUsage -MethodName "Provision";
-	Execute-Runbook -RunbookName "{0}" -Operation Provision;
-}}
+	Execute-Runbook -RunbookName "{0}" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}}															 
 ';
 	$body = [string]::Format($template, $RunbookName);
 	

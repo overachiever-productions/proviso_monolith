@@ -6,10 +6,10 @@
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
-	Evaluate-Tests;
+	#Evaluate-Tests;
+	Provision-Tests -AllowReboot -AllowSqlRestart -NextRunbookOperation "Validate-Tests";
 
 #>
-
 
 function Execute-Runbook {
 	param (
@@ -20,18 +20,12 @@ function Execute-Runbook {
 		[string]$Operation,
 		[switch]$AllowReboot = $false,
 		[switch]$AllowSqlRestart = $false, 
-		[string]$NextRunbookName,
-		[switch]$SkipSummary = $false,
-		[switch]$SummarizeProblemsOnly = $false
+		[string]$NextRunbookOperation
 	);
 	
 	begin {
 		Validate-Config;
 		Validate-MethodUsage -MethodName "Execute-Runbook";
-		
-		if ($SkipSummary -and $SummarizeProblemsOnly) {
-			throw "Invalid Arguments. -SkipSummary and -SummarizeProblemsOnly are mutually exclusive and can NOT both be selected - use one, the other, or neither.";
-		}
 		
 		$runbook = $PVCatalog.GetRunbook($RunbookName);
 		if ($null -eq $runbook) {
@@ -47,16 +41,13 @@ function Execute-Runbook {
 		# 			or VERY likely to throw additional errors/problems. 
 		# 		Or, in other words: a benefit of Runbooks is they increase error handling and allow for EARLIER interception of problems... 
 		try {
-			$PVContext.StartRunbookProcessing($runbook, $Operation);
+			$PVContext.StartRunbookProcessing($runbook, $Operation, $AllowReboot, $AllowSqlRestart);
 			
 			$runbookBlock = $runbook.RunbookBlock;
 			
 			& $runbookBlock;
 		}
 		catch {
-			# TODO: how do I surface this? i THINK i just let it throw right on 'out' - i.e., up to the caller/console/etc. 
-			#   	but, it MIGHT make sense to also add this into the $PVContext as a .AddFatalRunbookException() - or something similar IF ... callers (Summarize?) were to need to show this. 
-			# 			but, yeah, i think this just throws 'all the way up' and terminates processing - it SHOULD... (unless I can think of reasons not to)
 			$exceptionMessage = "Fatal Exception within Runbook [$($runbook.Name)]. Execution Terminated.`rEXCEPTION: $_  `r`t$($_.ScriptStackTrace) ";
 			
 			$PVContext.WriteLog($exceptionMessage, "Critical");
@@ -66,14 +57,39 @@ function Execute-Runbook {
 			$PVContext.EndRunbookProcessing();
 		}
 		
-		if (-not ($SkipSummary)){
-			#Summarize -LastRunbook -ProblemsOnly:$SummarizeProblemsOnly;
+		if (-not ($runbook.SkipSummary)){
+			#Summarize -LastRunbook -ProblemsOnly:$($runbook.SummarizeProblemsOnly);
 			Summarize -All;
 		}
 	};
 	
 	end {
+		
+		# Process DEFERRED Reboots:
+		if ($PVContext.RebootRequired) {
+			if ($AllowReboot -and ($runbook.DeferRebootUntilRunbookEnd)) {
 				
-		# now that we're done... if there's a $NextRunbook ... run that... 
+				$waitSeconds = $runbook.WaitSecondsBeforeReboot;
+				if ($NextRunbookOperation) {
+					Restart-Server -RestartRunbookTarget $NextRunbookOperation -WaitSeconds $waitSeconds;
+				}
+				else {
+					Restart-Server -WaitSeconds $waitSeconds;
+				}
+			}
+			else {
+				$PVContext.WriteLog("Runbook Execution Complete. REBOOT REQUIRED. $($PVContext.RebootReason)", "IMPORTANT");
+			}
+		}
+			
+		if ($NextRunbookOperation) {
+			Write-Host "Found a 'next' runbook to process - called: $NextRunbookOperation ";
+			
+			# TODO: 
+			#   split by - to get $operation and $runbookName. 
+			# 	verify that $runbookName exists and is a valid runbook - i..e, via $PVCatalog... 
+			#   run a simple call to Execute-Runbook (i.e., self) along the following-lines: 
+			# 	Execute-Runbook -RunbookName $runbookName -Operation $operation -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart;
+		}
 	};
 }

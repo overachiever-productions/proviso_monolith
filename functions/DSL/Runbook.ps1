@@ -38,17 +38,21 @@ function Runbook {
 		[Parameter(Position = 0, ParameterSetName = "default", Mandatory)]
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
-		[ScriptBlock]$Scripts,
-		[switch]$AllowReboot = $false, # declared here - so that it's accessible within actual runbook implementations... 
+		[ScriptBlock]$RunbookBlock,
 		[switch]$RequiresDomainCredentials = $false,
 		[ValidateSet("5Seconds", "10Seconds", "30Seconds", "60Seconds", "90Seconds")]
 		[string]$WaitBeforeRebootFor,
+		[switch]$DeferRebootUntilRunbookEnd = $false,
 		[switch]$SkipSummary = $false,
 		[switch]$SummarizeProblemsOnly = $false
 	);
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Runbook";
+		
+		if ($SkipSummary -and $SummarizeProblemsOnly) {
+			throw "Invalid Arguments. -SkipSummary and -SummarizeProblemsOnly are mutually exclusive and can NOT both be selected - use one, the other, or neither.";
+		}
 		
 		$runbookFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
 		if ($null -eq $Name) {
@@ -59,7 +63,8 @@ function Runbook {
 	};
 	
 	process {
-		$runbook.AddScriptBlock($Scripts);
+		$runbook.AddScriptBlock($RunbookBlock);
+		$runbook.SetOptions($RequiresDomainCredentials, $DeferRebootUntilRunbookEnd, $SkipSummary, $SummarizeProblemsOnly, $WaitBeforeRebootFor);
 	};
 	
 	end {

@@ -503,10 +503,43 @@ function Process-Surface {
 		$surfaceProcessingResult.SetProcessingComplete();
 		$PVContext.CloseCurrentSurface();
 		
-		if ($PVContext.RebootRequired) {
-			$message = "REBOOT REQUIRED. $($PVContext.RebootReason)";
+		# Check for Reboot/Restart requirements when in a Runbook: 
+		if ($null -ne $PVContext.CurrentRunbook) {
+			$currentRunbook = $PVContext.CurrentRunbook;
+			if ($PVContext.SqlRestartRequired) {
+				if ($PVContext.CurrentRunbookAllowsSqlRestart) {
+					Write-Host "!!!!!!!!!!!!!!!!!!! SIMULATED SQL RESTART --- HAPPENING RIGHT NOW !!!!!!!!!!!!!!!!!!!";
+				}
+			}
 			
-			$PVContext.WriteLog($message, "CRITICAL");
+			if ($PVContext.RebootRequired) {
+				if ($PVContext.CurrentRunbookAllowsReboot) {
+					if ($currentRunbook.DeferRebootUntilRunbookEnd) {
+						$PVContext.WriteLog("Reboot Required and Allowed - but Runboook [$($currentRunbook.Name)] directs that reboot be deferred until end of Runbook Processing.", "Verbose");
+					}
+					else {
+						$wait = $currentRunbook.WaitSecondsBeforeReboot;
+						$targetOperation = "$($PVContext.CurrentRunbookVerb)-$($currentRunbook.Name)"
+						Restart-Server -WaitSeconds $wait -RestartRunbookTarget $targetOperation;
+					}
+				}
+				else {
+					$PVContext.WriteLog("Reboot Required for Runbook [$($currentRunbook.Name)] against Surface: [$($surface.Name)] - but Runbook Processing does NOT allow reboots.", "Important");
+				}
+			}
+		}
+		else {
+			# i.e., we're NOT in a runbook... 
+			if ($PVContext.RebootRequired) {
+				# TODO: allow storage of N rebootReasons + tweak .RebootReason to serialize/output all reasons needed for reboot. 
+				# 		use case for the above: assume that Surface 3 of 5 requires a reboot, we'd store WHY (and display (here) why...). But what if Surface 5/5 ALSO requires a reboot? 
+				# 			by storing > 1 ... we keep/output ALL reasons for why a reboot is required.
+				$PVContext.WriteLog("Surface Configuration Complete. REBOOT REQUIRED. $($PVContext.RebootReason)", "IMPORTANT");
+			}
+			
+			if ($PVContext.SqlRestartRequired) {
+				$PVContext.WriteLog("SQL RESTART REQUIRED. $($PVContext.SqlRestartReason)", "IMPORTANT");
+			}
 		}
 	}
 }

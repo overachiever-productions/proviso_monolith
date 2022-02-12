@@ -81,6 +81,7 @@ Surface "TestingSurface" {
 		Facet "Deferred Facet" -Expect $true -UsesBuild {
 			Test {
 				# Test case here is that this'll effectively NEVER get called by itself - only by the 'child' or def below that DEFERS config to this facet.
+				$PVContext.SetRebootRequired("Not really required - but we're pretending it is - for testing purposes.");
 				return $true;
 			}
 		}

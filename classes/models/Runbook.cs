@@ -4,11 +4,17 @@ namespace Proviso.Models
 {
     public class Runbook
     {
-        public string Name { get; private set; }
-        public string FileName { get; private set; }
-        public string SourcePath { get; private set; }
+        public string Name { get; }
+        public string FileName { get; }
+        public string SourcePath { get; }
 
         public ScriptBlock RunbookBlock { get; private set; }
+
+        public bool RequiresDomainCreds { get; private set; }
+        public bool DeferRebootUntilRunbookEnd { get; private set; }
+        public bool SkipSummary { get; private set; }
+        public bool SummarizeProblemsOnly { get; private set; }
+        public int WaitSecondsBeforeReboot { get; private set; }
 
         public Runbook(string name, string fileName, string sourcePath)
         {
@@ -20,6 +26,20 @@ namespace Proviso.Models
         public void AddScriptBlock(ScriptBlock runbookBlock)
         {
             this.RunbookBlock = runbookBlock;
+        }
+
+        public void SetOptions(bool requiresDomainCreds, bool deferReboot, bool skipSummary, bool summarizeProblemsOnly, string waitBeforeRebootFor = null)
+        {
+            this.RequiresDomainCreds = requiresDomainCreds;
+            this.DeferRebootUntilRunbookEnd = deferReboot;
+            this.SkipSummary = skipSummary;
+            this.SummarizeProblemsOnly = summarizeProblemsOnly;
+
+            if (!string.IsNullOrEmpty(waitBeforeRebootFor))
+            {
+                string secondsOnly = waitBeforeRebootFor.Replace("Seconds", "");
+                this.WaitSecondsBeforeReboot = int.Parse(secondsOnly);
+            }
         }
     }
 }

@@ -11,12 +11,13 @@ function Evaluate-Tests {
 function Provision-Tests {
 	param(
 		[switch]$AllowReboot = $false, 
-		[switch]$AllowSqlRestart = $false
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
 	);
 
 	Validate-MethodUsage -MethodName "Provision";
-	Execute-Runbook -RunbookName "Tests" -Operation Provision;
-}
+	Execute-Runbook -RunbookName "Tests" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
 
 #-------------------------------------------------------------------------------------
 # ServerInitialization
@@ -29,12 +30,13 @@ function Evaluate-ServerInitialization {
 function Provision-ServerInitialization {
 	param(
 		[switch]$AllowReboot = $false, 
-		[switch]$AllowSqlRestart = $false
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
 	);
 
 	Validate-MethodUsage -MethodName "Provision";
-	Execute-Runbook -RunbookName "ServerInitialization" -Operation Provision;
-}
+	Execute-Runbook -RunbookName "ServerInitialization" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
 
 #-------------------------------------------------------------------------------------
 # ServerConfiguration
@@ -47,9 +49,10 @@ function Evaluate-ServerConfiguration {
 function Provision-ServerConfiguration {
 	param(
 		[switch]$AllowReboot = $false, 
-		[switch]$AllowSqlRestart = $false
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
 	);
 
 	Validate-MethodUsage -MethodName "Provision";
-	Execute-Runbook -RunbookName "ServerConfiguration" -Operation Provision;
-}
+	Execute-Runbook -RunbookName "ServerConfiguration" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 

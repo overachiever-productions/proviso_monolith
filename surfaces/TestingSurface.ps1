@@ -19,6 +19,10 @@ Surface "TestingSurface" {
 		}
 	}
 	
+	Rebase {
+		# to test auto-generated props... 
+	}
+	
 	Aspect {
 		Facet "It is Tuesday" {
 			Expect {

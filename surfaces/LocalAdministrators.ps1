@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface "LocalAdmins" -For -Key "Host.LocalAdministrators" {
+Surface "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
 	
 	Setup {
 		$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";

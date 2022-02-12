@@ -14,24 +14,32 @@ namespace Proviso
         {
             this._allowedMethods.Add("Map");                        // 0
             this._allowedMethods.Add("Add");                        //  1
-            
+
+            this._allowedMethods.Add("Evaluate");                   //   3
+            this._allowedMethods.Add("Provision");                  //   3
+            this._allowedMethods.Add("Execute-Runbook");            //     4
+
+
             this._allowedMethods.Add("Validate");                   //    2
             this._allowedMethods.Add("Configure");                  //    2
+            this._allowedMethods.Add("Run");                        //    2
             this._allowedMethods.Add("Process-Surface");            //      3 - should NOT be called directly... 
-            
 
-            this._allowedSurfaceBlocks.Add("Surface");                // 0
-            this._allowedSurfaceBlocks.Add("Assertions");             //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Assert");                 //    2 - child of Assertions
-            this._allowedSurfaceBlocks.Add("Rebase");                 //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Setup");                  //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Aspect");                 //  1 - child of surface
-            this._allowedSurfaceBlocks.Add("Build");                  //    2 - child of aspect
-            this._allowedSurfaceBlocks.Add("Deploy");                 //    2 - child of aspect
-            this._allowedSurfaceBlocks.Add("Facet");                  //    2 - child of aspect
-            this._allowedSurfaceBlocks.Add("Expect");                 //      3 - child of facet
-            this._allowedSurfaceBlocks.Add("Test");                   //      3 - child of facet
-            this._allowedSurfaceBlocks.Add("Configure");              //      3 - child of facet 
+
+            this._allowedSurfaceBlocks.Add("Runbook");                // 0
+
+            this._allowedSurfaceBlocks.Add("Surface");                // 1
+            this._allowedSurfaceBlocks.Add("Assertions");             //  2 - child of surface
+            this._allowedSurfaceBlocks.Add("Assert");                 //    3 - child of Assertions
+            this._allowedSurfaceBlocks.Add("Rebase");                 //  2 - child of surface
+            this._allowedSurfaceBlocks.Add("Setup");                  //  2 - child of surface
+            this._allowedSurfaceBlocks.Add("Aspect");                 //  2 - child of surface
+            this._allowedSurfaceBlocks.Add("Build");                  //    3 - child of aspect
+            this._allowedSurfaceBlocks.Add("Deploy");                 //    3 - child of aspect
+            this._allowedSurfaceBlocks.Add("Facet");                  //    3 - child of aspect
+            this._allowedSurfaceBlocks.Add("Expect");                 //      4 - child of facet
+            this._allowedSurfaceBlocks.Add("Test");                   //      4 - child of facet
+            this._allowedSurfaceBlocks.Add("Configure");              //      4 - child of facet 
         }
 
         public static Orthography Instance => new Orthography();

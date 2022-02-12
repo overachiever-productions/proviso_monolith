@@ -28,7 +28,9 @@ function Process-Surface {
 	param (
 		[Parameter(Mandatory)]
 		[string]$SurfaceName,
-		[switch]$Configure = $false,
+		[Parameter(Mandatory)]
+		[ValidateSet("Validate", "Configure", "Describe")]
+		[string]$Operation = "Validate",
 		[switch]$ExecuteRebase = $false,
 		[switch]$Force = $false
 	);
@@ -39,7 +41,7 @@ function Process-Surface {
 		
 		$surface = $global:PVCatalog.GetSurface($SurfaceName);
 		if ($null -eq $surface) {
-			throw "Invalid Surface-Name. [$SurfaceName] does not exist or has not yet been loaded. If this is a custom Surface, verify that [Import-Surface] has been executed.";
+			throw "Invalid Surface Name. Surface [$SurfaceName] does not exist or has not yet been loaded. If this is a custom Surface, verify that [Import-Surface] has been executed.";
 		}
 		
 		if ($ExecuteRebase) {
@@ -48,9 +50,10 @@ function Process-Surface {
 			}
 		}
 		
-		$surfaceProcessingResult = New-Object Proviso.Processing.SurfaceProcessingResult($surface, $Configure);
+		$executeConfiguration = ("Configure" -eq $Operation);
+		$surfaceProcessingResult = New-Object Proviso.Processing.SurfaceProcessingResult($surface, $executeConfiguration);
 		$processingGuid = $surfaceProcessingResult.ProcessingId;
-		$PVContext.SetCurrentSurface($surface, $ExecuteRebase, $Configure, $surfaceProcessingResult);
+		$PVContext.SetCurrentSurface($surface, $ExecuteRebase, $executeConfiguration, $surfaceProcessingResult);
 	}
 	
 	process {
@@ -346,7 +349,7 @@ function Process-Surface {
 				}
 			}
 			
-			$PVContext.ClearCurrentState();
+			$PVContext.ClearSurfaceState();
 		}
 		
 		$surfaceProcessingResult.EndValidations($validationsOutcome, $validations);
@@ -398,7 +401,7 @@ function Process-Surface {
 		# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
-		if ($Configure) {
+		if ("Configure" -eq $Operation) {
 			
 			$surfaceProcessingResult.StartConfigurations();
 			
@@ -447,7 +450,7 @@ function Process-Surface {
 						$configurationResult.AddConfigurationError($configurationError);
 					}
 					
-					$PVContext.ClearCurrentState();
+					$PVContext.ClearSurfaceState();
 				}
 			}
 			
@@ -489,7 +492,7 @@ function Process-Surface {
 				}
 				
 				$PVContext.SetRecompareInactive();
-				$PVContext.ClearCurrentState();
+				$PVContext.ClearSurfaceState();
 			}
 			
 			$surfaceProcessingResult.EndConfigurations($configurationsOutcome, $configurations);

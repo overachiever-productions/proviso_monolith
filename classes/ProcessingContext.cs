@@ -27,6 +27,9 @@ namespace Proviso
 
         public int SurfaceStateObjectsCount => this._temporarySurfaceState.Count;
 
+        public Runbook CurrentRunbook { get; private set; }
+        public string CurrentRunbookVerb { get; private set; }
+
         public Facet CurrentFacet { get; private set; }
         public string CurrentFacetName { get; private set; }
         public string CurrentKey { get; private set; }
@@ -49,7 +52,7 @@ namespace Proviso
             this.SqlRestartRequired = false;
             this.RecompareActive = false;
 
-            this.ClearCurrentState();
+            this.ClearSurfaceState();
         }
 
         public SurfaceProcessingResult[] GetAllResults()
@@ -104,7 +107,7 @@ namespace Proviso
             this.Matched = currentValidation.Matched;
         }
 
-        public void ClearCurrentState()
+        public void ClearSurfaceState()
         {
             this.CurrentFacet = null;
             this.CurrentFacetName = null;
@@ -132,16 +135,16 @@ namespace Proviso
                 this.SqlRestartReason = reason;
         }
 
-        //public void SetCurrentRunbook(string runbookName)
-        //{
-        //    // just a place-holder. i.e., I'll probably end up having a full-blown Runbook object
-        //    // which'll have properties for various details... well, properties for various switches... 
-        //}
+        public void StartRunbookProcessing(Runbook started, string verb)
+        {
+            this.CurrentRunbook = started;
+            this.CurrentRunbookVerb = verb;
+        }
 
-        //public void CloseCurrentRunbook()
-        //{
-
-        //}
+        public void EndRunbookProcessing()
+        {
+            this.CurrentRunbook = null;
+        }
 
         public void SetCurrentSurface(Surface added, bool executeRebase, bool executeConfiguration, SurfaceProcessingResult processingResult)
         {
@@ -155,7 +158,7 @@ namespace Proviso
 
         public void CloseCurrentSurface()
         {
-            this.ClearCurrentState();
+            this.ClearSurfaceState();
             this._temporarySurfaceState = new Dictionary<string, object>();
         }
 

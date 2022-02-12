@@ -20,11 +20,11 @@ $classFiles = @(
 	"$ProvisoScriptRoot\classes\models\Partition.cs"
 	"$ProvisoScriptRoot\classes\models\Disk.cs"
 	"$ProvisoScriptRoot\classes\models\Rebase.cs"
-	"$ProvisoScriptRoot\classes\models\Runbook.cs"
 	"$ProvisoScriptRoot\classes\models\Setup.cs"
 	"$ProvisoScriptRoot\classes\models\Build.cs"
 	"$ProvisoScriptRoot\classes\models\Deploy.cs"
 	"$ProvisoScriptRoot\classes\models\Surface.cs"
+	"$ProvisoScriptRoot\classes\models\Runbook.cs"
 	"$ProvisoScriptRoot\classes\processing\AssertionResult.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationError.cs"
 	"$ProvisoScriptRoot\classes\processing\ConfigurationResult.cs"
@@ -64,7 +64,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 }
 
 # 4. Import/Build Surfaces and dynamically create Validate|Configure|Document-<SurfaceName> funcs. 
-Clear-SurfaceProxies -RootDirectory $ProvisoScriptRoot;
+Clear-ProvisoProxies -RootDirectory $ProvisoScriptRoot;
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'surfaces/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
@@ -74,27 +74,47 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 			$surfaceName = $currentSurface.Name;
 			$allowsRebase = $currentSurface.RebasePresent;
 			
-			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName;
-			Export-SurfaceProxyFunction -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName -Configure -AllowRebase:$allowsRebase;
+			Generate-SurfaceProxies -RootDirectory $ProvisoScriptRoot -SurfaceName $surfaceName -AllowRebase:$allowsRebase;
+			
+			$provisoPublicModuleMembers += @("Validate-$surfaceName", "Configure-$surfaceName", "Run-$surfaceName");
 		}
 	}
 	catch {
-		throw "Unable to Import Surface: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+		throw "Unable to Import Surface: [$($file.FullName)]`rEXCEPTION: $_  `r`t$($_.ScriptStackTrace) ";
 	}
 }
 
-# 5. Import DSL Surface-Proxies (syntactic sugar):
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'surfaces/generated/*.ps1') -ErrorAction Stop))) {
+# 5. Runbook Proxies
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'runbooks/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
-		
-		$provisoPublicModuleMembers += $file.Basename;
 	}
 	catch {
-		throw "Unable to Import Surface Proxy-Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
+		throw "Unable to Import Runbook File: [$($file.FullName)]`rEXCEPTION: $_  `r`t$($_.ScriptStackTrace) ";
 	}
 }
 
-# 6. Export
+foreach ($runbook in $PVCatalog.GetRunbooks()) {
+	try {
+		Generate-RunbookProxies -RootDirectory $ProvisoScriptRoot -RunbookName ($runbook.Name);
+		$provisoPublicModuleMembers += @("Evaluate-$($runbook.Name)", "Provision-$($runbook.Name)");
+	}
+	catch {
+		throw "Error generating Runbook Proxies for [$($runbook.Name)]`rEXECEPTION: $_ `r`4$($_.ScriptStackTrace) ";
+	}
+}
+
+
+# 6. Import Generated Proxies (syntactic sugar):
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'generated/*.ps1') -ErrorAction Stop))) {
+	try {
+		. $file.FullName;
+	}
+	catch {
+		throw "Unable to Import Generated Proxy File: [$($file.FullName)]`rEXCEPTION: $_  `r`t$($_.ScriptStackTrace) ";
+	}
+}
+
+# 7. Export
 Export-ModuleMember -Function $provisoPublicModuleMembers;
 Export-ModuleMember -Alias * -Function *;

@@ -50,6 +50,24 @@ $script:provisoLogInitialized = $false;
 	}
 }
 
-
+[ScriptBlock]$translateRunbookVerbToSurfaceVerb = {
+	$runbookVerb = $this.CurrentRunbookVerb;
+	
+	switch ($runbookVerb) {
+		("Evaluate") {
+			return "Validate";
+		}
+		("Provision") {
+			return "Configure";
+		}
+		("Document") {
+			return "Describe";
+		}
+		default {
+			throw "Proviso Framework Error. Invalid Runbook Verb Detected: [$runbookVerb].";
+		}
+	}
+}
 
 Add-Member -InputObject $PVContext -MemberType ScriptMethod -Name WriteLog -Value $writeLog;
+Add-Member -InputObject $PVContext -MemberType ScriptMethod -Name GetSurfaceOperationFromCurrentRunbook -Value $translateRunbookVerbToSurfaceVerb;

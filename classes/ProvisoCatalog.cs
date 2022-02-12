@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Proviso.Models;
 
 namespace Proviso
@@ -7,8 +9,9 @@ namespace Proviso
     {
         private Dictionary<string, Surface> _surfaces = new Dictionary<string, Surface>();
         private Dictionary<string, string> _surfacesByFileName = new Dictionary<string, string>();
-
         public int SurfaceCount => this._surfaces.Count;
+
+        private List<Runbook> _runbooks = new List<Runbook>();
 
         private ProvisoCatalog() { }
 
@@ -41,6 +44,24 @@ namespace Proviso
             }
 
             return null;
+        }
+        
+        public void AddRunbook(Runbook added)
+        {
+            if (this._runbooks.Contains(added))
+                throw new InvalidOperationException($"Runbook: [{added.Name}] already exists and can NOT be added again.");
+
+            this._runbooks.Add(added);
+        }
+        
+        public List<Runbook> GetRunbooks()
+        {
+            return this._runbooks;
+        }
+
+        public Runbook GetRunbook(string runbookName)
+        {
+            return this._runbooks.Single(r => r.Name == runbookName);
         }
     }
 }

@@ -1,30 +1,33 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
+	SCOPE:
+		- Wrapper for 1 or more Surfaces (along with other custom logic that might make sense)... 
+		- Primarily an orchestrator - i.e., do THIS, then THIS, then THAT, etc... 
 
-	Like a Surface, a Runbook is an object with a few BLOCKS of code inside. 
-		Unlike a Surface it's not NEARLY as complex - i.e., it'll basically just have either: 
-			a. One block of functions or... 
-			b. MIGHT be broken up into a couple of functions like: 
-					- Assess/Setup/Stage/Prepare
-						(validation and any other similar things... )
-					- Main/Run?
-						(i.e., the main block of code).
-					- Reporting/Post-Processing/Disband/Dissolve/Resolve/CONCLUDE/Terminate
-						(where we handle stuff like ... reporting, reboots, and the likes)
-
-
-
-					- Before, During, After? 
-
-
-		Otherwise, it, like a Surface will have a single 'processor' or main-func that runs the Runbook, called: 
-			- Execute-Runbook
-			
-			And there will be 3x main facades for interacting with Execute-Runbook (i.e., Execute-Runbook should NOT be called directly, it'll be Internal). 
+		- Specific Runbooks simply keep the list of Surfaces to process. 
+		- At runtime, Runbooks are handled by the Execute-Runbook (internal) function. 
+		- Execute-Runbook, in turn, is called by either: 
 				> Evaluate-<RunbookName>
 				> Provision-<RunbookName>
 				> Document-<RunbbookName>
+			and will do the requisite processing as needed... 
+
+
+		- Execute-Runbook can also manage the notion of a 'NextRunbook' to process after successful completion of the current Surface. 
+		- Likewise, Execute-Runbook will pass along an -AllowReboot switch (passed in from user/caller/scripts) that can be reviewed INSIDE of specific Runbook implementations.
+
+	vNEXT:
+		It _MIGHT_ make sense to have 3x phases of execution within a runbook, something equivalent to: 
+			Prep (Open?), Run, Close - i.e., funcs/blocks that allow things like validation (Prep) and spin-up of resources (Prep), handle main execution, and .. do anything needed 'after'. 
+			Only, while I can think of how something like this MIGHT make sense, I can't honestly think of any specific cases where I'd use and... 
+			as such, it's just a COMPLICATION at this point. i.e., going MVP with a single 'main' body/func at this point, but can/could expand this later IF needed. 
+
+
+
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
 
 #>
@@ -33,33 +36,33 @@ function Runbook {
 	
 	param (
 		[Parameter(Position = 0, ParameterSetName = "default", Mandatory)]
-		[Alias("For")]
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$Scripts,
-		[switch]$AllowReboot = $false,
-		[string]$NextRunbook
-		
-		# Presumably... $PVConfig is what we'll expect to use in here? i.e., just need to figure out how to implement that 
-		#  		based, effectively, on the same way that Surfaces are currently doing this... 
-		#[PSCustomObject]$Config
+		[switch]$AllowReboot = $false, # declared here - so that it's accessible within actual runbook implementations... 
+		[switch]$RequiresDomainCredentials = $false,
+		[ValidateSet("5Seconds", "10Seconds", "30Seconds", "60Seconds", "90Seconds")]
+		[string]$WaitBeforeRebootFor,
+		[switch]$SkipSummary = $false,
+		[switch]$SummarizeProblemsOnly = $false
 	);
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Runbook";
 		
-		# TODO: wire-up a new RunBook CLR object... 
+		$runbookFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
+		if ($null -eq $Name) {
+			$Name = $runbookFileName;
+		}
+		
+		$runbook = New-Object Proviso.Models.Runbook($Name, $runbookFileName, ($MyInvocation.ScriptName).Replace($ProvisoScriptRoot, ".."));
 	};
 	
 	process {
-		
-		& $Scripts;
+		$runbook.AddScriptBlock($Scripts);
 	};
 	
 	end {
-		# TODO: right now this object doesn't exist (ProvisoCatalog). There's a ProvisoCatalog... 
-		# 		so, just repurpose that to serve for Surfaces, Runbooks, and anything else that makes sense along the line? 
-		# 			ah... it should also keep track of Machines (configs at the specified location in \\ProvisoRoot\config\whatever or whatever... )
-		$ProvisoCatalog.AddRunbook($runbook);
+		$global:PVCatalog.AddRunbook($runbook);
 	};
 }

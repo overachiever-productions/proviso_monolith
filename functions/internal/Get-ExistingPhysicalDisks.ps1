@@ -29,7 +29,7 @@ function Get-ExistingPhysicalDisks {
 		$scsiString = "$($scsiDetails.SCSIBus):$($scsiDetails.SCSIPort):$($scsiDetails.SCSITargetId):$($scsiDetails.SCSILogicalUnit)";
 		$blockDeviceName = Convert-SCSITargetIdToDeviceName -SCSITargetId $scsiDetails.SCSITargetId;
 		
-		$disk = New-Object Proviso.Models.Disk($diskNumber, $volumeID, $scsiString, $blockDeviceName, $drivePath, $size);
+		$disk = New-Object Proviso.DomainModels.Disk($diskNumber, $volumeID, $scsiString, $blockDeviceName, $drivePath, $size);
 		
 		Get-Partition -DiskNumber $diskNumber -ErrorAction SilentlyContinue | ForEach-Object {
 			if ([byte][Char]$_.DriveLetter -ne 0) {
@@ -42,7 +42,7 @@ function Get-ExistingPhysicalDisks {
 				$partitionSize = [math]::Round($_.Size/1GB, 2);
 				
 				if ($driveLetter) {
-					$partition = New-Object Proviso.Models.Partition(($_.PartitionNumber), $partitionSize, $driveLetter);
+					$partition = New-Object Proviso.DomainModels.Partition(($_.PartitionNumber), $partitionSize, $driveLetter);
 					
 					if ($volumeName) {
 						$partition.AddLabel($volumeName);

@@ -1,4 +1,4 @@
-﻿namespace Proviso.Models
+﻿namespace Proviso.DomainModels
 {
     public class Partition
     {

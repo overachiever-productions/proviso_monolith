@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace Proviso.Models
+namespace Proviso.DomainModels
 {
     public class Disk
     {

@@ -85,12 +85,16 @@
             <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>52</Width>
+            <Width>34</Width>
             <Label>Assertion</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>40</Width>
+            <Width>10</Width>
             <Label>Outcome</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>70</Width>
+            <Label>Detail</Label>
           </TableColumnHeader>
         </TableHeaders>
         <TableRowEntries>
@@ -100,11 +104,13 @@
                 <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 51)</ScriptBlock>
-                <!--<ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>-->
+                <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 33)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$($_.GetOutcomeState())</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetOutcomeState(), 10)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.GetErrorMessage()</ScriptBlock>
               </TableColumnItem>
             </TableColumnItems>
           </TableRowEntry>

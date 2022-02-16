@@ -246,8 +246,8 @@
 				SmtpPortNumber			    = 587
 				SmtpRequiresSSL			    = $true
 				SmtpAuthType			    = "BASIC" # OPTIONS: { BASIC | WINDOWS | ANONYMOUS } - defaults to BASIC
-				SmptUserName			    = "AKIAI2QUP43VN5VRF73Q"
-				SmtpPassword			    = "AkbYdzRcUiM1BqsqcCLbRi3fgE7pvRXxxxxxxxHAr6KKE"
+				SmptUserName			    = "xxx"
+				SmtpPassword			    = "zzz"
 				SendTestEmailUponCompletion = $true
 			}
 			

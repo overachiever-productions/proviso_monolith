@@ -19,8 +19,12 @@ Do-Something;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
+	Validate-TestingSurface;
 	Configure-TestingSurface;
-	Summarize -All; # -IncludeAllValidations; # -IncludeAssertions;
+	Validate-WindowsPreferences;
+
+
+	Summarize -Last 2;
 
 #>
 
@@ -473,7 +477,6 @@ function Process-Surface {
 			$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};
 			foreach ($configurationResult in $targets) {
 				$PVContext.SetConfigurationState($configurationResult.Validation);
-				$PVContext.SetRecompareActive();
 				
 				try {
 					[ScriptBlock]$testBlock = $configurationResult.Validation.Test;
@@ -491,7 +494,6 @@ function Process-Surface {
 					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::RecompareFailed;
 				}
 				
-				$PVContext.SetRecompareInactive();
 				$PVContext.ClearSurfaceState();
 			}
 			

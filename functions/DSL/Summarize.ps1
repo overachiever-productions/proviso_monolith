@@ -4,45 +4,52 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingSurface;
-	With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Provision-TestingSurface;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
-	Summarize -All -IncludeAssertions -IncludeAllValidations;
+	Validate-TestingSurface;
+	Configure-TestingSurface;
+	Validate-WindowsPreferences;
+
+	Summarize -Last 3;
 
 #>
 
 function Summarize {
 	
 	param (
-		[Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
-		[Proviso.Processing.SurfaceProcessingResult[]]$ProcessingResults,
+#		[Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+#		[Proviso.Processing.SurfaceProcessingResult[]]$ProcessingResults,
 		[switch]$All = $false,
-		[switch]$Terse = $false,  # keep tables/outputs to SINGLE line (vs 'non-terse' - where outcomes, etc. can contain multi-line info/outputs).
-		# vNEXT: there SHOULD be a way to only/just use 'Last' - as in, check to see if it's an arg... if it is, it can EITHER be a 'switch' (i.e., value of 1 if no [int] value specified) OR an int... 
-		# Or... just figure out a better way to distinguis between 'last' and LastN, hell, might even be as simple as -Last and -LastN (or ... -Last and -Lastest)
-		[switch]$Latest = $false,
-		[int]$Last = $null,
+		[Parameter(ParameterSetName = "LastAsInt")]
+		[int]$Last = 1,								# See: https://overachieverllc.atlassian.net/browse/PRO-234
+		[switch]$LatestRunbook, 
 		[switch]$IncludeSurfaceHeader = $true,
 		[switch]$IncludeAssertions = $false,
-		[switch]$IncludeAllValidations = $false  # by default, don't show validations for Configure operations - that info gets displayed in ... Configuration Summaries.
+		[switch]$IncludeAllValidations = $false,  	# by default, don't show validations for Configure operations - that info gets displayed in ... Configuration Summaries.
+		[switch]$Terse = $false 					# keep tables/outputs to SINGLE line (vs 'non-terse' - where outcomes, etc. can contain multi-line info/outputs).
 	);
 	
 	begin {
-		[Proviso.Processing.SurfaceProcessingResult[]]$targets = $ProcessingResults;
+		[Proviso.Processing.SurfaceProcessingResult[]]$targets = $null;
 		
 		if ($null -eq $targets) {
 			if ($All) {
 				$targets = $PVContext.GetAllResults();
 			}
+			if ($LatestRunbook) {
+				$targets = $PVContext.GetLatestRunbookResults();
+			}
 			else {
-				if ($Latest) {
-					$targets = @($PVContext.LastProcessingResult);
-				}
-				else {
+				if ($Last) {
 					$targets = $PVContext.GetLatestResults($Last);
 				}
 			}
+		}
+		
+		# TODO might want to add an orthography check here... 
+		if (($null -eq $targets) -or ($targets.Count -lt 1)) {
+			throw "Invalid Operation. No Surface Processing Results were loaded to Summarize. Make sure to process results before executing Summarize.";
 		}
 	};
 	
@@ -54,7 +61,7 @@ function Summarize {
 		[Proviso.Processing.RebaseResult[]]$rebases = @();
 		
 		$Formatter.ResetSurfaceIds(); # resets SurfaceID functionality for this 'batch' of Summarize results... 
-		foreach ($result in $targets) {
+		foreach ($result in ($targets | Sort-Object -Property ProcessingStart )) {
 			
 			if ($IncludeAssertions -or ($result.AssertionsFailed)) {
 				foreach ($assert in $result.AssertionResults) {
@@ -90,7 +97,7 @@ function Summarize {
 			"-------------------------------------------------------------------------------------------------------------------------------";
 			"SURFACE PROCESSING SUMMARIES:";
 			
-			$targets | Format-Table -View Surface-Summary -Wrap:(-not $Terse);
+			$targets | Sort-Object -Property ProcessingStart | Format-Table -View Surface-Summary -Wrap:(-not $Terse);
 		}
 		
 		# yeah... this logic is kind of odd... but the idea is to show assertion outcomes IF they set via -IncludeAssertions OR... if there was a critical failure of an assertion in 1 or more Surfaces... 

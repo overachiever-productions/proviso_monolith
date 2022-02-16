@@ -5,7 +5,7 @@ Set-StrictMode -Version 1.0;
 #-------------------------------------------------------------------------------------
 function Validate-AdminDb {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDb";
+	Process-Surface -SurfaceName "AdminDb" -Operation "Validate";
 }
 
 function Configure-AdminDb {
@@ -26,7 +26,7 @@ function Run-AdminDb {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbAlerts {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbAlerts";
+	Process-Surface -SurfaceName "AdminDbAlerts" -Operation "Validate";
 }
 
 function Configure-AdminDbAlerts {
@@ -47,7 +47,7 @@ function Run-AdminDbAlerts {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbBackups {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbBackups";
+	Process-Surface -SurfaceName "AdminDbBackups" -Operation "Validate";
 }
 
 function Configure-AdminDbBackups {
@@ -68,7 +68,7 @@ function Run-AdminDbBackups {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbConsistencyChecks {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbConsistencyChecks";
+	Process-Surface -SurfaceName "AdminDbConsistencyChecks" -Operation "Validate";
 }
 
 function Configure-AdminDbConsistencyChecks {
@@ -89,7 +89,7 @@ function Run-AdminDbConsistencyChecks {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbDatabaseMail {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbDatabaseMail";
+	Process-Surface -SurfaceName "AdminDbDatabaseMail" -Operation "Validate";
 }
 
 function Configure-AdminDbDatabaseMail {
@@ -110,7 +110,7 @@ function Run-AdminDbDatabaseMail {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbDiskMonitoring {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbDiskMonitoring";
+	Process-Surface -SurfaceName "AdminDbDiskMonitoring" -Operation "Validate";
 }
 
 function Configure-AdminDbDiskMonitoring {
@@ -131,7 +131,7 @@ function Run-AdminDbDiskMonitoring {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbHistory {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbHistory";
+	Process-Surface -SurfaceName "AdminDbHistory" -Operation "Validate";
 }
 
 function Configure-AdminDbHistory {
@@ -152,7 +152,7 @@ function Run-AdminDbHistory {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbIndexMaintenance {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbIndexMaintenance";
+	Process-Surface -SurfaceName "AdminDbIndexMaintenance" -Operation "Validate";
 }
 
 function Configure-AdminDbIndexMaintenance {
@@ -173,7 +173,7 @@ function Run-AdminDbIndexMaintenance {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbInstanceSettings {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbInstanceSettings";
+	Process-Surface -SurfaceName "AdminDbInstanceSettings" -Operation "Validate";
 }
 
 function Configure-AdminDbInstanceSettings {
@@ -194,7 +194,7 @@ function Run-AdminDbInstanceSettings {
 #-------------------------------------------------------------------------------------
 function Validate-AdminDbRestoreTests {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "AdminDbRestoreTests";
+	Process-Surface -SurfaceName "AdminDbRestoreTests" -Operation "Validate";
 }
 
 function Configure-AdminDbRestoreTests {
@@ -215,7 +215,7 @@ function Run-AdminDbRestoreTests {
 #-------------------------------------------------------------------------------------
 function Validate-DataCollectorSets {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "DataCollectorSets";
+	Process-Surface -SurfaceName "DataCollectorSets" -Operation "Validate";
 }
 
 function Configure-DataCollectorSets {
@@ -236,7 +236,7 @@ function Run-DataCollectorSets {
 #-------------------------------------------------------------------------------------
 function Validate-ExpectedDirectories {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "ExpectedDirectories";
+	Process-Surface -SurfaceName "ExpectedDirectories" -Operation "Validate";
 }
 
 function Configure-ExpectedDirectories {
@@ -257,7 +257,7 @@ function Run-ExpectedDirectories {
 #-------------------------------------------------------------------------------------
 function Validate-ExpectedDisks {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "ExpectedDisks";
+	Process-Surface -SurfaceName "ExpectedDisks" -Operation "Validate";
 }
 
 function Configure-ExpectedDisks {
@@ -278,7 +278,7 @@ function Run-ExpectedDisks {
 #-------------------------------------------------------------------------------------
 function Validate-ExpectedShares {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "ExpectedShares";
+	Process-Surface -SurfaceName "ExpectedShares" -Operation "Validate";
 }
 
 function Configure-ExpectedShares {
@@ -299,7 +299,7 @@ function Run-ExpectedShares {
 #-------------------------------------------------------------------------------------
 function Validate-ExtendedEvents {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "ExtendedEvents";
+	Process-Surface -SurfaceName "ExtendedEvents" -Operation "Validate";
 }
 
 function Configure-ExtendedEvents {
@@ -320,7 +320,7 @@ function Run-ExtendedEvents {
 #-------------------------------------------------------------------------------------
 function Validate-FirewallRules {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "FirewallRules";
+	Process-Surface -SurfaceName "FirewallRules" -Operation "Validate";
 }
 
 function Configure-FirewallRules {
@@ -341,7 +341,7 @@ function Run-FirewallRules {
 #-------------------------------------------------------------------------------------
 function Validate-HostTls {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "HostTls";
+	Process-Surface -SurfaceName "HostTls" -Operation "Validate";
 }
 
 function Configure-HostTls {
@@ -362,7 +362,7 @@ function Run-HostTls {
 #-------------------------------------------------------------------------------------
 function Validate-LocalAdministrators {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "LocalAdministrators";
+	Process-Surface -SurfaceName "LocalAdministrators" -Operation "Validate";
 }
 
 function Configure-LocalAdministrators {
@@ -383,7 +383,7 @@ function Run-LocalAdministrators {
 #-------------------------------------------------------------------------------------
 function Validate-NetworkAdapters {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "NetworkAdapters";
+	Process-Surface -SurfaceName "NetworkAdapters" -Operation "Validate";
 }
 
 function Configure-NetworkAdapters {
@@ -404,7 +404,7 @@ function Run-NetworkAdapters {
 #-------------------------------------------------------------------------------------
 function Validate-RequiredPackages {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "RequiredPackages";
+	Process-Surface -SurfaceName "RequiredPackages" -Operation "Validate";
 }
 
 function Configure-RequiredPackages {
@@ -425,7 +425,7 @@ function Run-RequiredPackages {
 #-------------------------------------------------------------------------------------
 function Validate-ServerName {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "ServerName";
+	Process-Surface -SurfaceName "ServerName" -Operation "Validate";
 }
 
 function Configure-ServerName {
@@ -446,7 +446,7 @@ function Run-ServerName {
 #-------------------------------------------------------------------------------------
 function Validate-SqlConfiguration {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "SqlConfiguration";
+	Process-Surface -SurfaceName "SqlConfiguration" -Operation "Validate";
 }
 
 function Configure-SqlConfiguration {
@@ -467,7 +467,7 @@ function Run-SqlConfiguration {
 #-------------------------------------------------------------------------------------
 function Validate-SqlInstallation {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "SqlInstallation";
+	Process-Surface -SurfaceName "SqlInstallation" -Operation "Validate";
 }
 
 function Configure-SqlInstallation {
@@ -488,7 +488,7 @@ function Run-SqlInstallation {
 #-------------------------------------------------------------------------------------
 function Validate-Ssms {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "Ssms";
+	Process-Surface -SurfaceName "Ssms" -Operation "Validate";
 }
 
 function Configure-Ssms {
@@ -509,7 +509,7 @@ function Run-Ssms {
 #-------------------------------------------------------------------------------------
 function Validate-TestingSurface {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "TestingSurface";
+	Process-Surface -SurfaceName "TestingSurface" -Operation "Validate";
 }
 
 function Configure-TestingSurface {	param(		[switch]$ExecuteRebase = $false, 		[Switch]$Force = $false	); 
@@ -530,7 +530,7 @@ function Run-TestingSurface {	param(		[switch]$ExecuteRebase = $false, 		[Swi
 #-------------------------------------------------------------------------------------
 function Validate-WindowsPreferences {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "WindowsPreferences";
+	Process-Surface -SurfaceName "WindowsPreferences" -Operation "Validate";
 }
 
 function Configure-WindowsPreferences {

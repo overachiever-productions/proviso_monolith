@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# TODO: Refactor this and Generate-SurfaceProxies down/into a single file called ProxyGenerator - or something similar.
+
 filter Generate-RunbookProxies {
 	param (
 		[Parameter(Mandatory)]

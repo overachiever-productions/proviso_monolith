@@ -10,41 +10,39 @@ namespace Proviso
     public class ProcessingContext
     {
         private Dictionary<string, object> _temporarySurfaceState = new Dictionary<string, object>();
-        private readonly Stack<Surface> _surfaces = new Stack<Surface>();  // these never get popped... just using a stack for ordering... 
-        private readonly Stack<SurfaceProcessingResult> _processingResults = new Stack<SurfaceProcessingResult>();
+
+        private Stack<SurfaceProcessingResult> _processingResults = new Stack<SurfaceProcessingResult>();
+        private Stack<Guid> _runbookProcessingIds = new Stack<Guid>();
+        private Dictionary<Guid, int> _surfaceCountsByRunbookProcessingIds = new Dictionary<Guid, int>();
+
+        private Guid _currentRunbookProcessingId;
         
-        public bool RecompareActive { get; private set; }
         public bool ExecuteConfiguration { get; private set; }
         public bool ExecuteRebase { get; private set; }
-        public bool RebootRequired { get; private set; }
-        public string RebootReason { get; private set; }
-        public bool SqlRestartRequired { get; private set; }
-        public string SqlRestartReason { get; private set; }
-        public Surface LastProcessedSurface => this._surfaces.Count > 0 ? this._surfaces.Peek() : null;
-        public SurfaceProcessingResult LastProcessingResult => this._processingResults.Count > 0 ? this._processingResults.Peek() : null;
-        public int ProcessedSurfacesCount => this._surfaces.Count;
-        public int SurfaceResultsCount => this._processingResults.Count;
-
-        public int SurfaceStateObjectsCount => this._temporarySurfaceState.Count;
 
         public Runbook CurrentRunbook { get; private set; }
         public string CurrentRunbookVerb { get; private set; }
         public bool CurrentRunbookAllowsReboot { get; private set; }
         public bool CurrentRunbookAllowsSqlRestart { get; private set; }
 
+        public Surface CurrentSurface { get; private set; }
+
         public Facet CurrentFacet { get; private set; }
         public string CurrentFacetName { get; private set; }
+
         public string CurrentKey { get; private set; }
         public object CurrentKeyValue { get; private set; }
-
         public string CurrentChildKey { get; private set; }
         public object CurrentChildKeyValue { get; private set; }
 
         public object Expected { get; private set; }
         public object Actual { get; private set; }
         public bool Matched { get; private set; }
-        
-        //public Dictionary<string, object> TemporarySurfaceState => this._temporarySurfaceState;
+
+        public bool RebootRequired { get; private set; }
+        public string RebootReason { get; private set; }
+        public bool SqlRestartRequired { get; private set; }
+        public string SqlRestartReason { get; private set; }
 
         public static ProcessingContext Instance => new ProcessingContext();
         
@@ -52,7 +50,6 @@ namespace Proviso
         {
             this.RebootRequired = false;
             this.SqlRestartRequired = false;
-            this.RecompareActive = false;
 
             this.ClearSurfaceState();
         }
@@ -60,7 +57,7 @@ namespace Proviso
         public SurfaceProcessingResult[] GetAllResults()
         {
             return this._processingResults.ToArray()
-                .OrderBy(x => x.ProcessingEnd)
+                .OrderByDescending(x => x.ProcessingEnd)
                 .ToArray();
         }
 
@@ -69,26 +66,42 @@ namespace Proviso
             SurfaceProcessingResult[] copy = this._processingResults.ToArray();
 
             return copy
-                .OrderBy(x => x.ProcessingEnd)
+                .OrderByDescending(x => x.ProcessingStart)
                 .Take(latest)
                 .ToArray();
+        }
+
+        public SurfaceProcessingResult[] GetLatestRunbookResults()
+        {
+            if (this._runbookProcessingIds.Count < 1)
+                throw new InvalidOperationException("ProcessingContext.GetLatestRunbookResults can NOT be called unless/until Runbooks have been executed.");
+
+            //if(latest > 1) 
+            //    throw new NotImplementedException("Proviso Framework Error. Retrieving > 1x Runbook's worth of results is not yet supported.");
+
+            //if (this._runbookProcessingIds.Count < latest)
+            //    latest = this._runbookProcessingIds.Count; // or... is it .Count -1? 
+
+            // get the last N Guids from this._runbookProcessingIds -> but... those values have to ORDERED/sorted. 
+            //      i pull this off with SURFACES, because they have a .ProcessingStart property that I can use... 
+            //      but, currently, Runbooks don't have a RunbookProcessingResult object that I can use in a similar fashion. 
+            //          So, there are 2x main options here: 
+            //              a. implement either a Tuple<Guid, DateTime> and ... order-by the timestamp... descending. 
+            //              a`. create some sort of full-blown object and sort by that... similar to the above - just more explicit... 
+            //              b. Use a Linked List and pull .Last and .Last.Next.Next, etc. until we're done grabbing - assuming that works. 
+
+            //         then, once i've got all of the above, simply 'sum' the total number of surfaces per each... i.e., if 3x runbooks ran with 2, 6, 3 surfaces each... 
+            //                  no matter which ones are first/last/whatever... that's 11 surfaces total - so get the last 11x surfaces... 
+
+            // otherwise, this, currently, works as a bit of an odd hack/work-around: 
+            int processedSurfacesCountFromMostRecent = this._surfaceCountsByRunbookProcessingIds[this._currentRunbookProcessingId];   // this guy will always be the 'last'/most-recent one processed.. 
+
+            return this.GetLatestResults(processedSurfacesCountFromMostRecent);
         }
 
         public void SetCurrentExpectValue(object value)
         {
             this.Expected = value;
-        }
-
-        // TODO: see if these are really needed. they were a bit of a hack around the whole AddSurfaceState vs SETSurfaceState... so..
-        //      i'm really curious as to whether they're truly needed or not. 
-        public void SetRecompareActive()
-        {
-            this.RecompareActive = true;
-        }
-
-        public void SetRecompareInactive()
-        {
-            this.RecompareActive = false;
         }
 
         public void SetValidationState(Facet current)
@@ -143,6 +156,10 @@ namespace Proviso
             this.CurrentRunbookVerb = verb;
             this.CurrentRunbookAllowsReboot = allowReboot;
             this.CurrentRunbookAllowsSqlRestart = allowSqlRestart;
+
+            this._currentRunbookProcessingId = Guid.NewGuid();
+            this._runbookProcessingIds.Push(this._currentRunbookProcessingId);
+            this._surfaceCountsByRunbookProcessingIds.Add(this._currentRunbookProcessingId, 0);
         }
 
         public void EndRunbookProcessing()
@@ -151,16 +168,24 @@ namespace Proviso
             this.CurrentRunbookVerb = null;
             this.CurrentRunbookAllowsReboot = false;
             this.CurrentRunbookAllowsSqlRestart = false;
+            
+            //this._currentRunbookProcessingId = null;  // meh, don't really need, cuz any attempt to use this (in this class only) checks to see if we're IN a runbook or not.
         }
 
         public void SetCurrentSurface(Surface added, bool executeRebase, bool executeConfiguration, SurfaceProcessingResult processingResult)
         {
-            this._temporarySurfaceState = new Dictionary<string, object>();
-            this._surfaces.Push(added);
-            this._processingResults.Push(processingResult);
-
+            this.CurrentSurface = added;
             this.ExecuteRebase = executeRebase;
             this.ExecuteConfiguration = executeConfiguration;
+
+            this._temporarySurfaceState = new Dictionary<string, object>();
+
+            this._processingResults.Push(processingResult);
+
+            if (this.CurrentRunbook != null)
+            {
+                this._surfaceCountsByRunbookProcessingIds[this._currentRunbookProcessingId]++;
+            }
         }
 
         public void CloseCurrentSurface()
@@ -187,6 +212,7 @@ namespace Proviso
         }
         #endregion
 
+        #region private / helper methods
         private void SetContextStateFromFacet(Facet current)
         {
             this.CurrentFacet = current;
@@ -214,5 +240,6 @@ namespace Proviso
                     throw new Exception("Proviso Exception. Invalid FacetType in CLR ProcessingContext for SetContextStateFromFacet().");
             }
         }
+        #endregion
     }
 }

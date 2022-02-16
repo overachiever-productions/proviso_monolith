@@ -6,8 +6,12 @@
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
-	#Evaluate-Tests;
-	Provision-Tests -AllowReboot -AllowSqlRestart -NextRunbookOperation "Validate-Tests";
+	Validate-WindowsPreferences;
+
+	Evaluate-Tests;
+
+
+
 
 #>
 
@@ -59,7 +63,7 @@ function Execute-Runbook {
 		
 		if (-not ($runbook.SkipSummary)){
 			#Summarize -LastRunbook -ProblemsOnly:$($runbook.SummarizeProblemsOnly);
-			Summarize -All;
+			Summarize -LatestRunbook;
 		}
 	};
 	

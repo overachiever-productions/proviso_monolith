@@ -15,7 +15,7 @@ filter Generate-SurfaceProxies {
 #-------------------------------------------------------------------------------------
 function Validate-{0} {{
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "{0}";
+	Process-Surface -SurfaceName "{0}" -Operation "Validate";
 }}
 
 function Configure-{0} {{{1}

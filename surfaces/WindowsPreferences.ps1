@@ -98,11 +98,15 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 		
 		Facet "DisableServerManager" -ExpectKeyValue "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
 			Test {
-				$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon";
+				$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon" -ErrorAction SilentlyContinue;
 				
-				if ($enabled.DoNotOpenServerManagerAtLogon -eq 0) { # NOTE: MS is drunk here. 0 = ... true (somehow).
-					return $true;
+				if ($enabled) {
+					if ($enabled.DoNotOpenServerManagerAtLogon -eq 0) {
+						# NOTE: MS is drunk here. 0 = ... true (somehow).
+						return $true;
+					}
 				}
+				
 				return $false;
 			}
 			

@@ -93,6 +93,40 @@ function Assert-UserIsAdministrator {
 	}
 }
 
+function Assert-ConfigIsStrict {
+	param (
+		[string]$FailureMessage = "Current Surface requires Host-Name and Target server to match before continuing.",
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
+	);
+	
+	begin {
+		Validate-SurfaceBlockUsage -BlockName "Assert";
+	}
+	
+	process {
+		if ($Ignored) {
+			return;
+		}
+		
+		[ScriptBlock]$codeBlock = {
+			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
+			$currentHostName = [System.Net.Dns]::GetHostName();
+			if ($targetHostName -ne $currentHostName) {
+				return $false;
+			}
+		}
+		
+		$assertion = New-Object Proviso.Models.Assertion("Assert-ConfigIsStrict", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+	}
+	
+	end {
+		if (-not ($Ignored)) {
+			$surface.AddAssertion($assertion);
+		}
+	}
+}
+
 function Assert-HostIsWindows {
 	param (
 		[string]$FailureMessage = "Current Host is NOT running Windows.",

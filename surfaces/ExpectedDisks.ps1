@@ -2,12 +2,14 @@
 
 <#
 
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ExpectedDisks;
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ExpectedDisks;
+	Validate-ExpectedDisks;
 
-Summarize -Latest;
+	Summarize;
+
 
 #>
 
@@ -28,20 +30,14 @@ Surface "ExpectedDisks" {
 		
 		Assert-UserIsAdministrator;
 		
+		Assert-ConfigIsStrict -FailureMessage "Proviso will NOT [Validate] or [Configure] Disks on systems where Host and TargetServer names do NOT match.";
+		
 		Assert "C Drive Is NOT Specified" {
 			
 			Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
 				if (($_.VolumeName -eq "C:\") -or ($_.VolumeName -eq "C")) {
 					throw "Invalid Expected Disk Specification. Proviso can NOT define an expected disk for System (i.e., C:\). Use [Host.Compute.SystemVolumeSize] to define size of C:\ drive instead.";
 				}
-			}
-		}
-		
-		Assert "Config Is -Strict" { 
-			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
-			$currentHostName = [System.Net.Dns]::GetHostName();
-			if ($targetHostName -ne $currentHostName) {
-				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure disks on systems where Host/TargetServer names do NOT match.";
 			}
 		}
 	}

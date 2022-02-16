@@ -8,18 +8,22 @@
   <ViewDefinitions>
 
     <View>
-      <Name>Facet-Summary</Name>
+      <Name>Surface-Summary</Name>
       <ViewSelectedBy>
-        <TypeName>Proviso.Processing.FacetProcessingResult</TypeName>
+        <TypeName>Proviso.Processing.SurfaceProcessingResult</TypeName>
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
           <TableColumnHeader>
-            <Width>22</Width>
-            <Label>Facet</Label>
+            <Width>4</Width>
+            <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>12</Width>
+            <Width>32</Width>
+            <Label>Surface</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>10</Width>
             <Label>Operation</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -28,11 +32,11 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <width>12</width>
-            <Label>Validations</Label>
+            <Label>Validate</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <width>14</width>
-            <Label>Configurations</Label>
+            <width>12</width>
+            <Label>Configure</Label>
           </TableColumnHeader>
           <TableColumnHeader>
             <Width>60</Width>
@@ -43,7 +47,10 @@
           <TableRowEntry>
             <TableColumnItems>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Facet.Name, 21)</ScriptBlock>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.Surface.Name, 31)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
@@ -73,31 +80,37 @@
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
-          <!--<TableColumnHeader>
-            <Width>22</Width>
-            <Label>Facet</Label>
-          </TableColumnHeader>-->
           <TableColumnHeader>
-            <Width>52</Width>
+            <Width>4</Width>
+            <Label>SID</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>34</Width>
             <Label>Assertion</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>40</Width>
+            <Width>10</Width>
             <Label>Outcome</Label>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>70</Width>
+            <Label>Detail</Label>
           </TableColumnHeader>
         </TableHeaders>
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
-              <!--<TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Assertion.ParentFacetName, 21)</ScriptBlock>
-              </TableColumnItem>-->
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 51)</ScriptBlock>
-                <!--<ScriptBlock>$Formatter.Abridge($_.Assertion.Name, 29)</ScriptBlock>-->
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$($_.GetOutcomeState())</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 33)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.Abridge($_.GetOutcomeState(), 10)</ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>$_.GetErrorMessage()</ScriptBlock>
               </TableColumnItem>
             </TableColumnItems>
           </TableRowEntry>
@@ -112,6 +125,10 @@
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
+          <TableColumnHeader>
+            <Width>4</Width>
+            <Label>SID</Label>
+          </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
             <Label>Validation</Label>
@@ -128,6 +145,9 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 51)</ScriptBlock>
               </TableColumnItem>
@@ -152,7 +172,7 @@
           <TableHeaders>
             <TableColumnHeader>
               <Width>22</Width>
-              <Label>Facet</Label>
+              <Label>Surface</Label>
             </TableColumnHeader>
             <TableColumnHeader>
               <Width>90</Width>
@@ -163,7 +183,7 @@
             <TableRowEntry>
               <TableColumnItems>
                 <TableColumnItem>
-                  <ScriptBlock>$Formatter.Abridge($_.GetFacetName(), 21)</ScriptBlock>
+                  <ScriptBlock>$Formatter.Abridge($_.GetSurfaceName(), 21)</ScriptBlock>
                 </TableColumnItem>
                 <TableColumnItem>
                   <ScriptBlock>$_.GetOutcomeSummary()</ScriptBlock>
@@ -181,6 +201,10 @@
       </ViewSelectedBy>
       <TableControl>
         <TableHeaders>
+          <TableColumnHeader>
+            <Width>4</Width>
+            <Label>SID</Label>
+          </TableColumnHeader>
           <TableColumnHeader>
             <Width>52</Width>
             <Label>Configuration</Label>
@@ -201,6 +225,9 @@
         <TableRowEntries>
           <TableRowEntry>
             <TableColumnItems>
+              <TableColumnItem>
+                <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
+              </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 51)</ScriptBlock>
               </TableColumnItem>

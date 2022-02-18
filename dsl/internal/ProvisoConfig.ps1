@@ -1,5 +1,222 @@
 ﻿Set-StrictMode -Version 1.0;
 
+filter Get-ProvisoConfigCompoundValues {
+	
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[string]$FullCompoundKey,
+		[switch]$OrderDescending = $false
+	);
+	
+	$keys = Get-ProvisoConfigValueByKey -Config $Config -Key $FullCompoundKey;
+}
+
+# REFACTOR: https://overachieverllc.atlassian.net/browse/PRO-178
+filter Get-ProvisoConfigDefault {
+	param (
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Key,
+		[switch]$ValidateOnly = $false # validate vs return values... 
+	);
+	
+	$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+	
+	# NOTE: this is kind of BS... i have to put the STRING to the left in these evaluations - otherwise a value of $True will trigger as TRUE and complete the -eq ... 
+	if ("{~DEFAULT_PROHIBITED~}" -eq $defaultValue) {
+		if ($ValidateOnly) {
+			return $true;
+		}
+		else {
+			$defaultValue = $null;
+		}
+	}
+	
+	if ("{~DYNAMIC~}" -eq $defaultValue) {
+		switch ($Key) {
+			{
+				$_ -like '*SqlTempDbFileCount'
+			} {
+				$coreCount = Get-WindowsCoreCount;
+				if ($coreCount -le 4) {
+					return $coreCount;
+				}
+				return 4;
+			}
+			default {
+				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
+			}
+		}
+	}
+	
+	if ($null -ne $defaultValue) {
+		return $defaultValue;
+	}
+	
+	# Non-SQL-Instance Partials (pattern):
+	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.LocalAdministrators|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
+	if ($match) {
+		$partialName = $match[0].Groups['partialName'];
+		
+		if (-not ([string]::IsNullOrEmpty($partialName))) {
+			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
+			
+			$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
+			
+			if ($null -ne $defaultValue) {
+				if ($ValidateOnly -and ($defaultValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
+					return $defaultValue;
+				}
+				
+				if ($defaultValue -eq "{~PARENT~}") {
+					$defaultValue = $partialName;
+				}
+				
+				if ($null -ne $defaultValue) {
+					return ($defaultValue).Value;
+				}
+			}
+			
+			if ($ValidateOnly) {
+				return ($partialName).Value;
+			}
+		}
+	}
+	
+	# Address wildcards: 
+	# 	NOTE: I COULD have used 1x regex (that combined instance AND other details), but went with SRP (i.e., each regex is for ONE thing):
+	$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
+	if ($match) {
+		$keyWithoutDefaultMSSQLServerName = $Key.Replace('MSSQLSERVER', '{~ANY~}');
+		$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $keyWithoutDefaultMSSQLServerName;
+		
+		if ($null -ne $output) {
+			return $output;
+		}
+	}
+	
+	return $null;
+}
+
+function Get-ProvisoConfigGroupNames {
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$GroupKey,
+		[string]$OrderByKey
+	);
+	
+	begin {
+		# do validations/etc. 
+		$decrementKey = [int]::MaxValue;
+	};
+	
+	process {
+		$block = Get-ProvisoConfigValueByKey -Config $Config -Key $GroupKey;
+		$keys = $block.Keys;
+		
+		if ($OrderByKey) {
+			
+			$prioritizedKeys = New-Object "System.Collections.Generic.SortedDictionary[int, string]";
+			
+			foreach ($key in $keys) {
+				$orderingKey = "$GroupKey.$key.$OrderByKey";
+				
+				$priority = Get-ProvisoConfigValueByKey -Key $orderingKey -Config $Config;
+				if (-not ($priority)) {
+					$decrementKey = $decrementKey - 1;
+					$priority = $decrementKey;
+				}
+				
+				$prioritizedKeys.Add($priority, $key);
+			}
+			
+			$keys = @();
+			foreach ($orderedKey in $prioritizedKeys.GetEnumerator()) {
+				$keys += $orderedKey.Value;
+			}
+		}
+	};
+	
+	end {
+		return $keys;
+	};
+}
+
+filter Get-ProvisoConfigValueByKey {
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	$keys = $Key -split "\.";
+	$output = $null;
+	# vNext: I presume there's a more elegant way to do this... but, it works and ... I don't care THAT much.
+	switch ($keys.Count) {
+		1 {
+			$output = $Config.($keys[0]);
+		}
+		2 {
+			$output = $Config.($keys[0]).($keys[1]);
+		}
+		3 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]);
+		}
+		4 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]);
+		}
+		5 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]);
+		}
+		default {
+			throw "Invalid Key. Too many key segments defined.";
+		}
+	}
+	
+	return $output;
+}
+
+filter Set-ProvisoConfigValueByKey {
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[string]$Key,
+		[Parameter(Mandatory)]
+		[string]$Value
+	);
+	
+	$keys = $Key -split "\.";
+	$output = $null;
+	# vNext: I presume there's a more elegant way to do this... but, it works and ... I don't care THAT much.
+	switch ($keys.Count) {
+		1 {
+			$Config.($keys[0]) = $Value;
+		}
+		2 {
+			$Config.($keys[0]).($keys[1]) = $Value;
+		}
+		3 {
+			$Config.($keys[0]).($keys[1]).($keys[2]) = $Value;
+		}
+		4 {
+			$Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]) = $Value;
+		}
+		5 {
+			$Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]) = $Value;
+		}
+		default {
+			throw "Invalid Key. Too many key segments defined.";
+		}
+	}
+}
+
 [PSCustomObject]$script:ProvisoConfigDefaults = [PSCustomObject]@{
 	
 	Host = @{
@@ -17,7 +234,7 @@
 		}
 		
 		LocalAdministrators = @(
-			"Administrator"  # TODO: this is a HACK... 
+			"Administrator" # TODO: this is a HACK... 
 		)
 		
 		WindowsPreferences  = @{
@@ -78,29 +295,29 @@
 			StrictInstallOnly = $true
 			
 			Setup			  = @{
-				Version			       = ""
-				Edition			       = ""
+				Version				      = ""
+				Edition				      = ""
 				
-				Features			   = "{~DEFAULT_PROHIBITED~}"
-				Collation			   = "SQL_Latin1_General_CP1_CI_AS"
+				Features				  = "{~DEFAULT_PROHIBITED~}"
+				Collation				  = "SQL_Latin1_General_CP1_CI_AS"
 				InstantFileInit		      = $true
 				
 				InstallDirectory		  = "{~DEFAULT_PROHIBITED~}"
 				InstallSharedDirectory    = "{~DEFAULT_PROHIBITED~}"
 				InstallSharedWowDirectory = "{~DEFAULT_PROHIBITED~}"
 				
-				SqlTempDbFileCount	   = "{~DYNAMIC~}" # 4 or .5 * core-count (whichever is larger)
-				SqlTempDbFileSize	   = 1024
-				SqlTempDbFileGrowth    = 256
-				SqlTempDbLogFileSize   = 2048
-				SqlTempDbLogFileGrowth = 256
+				SqlTempDbFileCount	      = "{~DYNAMIC~}" # 4 or .5 * core-count (whichever is larger)
+				SqlTempDbFileSize		  = 1024
+				SqlTempDbFileGrowth	      = 256
+				SqlTempDbLogFileSize	  = 2048
+				SqlTempDbLogFileGrowth    = 256
 				
-				FileStreamLevel	       = 0
+				FileStreamLevel		      = 0
 				
-				NamedPipesEnabled	   = $false
-				TcpEnabled			   = $true
+				NamedPipesEnabled		  = $false
+				TcpEnabled			      = $true
 				
-				LicenseKey			   = ""
+				LicenseKey			      = ""
 			}
 			
 			SecuritySetup	  = @{
@@ -123,10 +340,10 @@
 			StrictInstallOnly = $true
 			
 			Setup			  = @{
-				Version			       = ""
-				Edition			       = ""
+				Version				      = ""
+				Edition				      = ""
 				
-				Features			   = "{~DEFAULT_PROHIBITED~}"
+				Features				  = "{~DEFAULT_PROHIBITED~}"
 				Collation				  = "SQL_Latin1_General_CP1_CI_AS"
 				InstantFileInit		      = $true
 				
@@ -134,18 +351,18 @@
 				InstallSharedDirectory    = "C:\Program Files\Microsoft SQL Server"
 				InstallSharedWowDirectory = "C:\Program Files (x86)\Microsoft SQL Server"
 				
-				SqlTempDbFileCount	   = "{~DYNAMIC~}"
-				SqlTempDbFileSize	   = 1024
-				SqlTempDbFileGrowth    = 256
-				SqlTempDbLogFileSize   = 2048
-				SqlTempDbLogFileGrowth = 256
+				SqlTempDbFileCount	      = "{~DYNAMIC~}"
+				SqlTempDbFileSize		  = 1024
+				SqlTempDbFileGrowth	      = 256
+				SqlTempDbLogFileSize	  = 2048
+				SqlTempDbLogFileGrowth    = 256
 				
-				FileStreamLevel	       = 0
+				FileStreamLevel		      = 0
 				
-				NamedPipesEnabled	   = $false
-				TcpEnabled			   = $true
+				NamedPipesEnabled		  = $false
+				TcpEnabled			      = $true
 				
-				LicenseKey			   = ""
+				LicenseKey			      = ""
 			}
 			
 			# Handled by: Get-SqlServerDefaultServiceAccount
@@ -168,12 +385,12 @@
 			
 			#Handled by: Get-SqlServerDefaultDirectoryLocation
 			SqlServerDefaultDirectories = @{
-#				InstallSqlDataDir 	= "D:\SQLData"
-#				SqlDataPath    		= "D:\SQLData"
-#				SqlLogsPath    		= "D:\SQLData"
-#				SqlBackupsPath 		= "D:\SQLBackups"
-#				TempDbPath	      	= "D:\SQLData"
-#				TempDbLogsPath    	= "D:\SQLData"
+				#				InstallSqlDataDir 	= "D:\SQLData"
+				#				SqlDataPath    		= "D:\SQLData"
+				#				SqlLogsPath    		= "D:\SQLData"
+				#				SqlBackupsPath 		= "D:\SQLBackups"
+				#				TempDbPath	      	= "D:\SQLData"
+				#				TempDbLogsPath    	= "D:\SQLData"
 			}
 		}
 	}
@@ -238,7 +455,7 @@
 				WarnWhenFreeGBsGoBelow = "32"
 			}
 			
-			Alerts = @{
+			Alerts		     = @{
 				IOAlertsEnabled	       = $true
 				IOAlertsFiltered	   = $false
 				SeverityAlertsEnabled  = $true
@@ -247,34 +464,34 @@
 			}
 			
 			IndexMaintenance = @{
-				Enabled = $false
+				Enabled				    = $false
 				JobsNamePrefix		    = "Index Maintenance - "
-				DailyJobRunsOnDays = "M,W,F"
-				WeekendJobRunsOnDays = "Su"
-				StartTime		     = "21:50:00"
-				TimeZoneForUtcOffset = "" # vNEXT, make this one {~DYNAMIC~} 
-				JobsCategoryName	 = "Database Maintenance"
+				DailyJobRunsOnDays	    = "M,W,F"
+				WeekendJobRunsOnDays    = "Su"
+				StartTime			    = "21:50:00"
+				TimeZoneForUtcOffset    = "" # vNEXT, make this one {~DYNAMIC~} 
+				JobsCategoryName	    = "Database Maintenance"
 				OperatorToAlertOnErrors = "Alerts"
 			}
 			
 			ConsistencyChecks = @{
-				Enabled 		= $false
-				JobName	 		= "Database Consistency Checks"
-				ExecutionDays 	= "M,W,F,Su"
-				StartTime	  	= "04:10:00"
-				Targets	      	= "{USER}"
-				Exclusions    	= ""
-				Priorities    	= ""
+				Enabled					     = $false
+				JobName					     = "Database Consistency Checks"
+				ExecutionDays			     = "M,W,F,Su"
+				StartTime				     = "04:10:00"
+				Targets					     = "{USER}"
+				Exclusions				     = ""
+				Priorities				     = ""
 				IncludeExtendedLogicalChecks = $false
 				TimeZoneForUtcOffset		 = "" # vNEXT, make this one {~DYNAMIC~} 
 				JobCategoryName			     = "Database Maintenance"
 				Operator					 = "Alerts"
 				Profile					     = "General"
-				JobEmailPrefix = "[Database Corruption Checks] - "
+				JobEmailPrefix			     = "[Database Corruption Checks] - "
 			}
 			
 			BackupJobs	     = @{
-				Enabled = $true
+				Enabled					    = $true
 				JobsNamePrefix			    = "Database Backups - "
 				
 				UserDatabasesToBackup	    = "{USER}"
@@ -283,11 +500,11 @@
 				BackupDirectory			    = "{DEFAULT}"
 				CopyToDirectory			    = ""
 				SystemBackupRetention	    = "4 days"
-				CopyToSystemBackupRetention = "4 days"   # todo, have this default to whatever is set for SystemBackupRetention - i.e., if they set that to 5 days, this is 5 days... 
+				CopyToSystemBackupRetention = "4 days" # todo, have this default to whatever is set for SystemBackupRetention - i.e., if they set that to 5 days, this is 5 days... 
 				UserBackupRetention		    = "3 days"
-				CopyToUserBackupRetention   = "3 days"    # ditto. and, of course, none of these 'matter' unless there's a CopyToDirectory specified
+				CopyToUserBackupRetention   = "3 days" # ditto. and, of course, none of these 'matter' unless there's a CopyToDirectory specified
 				LogBackupRetention		    = "73 hours"
-				CopyToLogBackupRetention    = "73 hours"  # ditto
+				CopyToLogBackupRetention    = "73 hours" # ditto
 				AllowForSecondaries		    = $false
 				SystemBackupsStart		    = "18:50:00"
 				UserBackupsStart		    = "02:00:00"
@@ -302,7 +519,7 @@
 			}
 			
 			RestoreTestJobs  = @{
-				Enabled = $false
+				Enabled			      = $false
 				JobName			      = "Database Backups - Regular Restore Tests"
 				JobStartTime		  = "22:30:00"
 				TimeZoneForUtcOffset  = ""
@@ -359,9 +576,9 @@
 	}
 	
 	SqlServerManagementStudio = @{
-		InstallSsms	       	= $false
-		IncludeAzureStudio 	= $false
-		InstallPath			= "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
+		InstallSsms	       = $false
+		IncludeAzureStudio = $false
+		InstallPath	       = "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
 	}
 	
 	ResourceGovernor = @{

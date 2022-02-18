@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-function Add-TraceFlag {
+filter Add-TraceFlag {
 	param (
 		[string]$Flag
 		# TODO: add in instanceName as a param... and account for that during connections/etc.

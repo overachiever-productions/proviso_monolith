@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface Ssms {
+Surface SsmsInstallation {
 	Assertions {
 		
 	}

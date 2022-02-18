@@ -36,7 +36,7 @@ filter Get-UserRightForSqlServer {
 	return $false;
 }
 
-function Set-UserRightForSqlServer {
+filter Set-UserRightForSqlServer {
 	param (
 		[Parameter(Mandatory)]
 		$InstanceName,

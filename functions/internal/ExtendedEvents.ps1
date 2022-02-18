@@ -1,12 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
-# Tasks: 
-#  1. Disable via Registry: 
-#  2. Set "SQL Server CEIP service (MSSQLSERVER)" to Manual/Disabled + Stop. 
-#  3. Drop the XE Session.
-
-
 filter Disable-TelemetryXEventsTrace {
+	# Tasks: 
+	#  1. Disable via Registry: 
+	#  2. Set "SQL Server CEIP service (MSSQLSERVER)" to Manual/Disabled + Stop. 
+	#  3. Drop the XE Session.
 	
 	param (
 		[string]$InstanceName = "MSSQLSERVER",

@@ -14,7 +14,7 @@ function Map {
 	);
 	
 	begin {
-		Validate-MethodUsage -MethodName "Assign";
+		Validate-MethodUsage -MethodName "Map";
 		
 		[PSCredential]$internalDomainCreds = $null;
 		

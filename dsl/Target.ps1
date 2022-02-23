@@ -27,7 +27,7 @@ function Target {
 	);
 	
 	begin {
-		Validate-MethodUsage -MethodName "Map";
+		Validate-MethodUsage -MethodName "Target";
 	
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {

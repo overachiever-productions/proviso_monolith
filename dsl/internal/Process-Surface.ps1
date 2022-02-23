@@ -14,7 +14,6 @@ Target -CurrentHost;
 Do-Something;
 
 
-
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";

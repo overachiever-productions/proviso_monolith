@@ -6,7 +6,6 @@ runbook ServerInitialization -RequiresDomainCredentials -SummarizeProblemsOnly -
 }
 
 runbook ServerConfiguration -SummarizeProblemsOnly -WaitBeforeRebootFor 5Seconds {
-	
 	Run-LocalAdministrators;
 	Run-WindowsPreferences;
 	Run-RequiredPackages;
@@ -19,7 +18,7 @@ runbook ServerConfiguration -SummarizeProblemsOnly -WaitBeforeRebootFor 5Seconds
 	Run-SqlInstallation;
 	Run-SqlConfiguration;
 	
-	#Run-SqlSPsAndCus;
+	#Run-SqlPatches;
 	
 	Run-ExpectedDirectories;
 	Run-ExpectedShares;

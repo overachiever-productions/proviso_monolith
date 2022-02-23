@@ -83,7 +83,7 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 				}
 				
 				$virtualAccountName = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType "SqlServiceAccountName";
-				Grant-SqlServicePermissionsToDirectory -TargetDirectory $directory -SqlServiceAccount $virtualAccountName;
+				Grant-PermissionsToDirectory -TargetDirectory $directory -Account $virtualAccountName;
 			}
 		}
 		

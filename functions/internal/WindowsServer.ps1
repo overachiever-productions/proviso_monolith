@@ -175,3 +175,40 @@ filter Install-WsfcComponents {
 	
 	return $rebootRequired;
 }
+
+filter Test-DomainCredentials {
+	param (
+		[Parameter(Mandatory)]
+		[PSCredential]$DomainCreds
+	);
+	
+	try {
+		$username = $DomainCreds.UserName;
+		$password = $DomainCreds.GetNetworkCredential().Password;
+		
+		$CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName;
+		$test = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain, $username, $password);
+		
+		return ($null -ne $test);
+	}
+	catch {
+		return $false;
+	}
+}
+
+filter Grant-PermissionsToDirectory {
+	param (
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$TargetDirectory,
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Account
+	);
+	
+	$acl = Get-Acl $TargetDirectory;
+	$rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule($Account, "FullControl", "ContainerInherit,Objectinherit", "none", "Allow");
+	
+	$acl.SetAccessRule($rule);
+	Set-Acl -Path $TargetDirectory -AclObject $acl;
+}

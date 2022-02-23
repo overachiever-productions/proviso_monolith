@@ -484,24 +484,24 @@ function Run-SqlInstallation {
 }
 
 #-------------------------------------------------------------------------------------
-# Ssms
+# SsmsInstallation
 #-------------------------------------------------------------------------------------
-function Validate-Ssms {
+function Validate-SsmsInstallation {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "Ssms" -Operation "Validate";
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation "Validate";
 }
 
-function Configure-Ssms {
+function Configure-SsmsInstallation {
 	Validate-MethodUsage -MethodName "Configure";
-	Process-Surface -SurfaceName "Ssms" -Operation "Configure";
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation "Configure";
 }
 
-function Run-Ssms {
+function Run-SsmsInstallation {
 	Validate-MethodUsage -MethodName "Run";
 	Validate-RunbookProcessing;
 	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
 	
-	Process-Surface -SurfaceName "Ssms" -Operation $operationType;
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation $operationType;
 }
 
 #-------------------------------------------------------------------------------------

@@ -1,5 +1,15 @@
 ﻿Set-StrictMode -Version 1.0;
 
+<#
+	
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+
+	Get-SqlServerDefaultServiceAccount -InstanceName "X3" -AccountType "SqlServiceAccountName"
+
+#>
+
 filter Get-ExistingSqlServerInstanceNames {
 	
 	[string[]]$output = @();
@@ -25,9 +35,7 @@ filter Get-ConnectionInstance {
 	return ".";
 }
 
-# REFACTOR: major screw-up in using these helpers: https://overachieverllc.atlassian.net/browse/PRO-179
 filter Get-SqlServerDefaultDirectoryLocation {
-	
 	param (
 		[Parameter(Mandatory)]
 		[PSCustomObject]$InstanceName,
@@ -35,34 +43,33 @@ filter Get-SqlServerDefaultDirectoryLocation {
 		[PSCustomObject]$SqlDirectory
 	);
 	
-	# vNEXT can, eventually allow for default directories in the form of "D:\<instanceName>\<directoryName>" and if/when the <instanceName> is MSSQLSERVER... then replace <instanceName> with "" or whatever so that we just get "D:\<directoryName>"
-	#  		otherwise, we'd get, say: "D:\X3\SQLData" and so on... 
+	if ("MSSQLSERVER" -eq $InstanceName) {
+		throw "Proviso Framework Error. Default Directory Locations for Default SQL Server Instance (MSSQLSERVER) should NOT be retrieved dynamicall.y";
+	}	
 	
 	switch ($SqlDirectory) {
 		"InstallSqlDataDir" {
-			return "D:\SQLData";
+			return "D:\$InstanceName\SQLData";
 		}
 		"SqlDataPath" {
-			return "D:\SQLData";
+			return "D:\$InstanceName\SQLData";
 		}
 		"SqlLogsPath" {
-			return "D:\SQLData";
+			return "D:\$InstanceName\SQLData";
 		}
 		"SqlBackupsPath" {
-			return "D:\SQLBackups";
+			return "D:\$InstanceName\SQLBackups";
 		}
 		"TempDbPath" {
-			return "D:\SQLData";
+			return "D:\$InstanceName\SQLData";
 		}
 		"TempDbLogsPath" {
-			return "D:\SQLData";
+			return "D:\$InstanceName\SQLData";
 		}
 	}
 }
 
-# REFACTOR: major screw-up in using these helpers: https://overachieverllc.atlassian.net/browse/PRO-179
 filter Get-SqlServerDefaultServiceAccount {
-	
 	param (
 		[Parameter(Mandatory)]
 		[PSCustomObject]$InstanceName,
@@ -70,22 +77,36 @@ filter Get-SqlServerDefaultServiceAccount {
 		[PSCustomObject]$AccountType
 	);
 	
-	# vNEXT: spin this up to use the defined SVC accounts for named-instances as well... i.e., not hard to do at all... 
-	
-	#Write-Host "InstanceName: $InstanceName -> account: $AccountType "
-	
-	switch ($AccountType) {
-		"SqlServiceAccountName" {
-			return "NT SERVICE\MSSQLSERVER";
+	if ("MSSQLSERVER" -eq "$InstanceName") {
+		switch ($AccountType) {
+			"SqlServiceAccountName" {
+				return "NT SERVICE\MSSQLSERVER";
+			}
+			"AgentServiceAccountName" {
+				return "NT SERVICE\SQLSERVERAGENT";
+			}
+			"FullTextServiceAccount" {
+				return "NT Service\MSSQLFDLauncher";
+			}
+			default {
+				throw "Default SQL Server Service Accounts for anything other than SQL Server and SQL Server Agent are not, currently, support for anything other than MSSQLSERVER instance.";
+			}
 		}
-		"AgentServiceAccountName" {
-			return "NT SERVICE\SQLSERVERAGENT";
-		}
-		"FullTextServiceAccount" {
-			return "NT Service\MSSQLFDLauncher";
-		}
-		default {
-			throw "Default SQL Server Service Accounts for anything other than SQL Server and SQL Server Agent are not, currently, support for anything other than MSSQLSERVER instance.";
+	}
+	else {
+		switch ($AccountType) {
+			"SqlServiceAccountName" {
+				return "NT SERVICE\MSSQL`$$($InstanceName)";
+			}
+			"AgentServiceAccountName" {
+				return "NT SERVICE\SQLAGENT`$$($InstanceName)";
+			}
+			"FullTextServiceAccount" {
+				return "NT Service\MSSQLFDLauncher`$$($InstanceName)";
+			}
+			default {
+				throw "Default SQL Server Service Accounts for anything other than SQL Server and SQL Server Agent are not, currently, support for anything other than MSSQLSERVER instance.";
+			}
 		}
 	}
 }

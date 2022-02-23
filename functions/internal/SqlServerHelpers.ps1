@@ -13,6 +13,18 @@ filter Get-ExistingSqlServerInstanceNames {
 	return $output;
 }
 
+filter Get-ConnectionInstance {
+	param (
+		[Parameter(Mandatory)]
+		[string]$InstanceName
+	);
+	if ($InstanceName -ne "MSSQLSERVER") {
+		return ".\$InstanceName";
+	}
+	
+	return ".";
+}
+
 # REFACTOR: major screw-up in using these helpers: https://overachieverllc.atlassian.net/browse/PRO-179
 filter Get-SqlServerDefaultDirectoryLocation {
 	

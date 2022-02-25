@@ -19,7 +19,7 @@ Write-Host "Features2: $features ..."
 $global:currentProvisoIniData65e8dc56 = $null;
 function New-IniFile {
 	
-	$filePath = Join-Path $ProvisoScriptRoot -ChildPath "\functions\internal\Template.ini";
+	$filePath = Join-Path $ProvisoScriptRoot -ChildPath "\internal\Template.ini";
 	
 	$data = @{};
 	$data["_ORDINALS"] = @{};

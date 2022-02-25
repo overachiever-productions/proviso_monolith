@@ -8,14 +8,7 @@ filter Get-UserRightForSqlServer {
 		[string]$UserRight
 	);
 	
-	# TODO: fix this... and the TODO below - they're one in the same... 
-	if ($InstanceName -ne "MSSQLSERVER") {
-		throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-	}
-	
-	# TODO: base this off of named instance service-account naming-rules.
-	[string]$accountName = "NT SERVICE\MSSQLSERVER";
-	
+	[string]$accountName = Get-SqlServerDefaultServiceAccount -InstanceName $InstanceName -AccountType "SqlServiceAccountName";
 	
 	$sid = ConvertTo-WindowsSecurityIdentifier -Name $accountName;
 	$policy = Get-UserRightsPolicy;
@@ -44,12 +37,7 @@ filter Set-UserRightForSqlServer {
 		[string]$UserRight
 	);
 	
-	# TODO: fix this... 
-	if ($InstanceName -ne "MSSQLSERVER") {
-		throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-	}
-	# TODO: fix this too - it's the same issue as the above... 
-	[string]$accountName = "NT SERVICE\MSSQLSERVER";
+	[string]$accountName = Get-SqlServerDefaultServiceAccount -InstanceName $InstanceName -AccountType "SqlServiceAccountName";
 	
 	$sid = ConvertTo-WindowsSecurityIdentifier -Name $accountName;
 	$policy = Get-UserRightsPolicy;
@@ -106,11 +94,9 @@ filter Remove-UserRightForSqlServer {
 		[string]$UserRight
 	);
 	
-	# TODO: fix this... 
-	if ($InstanceName -ne "MSSQLSERVER") {
-		throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-	}
+	[string]$accountName = Get-SqlServerDefaultServiceAccount -InstanceName $InstanceName -AccountType "SqlServiceAccountName";
 	
+	# TODO: Implement... 
 	# basically... just find and remove the assigned $sids ... then do the same thing... 
 	throw "Proviso Framework Exception. User Rights REMOVALs are not CURRENTLY supported.";
 }

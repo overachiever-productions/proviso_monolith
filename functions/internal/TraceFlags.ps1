@@ -2,8 +2,10 @@
 
 filter Add-TraceFlag {
 	param (
+		[Parameter(Mandatory)]
+		$InstanceName,
+		[Parameter(Mandatory)]
 		[string]$Flag
-		# TODO: add in instanceName as a param... and account for that during connections/etc.
 	);
 	
 	$nextArgNameQuery = "WITH ordered AS ( 
@@ -25,7 +27,7 @@ filter Add-TraceFlag {
     FROM 
         [ordered]; ";
 	
-	$nextArg = Invoke-SqlCmd -Query $nextArgNameQuery;
+	$nextArg = Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $InstanceName) -Query $nextArgNameQuery;
 	
 	$registryKey = $nextArg["registry_key"];
 	$registryName = $nextArg["next_arg_name"];
@@ -35,5 +37,5 @@ filter Add-TraceFlag {
 	New-ItemProperty -Path $registryKey -Name $registryName -Value $registryValue -PropertyType STRING -Force | Out-Null;
 	
 	# and, enable the TF within global scope (i.e., until next Server/Service Restart).
-	Invoke-SqlCmd -Query "DBCC TRACEON(`$(FLAG_VALUE), -1);" -Variable "FLAG_VALUE = $Flag";
+	Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $InstanceName) -Query "DBCC TRACEON(`$(FLAG_VALUE), -1);" -Variable "FLAG_VALUE = $Flag";
 }

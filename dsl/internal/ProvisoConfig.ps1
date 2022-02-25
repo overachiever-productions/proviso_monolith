@@ -1,151 +1,17 @@
 ﻿Set-StrictMode -Version 1.0;
 
-filter Get-ProvisoConfigCompoundValues {
+<#
 	
-	param (
-		[Parameter(Mandatory)]
-		[PSCustomObject]$Config,
-		[Parameter(Mandatory)]
-		[string]$FullCompoundKey,
-		[switch]$OrderDescending = $false
-	);
-	
-	$keys = Get-ProvisoConfigValueByKey -Config $Config -Key $FullCompoundKey;
-}
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
-# REFACTOR: https://overachieverllc.atlassian.net/browse/PRO-178
-filter Get-ProvisoConfigDefault {
-	param (
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$Key,
-		[switch]$ValidateOnly = $false # validate vs return values... 
-	);
-	
-	$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
-	
-	# NOTE: this is kind of BS... i have to put the STRING to the left in these evaluations - otherwise a value of $True will trigger as TRUE and complete the -eq ... 
-	if ("{~DEFAULT_PROHIBITED~}" -eq $defaultValue) {
-		if ($ValidateOnly) {
-			return $true;
-		}
-		else {
-			$defaultValue = $null;
-		}
-	}
-	
-	if ("{~DYNAMIC~}" -eq $defaultValue) {
-		switch ($Key) {
-			{
-				$_ -like '*SqlTempDbFileCount'
-			} {
-				$coreCount = Get-WindowsCoreCount;
-				if ($coreCount -le 4) {
-					return $coreCount;
-				}
-				return 4;
-			}
-			default {
-				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
-			}
-		}
-	}
-	
-	if ($null -ne $defaultValue) {
-		return $defaultValue;
-	}
-	
-	# Non-SQL-Instance Partials (pattern):
-	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.LocalAdministrators|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
-	if ($match) {
-		$partialName = $match[0].Groups['partialName'];
-		
-		if (-not ([string]::IsNullOrEmpty($partialName))) {
-			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
-			
-			$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
-			
-			if ($null -ne $defaultValue) {
-				if ($ValidateOnly -and ($defaultValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
-					return $defaultValue;
-				}
-				
-				if ($defaultValue -eq "{~PARENT~}") {
-					$defaultValue = $partialName;
-				}
-				
-				if ($null -ne $defaultValue) {
-					return ($defaultValue).Value;
-				}
-			}
-			
-			if ($ValidateOnly) {
-				return ($partialName).Value;
-			}
-		}
-	}
-	
-	# Address wildcards: 
-	# 	NOTE: I COULD have used 1x regex (that combined instance AND other details), but went with SRP (i.e., each regex is for ONE thing):
-	$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
-	if ($match) {
-		$keyWithoutDefaultMSSQLServerName = $Key.Replace('MSSQLSERVER', '{~ANY~}');
-		$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $keyWithoutDefaultMSSQLServerName;
-		
-		if ($null -ne $output) {
-			return $output;
-		}
-	}
-	
-	return $null;
-}
+	Get-ProvisoConfigDefault -Key "SqlServerInstallation.MSSQLSERVER.ServiceAccounts.AgentServiceAccountName"
 
-function Get-ProvisoConfigGroupNames {
-	param (
-		[Parameter(Mandatory)]
-		[PSCustomObject]$Config,
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$GroupKey,
-		[string]$OrderByKey
-	);
-	
-	begin {
-		# do validations/etc. 
-		$decrementKey = [int]::MaxValue;
-	};
-	
-	process {
-		$block = Get-ProvisoConfigValueByKey -Config $Config -Key $GroupKey;
-		$keys = $block.Keys;
-		
-		if ($OrderByKey) {
-			
-			$prioritizedKeys = New-Object "System.Collections.Generic.SortedDictionary[int, string]";
-			
-			foreach ($key in $keys) {
-				$orderingKey = "$GroupKey.$key.$OrderByKey";
-				
-				$priority = Get-ProvisoConfigValueByKey -Key $orderingKey -Config $Config;
-				if (-not ($priority)) {
-					$decrementKey = $decrementKey - 1;
-					$priority = $decrementKey;
-				}
-				
-				$prioritizedKeys.Add($priority, $key);
-			}
-			
-			$keys = @();
-			foreach ($orderedKey in $prioritizedKeys.GetEnumerator()) {
-				$keys += $orderedKey.Value;
-			}
-		}
-	};
-	
-	end {
-		return $keys;
-	};
-}
+	Get-ProvisoConfigDefault -Key "SqlServerInstallation.X3.ServiceAccounts.AgentServiceAccountName"
+
+#>
+
 
 filter Get-ProvisoConfigValueByKey {
 	param (
@@ -215,6 +81,183 @@ filter Set-ProvisoConfigValueByKey {
 			throw "Invalid Key. Too many key segments defined.";
 		}
 	}
+}
+
+filter Get-ProvisoConfigDefault {
+	# REFACTOR: https://overachieverllc.atlassian.net/browse/PRO-178
+	param (
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Key,
+		[switch]$ValidateOnly = $false # validate vs return values... 
+	);
+	
+	$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+	# NOTE: this is kind of BS... i have to put the STRING to the left in these evaluations - otherwise a value of $true will trigger as TRUE and complete the -eq ... 
+	if ("{~DEFAULT_PROHIBITED~}" -eq $defaultValue) {
+		if ($ValidateOnly) {
+			return $true;
+		}
+		else {
+			$defaultValue = $null;
+		}
+	}
+	
+	if ("{~DYNAMIC~}" -eq $defaultValue) {
+Write-Host "DYNAMIC SWITCH on Key: $Key"
+		switch ($Key) {
+			{ $_ -like '*SqlTempDbFileCount' } {
+				$coreCount = Get-WindowsCoreCount;
+				if ($coreCount -le 4) {
+					return $coreCount;
+				}
+				return 4;
+			}
+			{ $_ -like "*SqlServerInstallation*SqlServerDefaultDirectories*" } {
+				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
+
+				if ($match) {
+					$instanceName = $match[0].Groups['instanceName'];
+					$parts = $Key -split '\.';
+					$directoryName = $parts[$parts.length - 1];
+					
+					return Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
+				}
+				else {
+					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
+				}
+			}
+			{ $_ -like "*ServiceAccounts*"} {
+	Write-Host "got here"
+				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
+				if ($match) {
+					$instanceName = $match[0].Groups['instanceName'];
+					$parts = $Key -split '\.';
+					$serviceName = $parts[$parts.length - 1];
+					
+					return Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $serviceName;
+				}
+				else {
+					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
+				}
+			}
+			default {
+				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
+			}
+		}
+	}
+	
+	if ($null -ne $defaultValue) {
+		return $defaultValue;
+	}
+	
+	# Non-SQL-Instance Partials (pattern):
+	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.LocalAdministrators|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
+	if ($match) {
+		$partialName = $match[0].Groups['partialName'];
+		
+		if (-not ([string]::IsNullOrEmpty($partialName))) {
+			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
+			
+			$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
+			
+			if ($null -ne $defaultValue) {
+				if ($ValidateOnly -and ($defaultValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
+					return $defaultValue;
+				}
+				
+				if ($defaultValue -eq "{~PARENT~}") {
+					$defaultValue = $partialName;
+				}
+				
+				if ($null -ne $defaultValue) {
+					return ($defaultValue).Value;
+				}
+			}
+			
+			if ($ValidateOnly) {
+				return ($partialName).Value;
+			}
+		}
+	}
+	
+	# Address wildcards: 
+	# 	NOTE: I COULD have used 1x regex (that combined instance AND other (above) details), but went with SRP (i.e., each regex is for ONE thing):
+	$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
+	# TODO: dont' think the regex above accounts for anything OTHER THAN JUST MSSQLSERVER as the named instance... 
+Write-Host "Down here - in SQL Stuff."	
+	if ($match) {
+		$keyWithoutDefaultMSSQLServerName = $Key.Replace('MSSQLSERVER', '{~ANY~}');
+		$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $keyWithoutDefaultMSSQLServerName;
+		
+write-host "non-named instances: $output"		
+		
+		if ($null -ne $output) {
+			return $output;
+		}
+	}
+	
+	return $null;
+}
+
+filter Get-ProvisoConfigCompoundValues {
+	
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[string]$FullCompoundKey,
+		[switch]$OrderDescending = $false
+	);
+	
+	$keys = Get-ProvisoConfigValueByKey -Config $Config -Key $FullCompoundKey;
+}
+
+function Get-ProvisoConfigGroupNames {
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$Config,
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$GroupKey,
+		[string]$OrderByKey
+	);
+	
+	begin {
+		# do validations/etc. 
+		$decrementKey = [int]::MaxValue;
+	};
+	
+	process {
+		$block = Get-ProvisoConfigValueByKey -Config $Config -Key $GroupKey;
+		$keys = $block.Keys;
+		
+		if ($OrderByKey) {
+			
+			$prioritizedKeys = New-Object "System.Collections.Generic.SortedDictionary[int, string]";
+			
+			foreach ($key in $keys) {
+				$orderingKey = "$GroupKey.$key.$OrderByKey";
+				
+				$priority = Get-ProvisoConfigValueByKey -Key $orderingKey -Config $Config;
+				if (-not ($priority)) {
+					$decrementKey = $decrementKey - 1;
+					$priority = $decrementKey;
+				}
+				
+				$prioritizedKeys.Add($priority, $key);
+			}
+			
+			$keys = @();
+			foreach ($orderedKey in $prioritizedKeys.GetEnumerator()) {
+				$keys += $orderedKey.Value;
+			}
+		}
+	};
+	
+	end {
+		return $keys;
+	};
 }
 
 [PSCustomObject]$script:ProvisoConfigDefaults = [PSCustomObject]@{
@@ -320,6 +363,24 @@ filter Set-ProvisoConfigValueByKey {
 				LicenseKey			      = ""
 			}
 			
+			ServiceAccounts   = @{
+				SqlServiceAccountName	    = "{~DYNAMIC~}"
+				SqlServiceAccountPassword   = ""
+				AgentServiceAccountName	    = "{~DYNAMIC~}"
+				AgentServiceAccountPassword = ""
+				FullTextServiceAccount	    = "{~DYNAMIC~}"
+				FullTextServicePassword	    = ""
+			}
+			
+			SqlServerDefaultDirectories = @{
+				InstallSqlDataDir = "{~DYNAMIC~}"
+				SqlDataPath	      = "{~DYNAMIC~}"
+				SqlLogsPath	      = "{~DYNAMIC~}"
+				SqlBackupsPath    = "{~DYNAMIC~}"
+				TempDbPath	      = "{~DYNAMIC~}"
+				TempDbLogsPath    = "{~DYNAMIC~}"
+			}
+			
 			SecuritySetup	  = @{
 				EnableSqlAuth		  = $false
 				AddCurrentUserAsAdmin = $false
@@ -327,12 +388,6 @@ filter Set-ProvisoConfigValueByKey {
 				MembersOfSysAdmin	  = @(
 				)
 			}
-			
-			# NOTE: Get-SqlServerDefaultServiceAccount will eventually handle these defaults: 
-			#ServiceAccounts   = @{}
-			
-			# NOTE: Get-SqlServerDefaultDirectoryLocation will eventually address this... (for defaults)
-			#SqlServerDefaultDirectories = @{}
 		}
 		
 		MSSQLSERVER = @{
@@ -365,7 +420,6 @@ filter Set-ProvisoConfigValueByKey {
 				LicenseKey			      = ""
 			}
 			
-			# Handled by: Get-SqlServerDefaultServiceAccount
 			ServiceAccounts   = @{
 				SqlServiceAccountName	    = "NT SERVICE\MSSQLSERVER"
 				SqlServiceAccountPassword   = ""
@@ -375,22 +429,21 @@ filter Set-ProvisoConfigValueByKey {
 				FullTextServicePassword	    = ""
 			}
 			
-			SecuritySetup	  = @{
-				EnableSqlAuth			    = $true
-				AddCurrentUserAsAdmin	    = $false
-				SaPassword				    = "{~DEFAULT_PROHIBITED~}"
-				MembersOfSysAdmin		    = @(
-				)
+			SqlServerDefaultDirectories = @{
+				InstallSqlDataDir 	= "D:\SQLData"
+				SqlDataPath    		= "D:\SQLData"
+				SqlLogsPath    		= "D:\SQLData"
+				SqlBackupsPath 		= "D:\SQLBackups"
+				TempDbPath	      	= "D:\SQLData"
+				TempDbLogsPath    	= "D:\SQLData"
 			}
 			
-			#Handled by: Get-SqlServerDefaultDirectoryLocation
-			SqlServerDefaultDirectories = @{
-				#				InstallSqlDataDir 	= "D:\SQLData"
-				#				SqlDataPath    		= "D:\SQLData"
-				#				SqlLogsPath    		= "D:\SQLData"
-				#				SqlBackupsPath 		= "D:\SQLBackups"
-				#				TempDbPath	      	= "D:\SQLData"
-				#				TempDbLogsPath    	= "D:\SQLData"
+			SecuritySetup	  = @{
+				EnableSqlAuth		  = $true
+				AddCurrentUserAsAdmin = $false
+				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
+				MembersOfSysAdmin	  = @(
+				)
 			}
 		}
 	}

@@ -35,7 +35,7 @@ Surface SqlConfiguration {
 					return $true;
 				}
 				catch {
-					throw "Exception evaluating Registry for SQL Server 'Force Encryption' Settings.";
+					throw "Exception Evaluating Registry for SQL Server 'Force Encryption' Settings.";
 				}
 			}
 			Configure {
@@ -274,14 +274,9 @@ Surface SqlConfiguration {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$traceFlag = $PVContext.CurrentChildKeyValue;
 				
-				if ($instanceName -ne "MSSQLSERVER") {
-					# TODO: address this... (i.e., just need to tweak the Invoke-SqlCmd call to his a non-default instance (or an instance BY NAME))
-					throw "Proviso Framework Exception. Named SQL Server Instances are not CURRENTLY supported.";
-				}
-				
 				# NOTE: if we're in here (i.e., doing configuration 'stuff') it's because 'required' trace flag is missing - i.e., no worries about needing to REMOVE them.
 				try {
-					Add-TraceFlag -Flag $traceFlag;  # TODO: expand Add-TraceFlag to account for $InstanceName as part of the operation... 
+					Add-TraceFlag -InstanceName $instanceName -Flag $traceFlag;  
 					$PVContext.WriteLog("Trace Flag [$traceFlag] enabled for instance [$instanceName]. Restart of SQL Server instance is NOT required.", "Verbose");
 				}
 				catch {

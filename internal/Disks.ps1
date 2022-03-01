@@ -38,7 +38,7 @@ filter Convert-SCSITargetIdToDeviceName {
 
 filter Get-ExistingPhysicalDisks {
 	
-	[Proviso.Models.Disk[]]$disks = @();
+	[Proviso.DomainModels.Disk[]]$disks = @();
 	
 	Get-Disk | ForEach-Object {
 		$DiskDrive = $_;
@@ -150,7 +150,7 @@ function Initialize-TargetDisk {
 
 function Match-NonInitializedDisksWithTargetDisk {
 	param (
-		[Proviso.Models.Disk[]]$NonInitializedDisks,
+		[Proviso.DomainModels.Disk[]]$NonInitializedDisks,
 		[PSCustomObject]$TargetDiskIdentifiers,
 		[string]$ExpectedDiskName
 	);

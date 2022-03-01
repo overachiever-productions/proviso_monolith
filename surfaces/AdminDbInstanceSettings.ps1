@@ -105,6 +105,5 @@ Surface AdminDbInstanceSettings {
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.[configure_instance] @OptimizeForAdhocWorkloads = $setting; ";
 			}
 		}
-		
 	}
 }

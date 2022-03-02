@@ -4,16 +4,34 @@ function Assign {
 	[Alias("Define")]
 	
 	param (
-		[string]$ProvisoRoot
+		[string]$ProvisoRoot,
+		[switch]$RootFromRepoPath = $false
 		# TODO: Proviso(User)Config
 		# TODO: Proviso Options... 
 	);
 	
 	begin {
+		$rootPath = $null;
+		
 		if ($ProvisoRoot) {
 			if (-not (Test-Path $ProvisoRoot)) {
 				throw "Invalid -ProvisoRoot value provided to [Assign]. Path NOT found or does not exist.";
 			}
+		}
+		elseif ($RootFromRepoPath) {
+			$repo = Get-PSRepository | Where-Object -Property Name -Like '*proviso*';
+			if ($repo -and ($repo.Count -eq 1)) {
+				$repoPath = $repo.SourceLocation;
+				
+				if (Test-Path -Path $repoPath) {
+					$rootPath = Split-Path -Path $repoPath -Parent;
+					
+					if (Test-Path -Path $rootPath) {
+						$ProvisoRoot = $rootPath;
+					}
+				}
+			}
+			
 		}
 		else {
 			#TODO: attempt to set from C:\Scripts or C:\Scripts\Proviso
@@ -22,6 +40,7 @@ function Assign {
 	};
 	
 	process {
+		
 		if ($ProvisoRoot) {
 			$PVResources.SetRoot($ProvisoRoot);
 		}

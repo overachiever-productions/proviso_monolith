@@ -1,7 +1,7 @@
 ﻿Set-StrictMode -Version 3.0;
 
 [string]$script:ProvisoScriptRoot = $PSScriptRoot;
-[PSCustomObject]$global:PVConfig = $null;
+#[PSCustomObject]$global:PVConfig = $null;
 $global:PVExecuteActive = $false;
 $global:PVRunBookActive = $false;
 

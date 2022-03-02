@@ -20,15 +20,22 @@ function Target {
 		[string]$ConfigFile,
 		[Parameter(Position = 0, ParameterSetName = "CurrentHost")]
 		[switch]$CurrentHost = $false,
-		[switch]$Force = $false, # causes/forces a reload... 
+		[switch]$Force = $false, 					# causes/forces a reload... 
 		[switch]$Strict = $false,
-		# TODO: verify if the following is even used... (it's used in this func... but I'm not sure I ever allow for it to be used/not-used via 'callers'/etc. )
-		[switch]$AllowGlobalDefaults = $false
+		[switch]$AllowGlobalDefaults = $true
 	);
 	
 	begin {
 		Validate-MethodUsage -MethodName "Target";
-	
+		
+		if ($Config) {
+			Set-ConfigTarget -ConfigData $Config -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults -Force:$Force;
+		}
+		
+		if ($null -ne $ConfigData) {
+			Set-ConfigTarget -ConfigData ([PSCustomObject]$ConfigData) -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults -Force:$Force;
+		}
+		
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
 			if (-not (Test-Path -Path $ConfigFile)) {
 				throw "Specified -ConfigFile path of $ConfigFile does not exist.";
@@ -36,15 +43,12 @@ function Target {
 			
 			try {
 				$data = Import-PowerShellDataFile $ConfigFile;
-				$Config = [PSCustomObject]$data;
+				[PSCustomObject]$configData = [PSCustomObject]$data;
+				Set-ConfigTarget -ConfigData $configData -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults -Force:$Force;
 			}
 			catch {
 				throw "Exception Loading Proviso Config File at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
 			}
-		}
-		
-		if ($null -ne $ConfigData) {
-			$Config = [PSCustomObject]$ConfigData;
 		}
 		
 		if ($CurrentHost) {
@@ -54,7 +58,7 @@ function Target {
 			
 			$Strict = $true; # force -Strict if/when $CurrentHost switch is in use... 
 			
-			$targetDir = Join-Path $PVResources.ProvisoRoot -ChildPath "definitions\servers";
+			$targetDir = Join-Path $PVResources.ProvisoRoot -ChildPath "definitions";
 			$matches = Find-MachineDefinition -RootDirectory $targetDir -MachineName ([System.Net.Dns]::GetHostName());
 			
 			switch ($matches.Count) {
@@ -64,8 +68,7 @@ function Target {
 				1 {
 					try {
 						$data = Import-PowerShellDataFile ($matches[0].Name);
-						
-						$Config = [PSCustomObject]$data;
+						Set-ConfigTarget -ConfigData ([PSCustomObject]$data) -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults -Force:$Force;
 					}
 					catch {
 						throw "Exception Loading Proviso Config File at $($matches[0].Name) via [-CurrentHost]. $_  `r$($_.ScriptStackTrace) ";
@@ -78,52 +81,53 @@ function Target {
 			}
 		}
 		
-		if ($null -eq $Config) {
+		if ($null -eq $global:PVConfig) {
 			throw "Invalid -Config, -ConfigData, -ConfigFile, or -CurrentHost(switch) inputs specified. Proviso Config value is NULL.";
 		}
 	}
 	
 	process {
-		if ($strict) {
-			if ($null -eq $Config.Host.TargetServer) {
-				throw "-Strict set to TRUE, but Configuration.Host.TargetServer value not set or found.";
-			}
-			
-			$currentHostName = [System.Net.Dns]::GetHostName();
-			if ($currentHostName -ne $Config.Host.TargetServer) {
-				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] does not match [$($Config.Host.TargetServer)].";
-			}
-		}
+#		if ($strict) {
+#			if ($null -eq $Config.Host.TargetServer) {
+#				throw "-Strict set to TRUE, but Configuration.Host.TargetServer value not set or found.";
+#			}
+#			
+#			$currentHostName = [System.Net.Dns]::GetHostName();
+#			if ($currentHostName -ne $Config.Host.TargetServer) {
+#				throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] does not match [$($Config.Host.TargetServer)].";
+#			}
+#		}
 		
-		[bool]$addMembers = $true;
-		if (($Config.PSObject.Properties.Name -eq "MembersConfigured") -and (-not($Force))) {
-			$addMembers = $false;
-		}
+#		[bool]$addMembers = $true;
+#		if (($Config.PSObject.Properties.Name -eq "MembersConfigured") -and (-not($Force))) {
+#			$addMembers = $false;
+#		}
 		
 		# Add Properties and Methods:
+		$addMembers = $false;
 		if ($addMembers) {
-			Add-Member -InputObject $Config -MemberType NoteProperty -Name MembersConfigured -Value $true -Force;
-			Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
-			if ($null -eq $Config.AllowGlobalDefaults) {
-				Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults -Force;
-			}
-			else {
-				$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.
-			}
+#			Add-Member -InputObject $Config -MemberType NoteProperty -Name MembersConfigured -Value $true -Force;
+#			Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
+#			if ($null -eq $Config.AllowGlobalDefaults) {
+#				Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowGlobalDefaults -Value $AllowGlobalDefaults -Force;
+#			}
+#			else {
+#				$Config.AllowGlobalDefaults = $AllowGlobalDefaults; # whatever was handed in CLOSEST to processing (i.e., the COMMAND vs a 'stale' config file) 'wins'.
+#			}
 			
-			[scriptblock]$setValue = {
-				param (
-					[Parameter(Mandatory)]
-					[ValidateNotNullOrEmpty()]
-					[string]$Key,
-					[Parameter(Mandatory)]
-					[ValidateNotNullOrEmpty()]
-					[string]$Value
-				);
-				
-				Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
-			}
-			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue -Force;
+#			[scriptblock]$setValue = {
+#				param (
+#					[Parameter(Mandatory)]
+#					[ValidateNotNullOrEmpty()]
+#					[string]$Key,
+#					[Parameter(Mandatory)]
+#					[ValidateNotNullOrEmpty()]
+#					[string]$Value
+#				);
+#				
+#				Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
+#			}
+#			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue -Force;
 			
 			[scriptblock]$getValue = {
 				param (
@@ -212,12 +216,12 @@ function Target {
 				return $output;
 			}
 			
-			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "GetValue" -Value $getValue -Force;
+			#Add-Member -InputObject $Config -MemberType ScriptMethod -Name "GetValue" -Value $getValue -Force;
 		}
 	}
 	
 	end {
-		$global:PVConfig = $Config; 
+		#$global:PVConfig = $Config; 
 	}
 }
 

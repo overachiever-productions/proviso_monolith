@@ -31,7 +31,8 @@ Surface "ExpectedDisks" {
 		Assert-ConfigIsStrict -FailureMessage "Proviso will NOT [Validate] or [Configure] Disks on systems where Host and TargetServer names do NOT match.";
 		
 		Assert "C Drive Is NOT Specified" {
-			Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
+			#Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
+			$PVConfig.GetGroupNames("Host.ExpectedDisks") | ForEach-Object {
 				if (($_.VolumeName -eq "C:\") -or ($_.VolumeName -eq "C")) {
 					throw "Invalid Expected Disk Specification. Proviso can NOT define an expected disk for System (i.e., C:\). Use [Host.Compute.SystemVolumeSize] to define size of C:\ drive instead.";
 				}

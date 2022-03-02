@@ -4,24 +4,20 @@
 
 # intermediate dev/testing against target VMs:
 
-	#Register-PSRepository -Name Pro2 -SourceLocation "\\storage\lab\proviso\repo2" -InstallationPolicy Trusted;
-
-
-Install-Module -Name Proviso -Repository Pro2 -Force;
-Import-Module -Name Proviso -Force -DisableNameChecking;
-Assign -ProvisoRoot "\\storage\Lab\proviso\";
-Target -CurrentHost;
-Do-Something;
-
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
 
+
+	$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.Setup.SqlTempDbFileCount");
+
+
 	Validate-TestingSurface;
 	Configure-TestingSurface;
 	Validate-WindowsPreferences;
 
+	Validate-LocalAdministrators;
 
 	Summarize -Last 2;
 
@@ -146,9 +142,9 @@ function Process-Surface {
 		if ($valueFacets) {
 			$expandedFacets = @();
 			
-			foreach ($facets in $valueFacets) {
-				
-				$values = $PVConfig.GetValue($facet.IterationKey);
+			foreach ($facet in $valueFacets) {
+				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
+				$values = $PVConfig.GetValue($trimmedKey);
 				if ($values.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
@@ -156,7 +152,7 @@ function Process-Surface {
 				# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
 				foreach ($value in $values) {
 					$newName = "$($facet.Name):$($value)";
-					
+				
 					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newName, [Proviso.Enums.FacetType]::Value);
 					$expandedValueFacet.SetTest(($facet.Test));
 					$expandedValueFacet.SetConfigure(($facet.ConfiguredBy), ($facet.UsesBuild));
@@ -172,7 +168,7 @@ function Process-Surface {
 					}
 					
 					$expandedValueFacet.SetCurrentIteratorDetails($facet.IterationKey, $value);
-					$expandedDefs += $expandedValueFacet;
+					$expandedFacets += $expandedValueFacet;
 				}
 			}
 			
@@ -185,8 +181,7 @@ function Process-Surface {
 			foreach ($facet in $groupFacets) {
 				
 				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-	
-				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
+				$groupNames = $PVConfig.GetGroupNames($trimmedKey, ($facet.OrderByChildKey)); #Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
@@ -241,7 +236,7 @@ function Process-Surface {
 			
 			foreach ($facet in $compoundFacets){
 				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-				$groupNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
+				$groupNames = $PVConfig.GetGroupNames($trimmedKey, ($facet.OrderByChildKey)); #Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
 				if ($groupNames.Count -lt 1) {
 					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
 				}
@@ -249,7 +244,10 @@ function Process-Surface {
 				foreach ($groupName in $groupNames){
 					$fullCompoundKey = "$trimmedKey.$groupName.$($facet.CompoundIterationKey)";
 					# TODO: implement the .OrderDescending logic in this helper func... 
-					$compoundChildElements = Get-ProvisoConfigCompoundValues -Config $PVConfig -FullCompoundKey $fullCompoundKey -OrderDescending:$($facet.OrderDescending);
+					# TODO: implement OrderBy in here... i.e., this used to call Get-ProvisoConfigCompoundValues which ... ??? no idea why i had a full-blown method for that. 
+					# 		but... it didn't implement an order-by either... 
+					
+					$compoundChildElements = $PVConfig.GetValue($fullCompoundKey);
 					
 					if ($compoundChildElements.Count -lt 1){
 						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");

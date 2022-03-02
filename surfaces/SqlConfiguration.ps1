@@ -17,7 +17,7 @@ Surface SqlConfiguration {
 	
 	Assertions  {
 		Assert-UserIsAdministrator; 	# can't set user rights otherwise... 
-		Assert-SqlServerIsInstalled;
+		Assert-SqlServerIsInstalled -AssertOnConfigureOnly;
 	}
 	
 	Aspect -Scope "SqlServerConfiguration.*" {

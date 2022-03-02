@@ -7,14 +7,16 @@ function Assert {
 		[Parameter(Position = 1)]
 		[ScriptBlock]$AssertBlock,
 		[Alias("Has","For","Exists")]
-		[Switch]$Is = $false,
+		[switch]$Is = $false,
 		[Alias("HasNot", "DoesNotExist")]
-		[Switch]$IsNot = $false,
+		[switch]$IsNot = $false,
 		[string]$FailureMessage = $null,
 		[Alias("NotFatal", "UnFatal", "Informal", "")]
-		[Switch]$NonFatal = $false,
+		[switch]$NonFatal = $false,
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		[Alias("Skip", "DoNotRun")]
-		[Switch]$Ignored = $false
+		[switch]$Ignored = $false
 	);
 	
 	begin {
@@ -37,7 +39,7 @@ function Assert {
 		}
 		
 		try{
-			$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $FailureMessage, $NonFatal, $Ignored, $isNegated);
+			$assertion = New-Object Proviso.Models.Assertion($Description, $Name, $AssertBlock, $FailureMessage, $NonFatal, $Ignored, $isNegated, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Invalid Assert. `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -55,7 +57,9 @@ function Assert-UserIsAdministrator {
 	param(
 		[string]$FailureMessage = "Current User is not a Member of the Administrators Group.",
 		[Alias("Skip", "DoNotRun")]
-		[Switch]$Ignored = $false
+		[Switch]$Ignored = $false,
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 	);
 	
 	begin {
@@ -79,7 +83,7 @@ function Assert-UserIsAdministrator {
 				return $false;
 			}
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-IsAdministrator", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-IsAdministrator", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-UserIsAdministrator: `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -97,7 +101,9 @@ function Assert-ConfigIsStrict {
 	param (
 		[string]$FailureMessage = "Current Surface requires Host-Name and Target server to match before continuing.",
 		[Alias("Skip", "DoNotRun")]
-		[Switch]$Ignored = $false
+		[Switch]$Ignored = $false,
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 	);
 	
 	begin {
@@ -117,7 +123,7 @@ function Assert-ConfigIsStrict {
 			}
 		}
 		
-		$assertion = New-Object Proviso.Models.Assertion("Assert-ConfigIsStrict", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+		$assertion = New-Object Proviso.Models.Assertion("Assert-ConfigIsStrict", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 	}
 	
 	end {
@@ -132,6 +138,8 @@ function Assert-HostIsWindows {
 		[string]$FailureMessage = "Current Host is NOT running Windows.",
 		[Alias("Skip", "DoNotRun")]
 		[switch]$Ignored = $false,
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		[switch]$Server = $false#,
 		#[switch]$VerifyTargetOs = $false  # if true, then zip out to Host.OSSomethingSomething.WIndowsVersion or whatever, and pass THAT in as the windows version to validate against... 
 	);
@@ -173,7 +181,7 @@ function Assert-HostIsWindows {
 			
 			[ScriptBlock]$codeBlock = [scriptblock]::Create($codeTemplate);
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-HostIsWindows", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-HostIsWindows", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-HostIsWindows: `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -192,9 +200,11 @@ function Assert-HasDomainCreds {
 		[string]$FailureMessage = $null,
 		[switch]$ForDomainJoin = $false,
 		[switch]$ForClusterCreation = $false,
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		#[switch]$ForAdditionOfLocalAdmins = $false, # see notes below about this PROBABLY NOT even being needed...  
 		[Alias("Skip", "DoNotRun")]
-		[switch]$Ignored = $false
+		[switch]$Ignored = $false, 
 	)
 	
 	begin {
@@ -273,7 +283,7 @@ function Assert-HasDomainCreds {
 #				};
 #			}
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-HasDomainCreds", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-HasDomainCreds", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-HasDomainCreds: `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -294,6 +304,8 @@ function Assert-IsDomainJoined {
 function Assert-ProvisoResourcesRootDefined {
 	param (
 		[string]$FailureMessage = "Proviso Root Resources and assets path not defined.",
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		[Alias("Skip", "DoNotRun")]
 		[Switch]$Ignored = $false
 	);
@@ -312,7 +324,7 @@ function Assert-ProvisoResourcesRootDefined {
 				return $PVResources.RootSet;
 			}
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-ProvisoResourcesRootDefined", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-ProvisoResourcesRootDefined", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-ProvisoResourcesRootDefined: `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -329,6 +341,8 @@ function Assert-ProvisoResourcesRootDefined {
 function Assert-SqlServerIsInstalled {
 	param (
 		[string]$FailureMessage = "SQL Server Configuration Surfaces cannot be run until all defined SQL Server instances are installed.",
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		[Alias("Skip", "DoNotRun")]
 		[Switch]$Ignored = $false
 	);
@@ -346,7 +360,7 @@ function Assert-SqlServerIsInstalled {
 			[ScriptBlock]$codeBlock = {
 				# TODO: standardize calls into Get-provisoConfigGroupNames. I was doing "SQLServerInstallation.*" here and ... it returned nothing... 
 				# 		i.e., need to probably just roll this func into the $PVConfig object itself ANYHOW... and then address parameter cleanup options there vs in callers (not sure what I was thinking)
-				$instanceNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "SQLServerInstallation";
+				$instanceNames = $PVConfig.GetGroupNames("SQLServerInstallation");
 				if ($instanceNames.Count -lt 1) {
 					throw "Expected 1 or more instances - but none were defined at [SQLServerInstallation.*].";
 				}
@@ -360,7 +374,7 @@ function Assert-SqlServerIsInstalled {
 				}
 			}
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
@@ -377,6 +391,8 @@ function Assert-SqlServerIsInstalled {
 function Assert-AdminDbInstalled {
 	param (
 		[string]$FailureMessage = "AdminDb Configuration Surfaces cannot be run until the admindb has been deployed.",
+		[Alias("ConfigureOnly")]
+		[switch]$AssertOnConfigureOnly = $false,
 		[Alias("Skip", "DoNotRun")]
 		[Switch]$Ignored = $false
 	);
@@ -392,7 +408,7 @@ function Assert-AdminDbInstalled {
 		
 		try {
 			[ScriptBlock]$codeBlock = {
-				$instanceNames = Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "AdminDb";
+				$instanceNames = $PVConfig.GetGroupNames("AdminDb");
 				if ($instanceNames.Count -lt 1) {
 					throw "Expected 1 or more instances - but none were defined at [AdminDb.*].";
 				}
@@ -409,7 +425,7 @@ function Assert-AdminDbInstalled {
 				return $true;
 			}
 			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false);
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}
 		catch {
 			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";

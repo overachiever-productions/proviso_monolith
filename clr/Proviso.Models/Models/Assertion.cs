@@ -9,10 +9,11 @@ namespace Proviso.Models
         public ScriptBlock ScriptBlock { get; private set; }
         public bool NonFatal { get; private set; } 
         public bool IsNegated { get; private set; }
+        public bool AssertOnConfigureOnly { get; private set; }
         public bool IsIgnored { get; private set; }
         public string FailureMessage { get; private set; }
 
-	    public Assertion(string name, string parentSurfaceName, ScriptBlock assertionBlock, string failureMessage, bool nonFatal, bool isIgnored, bool isNegated)
+	    public Assertion(string name, string parentSurfaceName, ScriptBlock assertionBlock, string failureMessage, bool nonFatal, bool isIgnored, bool isNegated, bool configureOnly)
         {
             this.Name = name;
             this.ParentSurfaceName = parentSurfaceName;
@@ -21,6 +22,6 @@ namespace Proviso.Models
             this.NonFatal = nonFatal;
             this.IsIgnored = isIgnored;
             this.IsNegated = isNegated;
+            this.AssertOnConfigureOnly = configureOnly;
         }
     }
-}

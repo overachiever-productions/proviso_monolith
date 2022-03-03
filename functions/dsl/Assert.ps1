@@ -56,10 +56,10 @@ function Assert {
 function Assert-UserIsAdministrator {
 	param(
 		[string]$FailureMessage = "Current User is not a Member of the Administrators Group.",
-		[Alias("Skip", "DoNotRun")]
-		[Switch]$Ignored = $false,
 		[Alias("ConfigureOnly")]
 		[switch]$AssertOnConfigureOnly = $false,
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
 	);
 	
 	begin {
@@ -100,10 +100,10 @@ function Assert-UserIsAdministrator {
 function Assert-ConfigIsStrict {
 	param (
 		[string]$FailureMessage = "Current Surface requires Host-Name and Target server to match before continuing.",
-		[Alias("Skip", "DoNotRun")]
-		[Switch]$Ignored = $false,
 		[Alias("ConfigureOnly")]
 		[switch]$AssertOnConfigureOnly = $false,
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
 	);
 	
 	begin {
@@ -204,7 +204,7 @@ function Assert-HasDomainCreds {
 		[switch]$AssertOnConfigureOnly = $false,
 		#[switch]$ForAdditionOfLocalAdmins = $false, # see notes below about this PROBABLY NOT even being needed...  
 		[Alias("Skip", "DoNotRun")]
-		[switch]$Ignored = $false, 
+		[switch]$Ignored = $false
 	)
 	
 	begin {

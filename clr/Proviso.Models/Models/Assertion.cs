@@ -2,18 +2,19 @@
 
 namespace Proviso.Models
 {
-	public class Assertion
-	{
+    public class Assertion
+    {
         public string Name { get; private set; }
         public string ParentSurfaceName { get; private set; }
         public ScriptBlock ScriptBlock { get; private set; }
-        public bool NonFatal { get; private set; } 
+        public bool NonFatal { get; private set; }
         public bool IsNegated { get; private set; }
         public bool AssertOnConfigureOnly { get; private set; }
         public bool IsIgnored { get; private set; }
         public string FailureMessage { get; private set; }
 
-	    public Assertion(string name, string parentSurfaceName, ScriptBlock assertionBlock, string failureMessage, bool nonFatal, bool isIgnored, bool isNegated, bool configureOnly)
+        public Assertion(string name, string parentSurfaceName, ScriptBlock assertionBlock, string failureMessage,
+            bool nonFatal, bool isIgnored, bool isNegated, bool configureOnly)
         {
             this.Name = name;
             this.ParentSurfaceName = parentSurfaceName;
@@ -25,3 +26,4 @@ namespace Proviso.Models
             this.AssertOnConfigureOnly = configureOnly;
         }
     }
+}

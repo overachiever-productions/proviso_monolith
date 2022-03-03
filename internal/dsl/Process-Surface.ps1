@@ -2,9 +2,6 @@
 
 <#
 
-# intermediate dev/testing against target VMs:
-
-
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
@@ -83,6 +80,15 @@ function Process-Surface {
 			foreach ($assert in $surface.Assertions) {
 				$assertionResult = New-Object Proviso.Processing.AssertionResult($assert, $processingGuid);
 				$results += $assertionResult;
+				
+				if ($assert.IsIgnored) {
+					$PVContext.WriteLog("Skipping Assertion: [$($assert.Name)] because it has been set to [Ignored].", "Debug");
+					continue;
+				}
+				if ($assert.AssertOnConfigureOnly -and ($Operation -eq "Validate")) {
+					$PVContext.WriteLog("Skipping Assertion: [$($assert.Name)] because it has been marked [AssertOnConfigureOnly] and current operation is [$Operation].", "Debug");
+					continue;
+				}
 				
 				try {				
 					[ScriptBlock]$codeBlock = $assert.ScriptBlock;

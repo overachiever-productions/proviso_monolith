@@ -2,12 +2,13 @@
 
 <#
 
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
 
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ExpectedShares;
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-ExpectedShares;
+	Validate-ExpectedShares;
+	Summarize;
 
-Summarize -Latest;
 
 #>
 
@@ -15,14 +16,16 @@ Surface ExpectedShares {
 	
 	Assertions {
 		Assert-HostIsWindows;
-		
 		Assert-UserIsAdministrator;
 		
+		# TODO: I SHOULD be able to use the Assert-ConfigIsStrict helper... but... there's no real way, currently, to get hostname details in there.
+		# 		MAYBE it'd make sense to add those as some sort of token? 
+		#Assert-ConfigIsStrict -FailureMessage "Current Host-Name of [$([System.Net.Dns]::GetHostName())] does NOT equal config/target Host-Name of [$($PVConfig.GetValue("Host.TargetServer"))]. Proviso will NOT evaluate or configure SHARES on systems where Host/TargetServer names do NOT match.";
 		Assert "Config Is -Strict" {
 			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
 			$currentHostName = [System.Net.Dns]::GetHostName();
 			if ($targetHostName -ne $currentHostName) {
-				throw "Current Host-Name of [$currentHostName] does NOT equal config/target Host-Name of [$targetHostName]. Proviso will NOT evaluate or configure SHARES on systems where Host/TargetServer names do NOT match.";
+				throw "Current Host-Name of [$([System.Net.Dns]::GetHostName())] does NOT equal config/target Host-Name of [$($PVConfig.GetValue("Host.TargetServer"))]. Proviso will NOT evaluate or configure SHARES on systems where Host/TargetServer names do NOT match.";
 			}
 		}
 	}
@@ -80,7 +83,7 @@ Surface ExpectedShares {
 				$readOnlyUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadOnlyAccess");
 				
 				if ($readOnlyUsers.Count -eq 0) {
-					return "";
+					return "<EMPTY>";
 				}
 				
 				return $true;
@@ -96,7 +99,7 @@ Surface ExpectedShares {
 				
 				$readOnlyUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadOnlyAccess");
 				if ($readOnlyUsers.Count -eq 0) {
-					return $true; # no read-only users specified so ... we're set/done... 
+					return "<EMPTY>" # no read-only users specified so ... we're set/done... 
 				}
 				
 				$readOnlyPerms = Get-SmbShareAccess -Name ($smbShare.Name) | Where-Object {
@@ -133,7 +136,7 @@ Surface ExpectedShares {
 				$readWriteUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadWriteAccess");
 				
 				if ($readWriteUsers.Count -eq 0) {
-					return "";
+					return "<EMPTY>";
 				}
 				
 				return $true;
@@ -149,7 +152,7 @@ Surface ExpectedShares {
 				
 				$readWriteUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadWriteAccess");
 				if ($readWriteUsers.Count -eq 0) {
-					return $true; # no users to grant full perms... so, we're done. 
+					return "<EMPTY>"; # no users to grant full perms... so, we're done. 
 				}
 				
 				$fullPerms = Get-SmbShareAccess -Name ($smbShare.Name) | Where-Object {

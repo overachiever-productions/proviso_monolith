@@ -101,6 +101,11 @@ filter Restart-Server {
 	# 			c. once everything is rehydrated and cleaned-up... 
 	# 				then, <verb>-<runbook> as directed. 
 	
+	if ($WaitSeconds -gt 0) {
+		$PVContext.WriteLog("Reboot Initialized - will execute in $WaitSeconds Seconds.", "IMPORTANT");
+	}
+	
+	
 	Start-Sleep -Seconds $WaitSeconds;
 	
 	# 'simulated' implementation of the above: 
@@ -109,7 +114,8 @@ filter Restart-Server {
 		Write-Host "			!!!!!!! 	REBOOT JOB WILL TARGET: [$RestartRunbookTarget]		!!!!!! ";
 	}
 	else {
-		Write-Host "!!!!!!!!!!!!!!!!!!! 	SIMULATED REBOOT --- HAPPENING RIGHT NOW 	!!!!!!!!!!!!!!!!!!!";
+		$PVContext.WriteLog("Executing Server Reboot.", "Debug");
+		shutdown /f /r /t 00;
 	}
 }
 

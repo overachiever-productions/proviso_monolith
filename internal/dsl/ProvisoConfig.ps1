@@ -4,7 +4,7 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
 
 	#$PVConfig.GetValue("Host.NetworkDefinitions.VMNetwork.IpAddress");
 	#$PVConfig.SetValue("Host.NetworkDefinitions.VMNetwork.IpAddress", "10.10.10.10/16");
@@ -23,25 +23,11 @@
 	
 	#$PVConfig.GetValue("ExpectedDirectories.MSSQLSERVER.VirtualSQLServerServiceAccessibleDirectories");
 
-#>
-
-<#
-
-	METHODS: 
-		.SetTarget(PSCustomObject)
-		
-		.ValidateKey(key)
-
-		.SetValue(key, value)
-		.GetValue(key)
-		.GetInstanceNames(string/key)
-		.GetCollectionValues(string/key)
-		.GetInstanceValue(string, key)
-		.GetCompoundValues(string, key)
-
-
+	$PVConfig.GetValue("Admindb.RestoreTestJobs.JobName");
+	$PVConfig.GetValue("Admindb.MSSQLSERVER.RestoreTestJobs.JobName");
 
 #>
+
 
 [PSCustomObject]$global:PVConfig = $null;
 
@@ -266,47 +252,70 @@ filter Get-ProvisoConfigValue {
 				$output = $instanceName;
 			}
 		}
+		
+		return $output;
 	}
 	
 	# Check for a SQL Server Instance Key - i.e., a key that REQUIREs a SqlServerInstance - or that can use {~SQLINSTANCE~}... 
 	if ($null -eq $output) {
-		
-		$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.');
+		# MKC: Holy Crap. What an UTTER mess this ended up being... 
+		# 	there are 2 locations to check for a match: actual/explicit config.
+		#  and there are 2 paths to check: explicit SQLInstanceName or ImplicitSqlInstanceName
+		#  		that yields at LEAST 4x permutations in the code... 
+		#  		which is made worse by the fact that there are named instances, and MSSQLSERVER (implicit/explicit)... 
+		# 			and then... {~SQLINSTANCE~} vs ... or not... 
+		# 		so, the whole thing is a nightmare - and obscenely complicated.  
+		$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|Admindb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.', 'IgnoreCase');
 		if ($match) {
 			[string[]]$configDefinedInstanceNames = Get-ConfigInstanceNames;
-			
+	
 			if (($configDefinedInstanceNames.Count -eq 1) -and ("MSSQLSERVER" -eq $configDefinedInstanceNames[0])) {
 				if ($Key -like '*MSSQLSERVER*') {
 					# NOTE: this is a legit scenario to address - but I added this logic 'back in after the fact' - i.e., this is a bit of a hack... 
 					$implicitKey = $Key -replace 'MSSQLSERVER\.', '';
 					$output = Get-ProvisoConfigValueByKey -Config $this -Key $implicitKey;
 					
+					if ($null -eq $output) {
+						$wildcardKey = $Key -replace 'MSSQLSERVER\.', '{~SQLINSTANCE~}.';
+						$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $wildcardKey;
+					}
+					
 					if ($null -ne $output) {
 						return $output;
 					}
 				}
-				
+	
 				# attempt to extract implicit (non-named) values first, and, if null, then grab by MSSQLSERVER instance:
 				$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
 				if ($null -eq $output) {
+					$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+				}
+				
+				if ($null -eq $output) {
 					$keyParts = $Key -split '\.';
 					$newKey = $keyParts[0] + '.' + "MSSQLSERVER" + ($Key -replace $keyParts[0], "")
-					
 					$output = Get-ProvisoConfigValueByKey -Config $this -Key $newKey;
+					
+					if ($null -eq $output) {
+						# if there wasn't an explicit key, look for a default - but, in this case, look for a 'generic' SqlInstance value:
+						$newKey = $newKey -replace "MSSQLSERVER", "{~SQLINSTANCE~}";
+						$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $newKey;
+					}
 				}
 				return $output;
 			}
-# 			MKC: Actually... the logic below is NOT needed. At this point, (i.e., code above), we've evaluated/responded to requests for: static keys, nonSqlInstances (disks, adapters, etc.), and SQL Instances - either explicit or implicit if/when MSSQLSERVER
-#					and ALL 3x permutations are totally accounted for.  			
-#			else {
-#				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.(?<sqlInstanceName>[^\.]+)');
-#				if ($match) {
-#					$sqlInstanceName = $match[0].Groups['sqlInstanceName'];
-#					
-#					Write-Host "Explicit and for InstanceName: $sqlInstanceName"
-#					
-#				}
-#			}
+			else {
+				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.(?<sqlInstanceName>[^\.]+)', 'IgnoreCase');
+				if ($match) {
+					$sqlInstanceName = $match[0].Groups['sqlInstanceName'];
+					
+					Write-Host "Explicit and for InstanceName: $sqlInstanceName"
+					
+				}
+			}
+		}
+		else {
+			throw "Proviso Framework Error. Invalid Key: [$Key] detected in `$PVConfig.GetValue().";
 		}
 	}
 	
@@ -328,7 +337,7 @@ filter Get-ProvisoConfigValue {
 				return 4;
 			}
 			{ $_ -like "*SqlServerInstallation*SqlServerDefaultDirectories*" } {
-				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
+				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
 
 				if ($match) {
 					$instanceName = $match[0].Groups['instanceName'];
@@ -342,7 +351,7 @@ filter Get-ProvisoConfigValue {
 				}
 			}
 			{ $_ -like "*ServiceAccounts*"} {
-				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
+				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
 				if ($match) {
 					$instanceName = $match[0].Groups['instanceName'];
 					$parts = $Key -split '\.';

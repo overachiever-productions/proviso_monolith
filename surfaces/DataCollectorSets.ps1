@@ -1,21 +1,20 @@
 ﻿Set-StrictMode -Version 1.0;
 
-
 <# 
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
 
 	Validate-DataCollectorSets;
-	Summarize -Latest;
+	Summarize;
 
 #>
 
 
 Surface "DataCollectorSets" {
 	Assertions {
-		
+		Assert-UserIsAdministrator;
 	}
 	
 	Aspect -Scope "DataCollectorSets.*" {

@@ -103,8 +103,8 @@ Surface AdminDbRestoreTests {
 				$restorePattern = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoredDbNamePattern");
 				$allowReplace = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowReplace");
 				$rpoThreshold = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RpoThreshold");
-				$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDbsAfterRestore");
-				$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxFailedDrops");
+				$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDatabasesAfterRestore");
+				$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxNumberOfFailedDrops");
 				$restoreOperator = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Operator");
 				$restoreProfile = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Profile");
 				$emailPrefix = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobEmailPrefix");

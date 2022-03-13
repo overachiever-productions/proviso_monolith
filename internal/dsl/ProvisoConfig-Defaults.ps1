@@ -1,25 +1,32 @@
 ﻿Set-StrictMode -Version 1.0;
 
-[PSCustomObject]$script:ProvisoConfigDefaults = [PSCustomObject]@{
+# NOTE: $script:be8c742fDefaultConfigData is assigned at the BOTTOM of this script... 
+
+[hashtable]$script:ProvisoConfigDefaults = [hashtable]@{
 	
 	Host = @{
-		
 		TargetServer	    = "{~DEFAULT_PROHIBITED~}"
 		TargetDomain	    = "{~DEFAULT_PROHIBITED~}"
 		
-		AllowGlobalDefaults = $false
+		AllowGlobalDefaults = $true
 		
 		NetworkDefinitions  = @{
 			"{~ANY~}" = @{
 				ProvisioningPriority = 5
 				InterfaceAlias	     = "{~PARENT~}"
+				
+				AssumableIfNames	 = @(
+					"{~DEFAULT_PROHIBITED~}"
+				)
+				
+				IpAddress		     = "{~DEFAULT_PROHIBITED~}"
+				Gateway			     = "{~DEFAULT_PROHIBITED~}"
+				PrimaryDns		     = "{~DEFAULT_PROHIBITED~}"
+				SecondaryDns		 = "{~DEFAULT_PROHIBITED~}"
 			}
 		}
 		
-		LocalAdministrators = @(
-			"Administrator" # TODO: this is a HACK... 
-			"Administrator"
-		)
+		LocalAdministrators = @("{~EMPTY~}")
 		
 		WindowsPreferences  = @{
 			DvdDriveToZ				     = $false
@@ -49,23 +56,33 @@
 		ExpectedDisks	    = @{
 			"{~ANY~}" = @{
 				ProvisioningPriority = 5
-				VolumeLabel		     = "{~PARENT~}"
+				VolumeName			    = "{~DEFAULT_PROHIBITED~}"
+				VolumeLabel		     	= "{~PARENT~}"
+				
+				PhysicalDiskIdentifiers = @{
+					DiskNumber 		= "{~DEFAULT_PROHIBITED~}"
+					VolumeId		= "{~DEFAULT_PROHIBITED~}"
+					ScsiMapping		= "{~DEFAULT_PROHIBITED~}"
+					DeviceId    	= "{~DEFAULT_PROHIBITED~}"
+					RawSize    		= "{~DEFAULT_PROHIBITED~}"
+				}
 			}
 		}
 	}
 	
 	ExpectedDirectories = @{
 		"{~SQLINSTANCE~}" = @{
-			VirtualSqlServerServiceAccessibleDirectories = @()
-			RawDirectories = @()
+			VirtualSqlServerServiceAccessibleDirectories = @("{~EMPTY~}")
+			RawDirectories = @("{~EMPTY~}")
 		}
 	}
 	
 	ExpectedShares = @{
 		"{~ANY~}" = @{
-			ShareName	   = "{~PARENT~}"
-			ReadOnlyAccess = @()
-			ReadWriteAccess = @()
+			ShareName	   		= "{~PARENT~}"
+			SourceDirectory 	= "{~DEFAULT_PROHIBITED~}"
+			ReadOnlyAccess 		= @("{~EMPTY~}")
+			ReadWriteAccess 	= @("{~EMPTY~}")
 		}
 	}
 	
@@ -75,16 +92,16 @@
 			StrictInstallOnly = $true
 			
 			Setup			  = @{
-				Version				      = ""
-				Edition				      = ""
+				Version				      = "{~EMPTY~}"
+				Edition				      = "{~EMPTY~}"
 				
 				Features				  = "{~DEFAULT_PROHIBITED~}"
 				Collation				  = "SQL_Latin1_General_CP1_CI_AS"
 				InstantFileInit		      = $true
 				
-				InstallDirectory		  = "{~DEFAULT_PROHIBITED~}"
-				InstallSharedDirectory    = "{~DEFAULT_PROHIBITED~}"
-				InstallSharedWowDirectory = "{~DEFAULT_PROHIBITED~}"
+				InstallDirectory		  = "{~DYNAMIC~}"
+				InstallSharedDirectory    = "{~DYNAMIC~}"
+				InstallSharedWowDirectory = "{~DYNAMIC~}"
 				
 				SqlTempDbFileCount	      = "{~DYNAMIC~}" # 4 or .5 * core-count (whichever is larger)
 				SqlTempDbFileSize		  = 1024
@@ -97,16 +114,16 @@
 				NamedPipesEnabled		  = $false
 				TcpEnabled			      = $true
 				
-				LicenseKey			      = ""
+				LicenseKey			      = "{~EMPTY~}"
 			}
 			
 			ServiceAccounts   = @{
 				SqlServiceAccountName	    = "{~DYNAMIC~}"
-				SqlServiceAccountPassword   = ""
+				SqlServiceAccountPassword   = "{~EMPTY~}"
 				AgentServiceAccountName	    = "{~DYNAMIC~}"
-				AgentServiceAccountPassword = ""
+				AgentServiceAccountPassword = "{~EMPTY~}"
 				FullTextServiceAccount	    = "{~DYNAMIC~}"
-				FullTextServicePassword	    = ""
+				FullTextServicePassword	    = "{~EMPTY~}"
 			}
 			
 			SqlServerDefaultDirectories = @{
@@ -122,65 +139,7 @@
 				EnableSqlAuth		  = $false
 				AddCurrentUserAsAdmin = $false
 				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
-				MembersOfSysAdmin	  = @(
-				)
-			}
-		}
-		
-		MSSQLSERVER = @{
-			SqlExePath	      = "{~DEFAULT_PROHIBITED~}"
-			StrictInstallOnly = $true
-			
-			Setup			  = @{
-				Version				      = ""
-				Edition				      = ""
-				
-				Features				  = "{~DEFAULT_PROHIBITED~}"
-				Collation				  = "SQL_Latin1_General_CP1_CI_AS"
-				InstantFileInit		      = $true
-				
-				InstallDirectory		  = "C:\Program Files\Microsoft SQL Server"
-				InstallSharedDirectory    = "C:\Program Files\Microsoft SQL Server"
-				InstallSharedWowDirectory = "C:\Program Files (x86)\Microsoft SQL Server"
-				
-				SqlTempDbFileCount	      = "{~DYNAMIC~}"
-				SqlTempDbFileSize		  = 1024
-				SqlTempDbFileGrowth	      = 256
-				SqlTempDbLogFileSize	  = 2048
-				SqlTempDbLogFileGrowth    = 256
-				
-				FileStreamLevel		      = 0
-				
-				NamedPipesEnabled		  = $false
-				TcpEnabled			      = $true
-				
-				LicenseKey			      = ""
-			}
-			
-			ServiceAccounts   = @{
-				SqlServiceAccountName	    = "NT SERVICE\MSSQLSERVER"
-				SqlServiceAccountPassword   = ""
-				AgentServiceAccountName	    = "NT SERVICE\SQLSERVERAGENT"
-				AgentServiceAccountPassword = ""
-				FullTextServiceAccount	    = "NT SERVICE\MSSQLFDLauncher"
-				FullTextServicePassword	    = ""
-			}
-			
-			SqlServerDefaultDirectories = @{
-				InstallSqlDataDir = "D:\SQLData"
-				SqlDataPath	      = "D:\SQLData"
-				SqlLogsPath	      = "D:\SQLData"
-				SqlBackupsPath    = "D:\SQLBackups"
-				TempDbPath	      = "D:\SQLData"
-				TempDbLogsPath    = "D:\SQLData"
-			}
-			
-			SecuritySetup	  = @{
-				EnableSqlAuth		  = $true
-				AddCurrentUserAsAdmin = $false
-				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
-				MembersOfSysAdmin	  = @(
-				)
+				MembersOfSysAdmin	  = @("{~EMPTY~}")
 			}
 		}
 	}
@@ -207,39 +166,57 @@
 	
 	SqlServerPatches = @{
 		"{~SQLINSTANCE~}" = @{
+			# TODO: add any keys here to ProvisoConfig.ps1 -> Is-KeyValid and other implementations... 
+			
+			# some kind of base path? or an option to override proviso-root configs... 
+			# then an SP key/entry/option
+			# and a CU key/entry/option
 		}
 	}
 	
 	AdminDb = @{
 		"{~SQLINSTANCE~}" = @{
 			
-			Deploy		     = $false
+			Deploy		     	= $false
+			OverrideSource		= "{~EMPTY~}"
 			
 			InstanceSettings = @{
 				Enabled					    = $false # too much of a custom concern to enable by DEFAULT. 
 				MAXDOP					    = 2
+				MaxServerMemoryGBs			= "{~EMPTY~}"
 				CostThresholdForParallelism = 40
 				OptimizeForAdHocQueries	    = $true
 			}
 			
 			DatabaseMail	 = @{
 				Enabled					    = $true
+				OperatorEmail			    = "{~DEFAULT_PROHIBITED~}"
+				SmtpAccountName			    = "{~DEFAULT_PROHIBITED~}"
+				SmtpOutgoingEmailAddress    = "{~DEFAULT_PROHIBITED~}"
+				SmtpServerName			    = "{~DEFAULT_PROHIBITED~}"
+				SmtpPortNumber			    = "{~DEFAULT_PROHIBITED~}"
+				SmtpRequiresSSL			    = $true
+				SmtpAuthType			    = "{~DEFAULT_PROHIBITED~}"
+				SmptUserName			    = "{~DEFAULT_PROHIBITED~}"
+				SmtpPassword			    = "{~DEFAULT_PROHIBITED~}"
 				SendTestEmailUponCompletion = $true
 			}
 			
 			HistoryManagement = @{
-				Enabled				     = $true
-				# TODO: add a jobName: "Regular History Cleanup"
-				SqlServerLogsToKeep	     = 18
-				AgentJobHistoryRetention = "6 weeks"
-				BackupHistoryRetention   = "6 weeks"
-				EmailHistoryRetention    = "6 months"
+				Enabled				     	= $true
+				JobName						= "Regular History Cleanup"
+				SqlServerLogsToKeep	     	= 18
+				AgentJobHistoryRetention 	= "6 weeks"
+				BackupHistoryRetention   	= "6 weeks"
+				EmailHistoryRetention    	= "6 months"
+				OverWriteExistingJobs    	= $false
 			}
 			
 			DiskMonitoring   = @{
-				Enabled			       = $true
-				# TODO: add a jobName: "Regular Drive Space Checks"
-				WarnWhenFreeGBsGoBelow = "32"
+				Enabled			       	= $true
+				JobName					= "Regular Drive Space Checks"
+				WarnWhenFreeGBsGoBelow 	= "32"
+				OverWriteExistingJobs  	= $false
 			}
 			
 			Alerts		     = @{
@@ -259,6 +236,7 @@
 				TimeZoneForUtcOffset    = "" # vNEXT, make this one {~DYNAMIC~} 
 				JobsCategoryName	    = "Database Maintenance"
 				OperatorToAlertOnErrors = "Alerts"
+				OverWriteExistingJobs   = $false
 			}
 			
 			ConsistencyChecks = @{
@@ -267,14 +245,15 @@
 				ExecutionDays			     = "M,W,F,Su"
 				StartTime				     = "04:10:00"
 				Targets					     = "{USER}"
-				Exclusions				     = ""
-				Priorities				     = ""
+				Exclusions				     = "{~EMPTY~}"
+				Priorities				     = "{~EMPTY~}"
 				IncludeExtendedLogicalChecks = $false
-				TimeZoneForUtcOffset		 = "" # vNEXT, make this one {~DYNAMIC~} 
+				TimeZoneForUtcOffset		 = "{~EMPTY~}" # vNEXT, make this one {~DYNAMIC~} 
 				JobCategoryName			     = "Database Maintenance"
 				Operator					 = "Alerts"
 				Profile					     = "General"
 				JobEmailPrefix			     = "[Database Corruption Checks] - "
+				OverWriteExistingJobs	     = $false
 			}
 			
 			BackupJobs	     = @{
@@ -282,10 +261,10 @@
 				JobsNamePrefix			    = "Database Backups - "
 				
 				UserDatabasesToBackup	    = "{USER}"
-				UserDbsToExclude		    = ""
-				CertificateName			    = ""
+				UserDbsToExclude		    = "{~EMPTY~}"
+				CertificateName			    = "{~EMPTY~}"
 				BackupDirectory			    = "{DEFAULT}"
-				CopyToDirectory			    = ""
+				CopyToDirectory			    = "{~EMPTY~}"
 				SystemBackupRetention	    = "4 days"
 				CopyToSystemBackupRetention = "4 days" # todo, have this default to whatever is set for SystemBackupRetention - i.e., if they set that to 5 days, this is 5 days... 
 				UserBackupRetention		    = "3 days"
@@ -295,80 +274,104 @@
 				AllowForSecondaries		    = $false
 				SystemBackupsStart		    = "18:50:00"
 				UserBackupsStart		    = "02:00:00"
-				DiffBackupsStart		    = ""
-				DiffBackupsEvery		    = ""
+				DiffBackupsStart		    = "{~EMPTY~}"
+				DiffBackupsEvery		    = "{~EMPTY~}"
 				LogBackupsStart			    = "00:02:00"
 				LogBackupsEvery			    = "10 minutes"
-				TimeZoneForUtcOffset	    = ""
+				TimeZoneForUtcOffset	    = "{~EMPTY~}"
 				JobsCategoryName		    = "Backups"
 				Operator				    = "Alerts"
 				Profile					    = "General"
+				OverWriteExistingJobs	    = $false
 			}
 			
 			RestoreTestJobs  = @{
-				Enabled			      = $false
-				JobName			      = "Database Backups - Regular Restore Tests"
-				JobStartTime		  = "22:30:00"
-				TimeZoneForUtcOffset  = ""
-				JobCategoryName	      = "Backups"
-				AllowForSecondaries   = $false
-				DatabasesToRestore    = "{READ_FROM_FILESYSTEM}"
-				DatabasesToExclude    = ""
-				Priorities		      = ""
-				BackupsRootPath	      = "{DEFAULT}"
-				RestoreDataPath	      = "{DEFAULT}"
-				RestoreLogsPath	      = "{DEFAULT}"
-				RestoredDbNamePattern = "{0}_s4test"
-				AllowReplace		  = ""
-				RpoThreshold		  = "24 hours"
-				DropDbsAfterRestore   = $true
-				MaxFailedDrops	      = 3
-				Operator			  = "Alerts"
-				Profile			      = "General"
-				JobEmailPrefix	      = "[RESTORE TEST] - "
-			}
-			
-			SqlEncryptionKeys = @{
-				
-				CreateMasterEncryptionKey    = $true
-				MasterEncryptionKeyPassword  = "" # allow this to be empty/blank (i.e., create something dynamic)
-				
-				BackupSuchAndSuchCertificate = @{
-					#					# 0 - N certs go here - where each entry is the NAME of the cert to deploy... 
-					#					CertXyzPath							       = "so on"
-					#					XyzOtherDetail							   = "blah"
-					#					BackupPathToShoveTheTHingIntoAfterCreation = "etc"
-				}
-				
-				TDECertificateOrAnotherCertificateHere = @{
-					#					InfoHereToCreateFromScratch = "or whatever"
-				}
+				Enabled			      		= $false
+				JobName			      		= "Database Backups - Regular Restore Tests"
+				JobStartTime		  		= "22:30:00"
+				TimeZoneForUtcOffset  		= "{~EMPTY~}"
+				JobCategoryName	      		= "Backups"
+				AllowForSecondaries   		= $false
+				DatabasesToRestore    		= "{READ_FROM_FILESYSTEM}"
+				DatabasesToExclude    		= "{~EMPTY~}"
+				Priorities		      		= "{~EMPTY~}"
+				BackupsRootPath	      		= "{DEFAULT}"
+				RestoreDataPath	      		= "{DEFAULT}"
+				RestoreLogsPath	      		= "{DEFAULT}"
+				RestoredDbNamePattern 		= "{0}_s4test"
+				AllowReplace		  		= "{~DEFAULT_PROHIBITED~}"
+				RpoThreshold		  		= "24 hours"
+				DropDatabasesAfterRestore   = $true
+				MaxNumberOfFailedDrops 		= 3
+				Operator			  		= "Alerts"
+				Profile			      		= "General"
+				JobEmailPrefix		      	= "[RESTORE TEST] - "
+				OverWriteExistingJobs 		= $false
 			}
 		}
 	}
 	
+# TODO: determine if this needs to be part of the admindb - think it does. NOT cuz it 'does', but because I don't want to bother 
+# 		trying to create certs and stuff WITHOUT the admindb... 
+#	SqlEncryptionKeys = @{
+#		"{~SQLINSTANCE~}" = @{
+#			CreateMasterEncryptionKey    = $true
+#			MasterEncryptionKeyPassword  = "" # allow this to be empty/blank (i.e., create something dynamic)
+#			
+#			BackupSuchAndSuchCertificate = @{
+#				#					# 0 - N certs go here - where each entry is the NAME of the cert to deploy... 
+#				#					CertXyzPath							       = "so on"
+#				#					XyzOtherDetail							   = "blah"
+#				#					BackupPathToShoveTheTHingIntoAfterCreation = "etc"
+#			}
+#			
+#			TDECertificateOrAnotherCertificateHere = @{
+#				#					InfoHereToCreateFromScratch = "or whatever"
+#			}
+#		}
+#	}
+	
 	DataCollectorSets = @{
 		"{~ANY~}" = @{
 			Enabled			      = $false
+			XmlDefinition		  = "{~DYNAMIC~}"
 			EnableStartWithOS	  = $false
-			DaysWorthOfLogsToKeep = 180
+			DaysWorthOfLogsToKeep = 90
 		}
 	}
 	
 	ExtendedEvents = @{
 		"{~SQLINSTANCE~}" = @{
 			DisableTelemetry = $true
+			"{~ANY~}"	     = @{
+				Enabled 		= $true  # if we're going to define it, it'll default to true
+				SessionName							       = "{~PARENT~}"
+				
+				# TODO: add these params to Is-NonValidChildKey
+				DefinitionPathOrWhateverElseWeWouldUseHere = "somethingName" # which'd be a .sql file found at: \assets\xetraces\<name>.sql or whatever.
+				#StartWithSystem	# or is this part of the definition?
+				#EnabledAtCreation  # or is this part of the definition?
+			}
 		}
 	}
 	
 	SqlServerManagementStudio = @{
-		InstallSsms	       = $false
-		IncludeAzureStudio = $false
-		InstallPath	       = "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
+		InstallSsms	       	= $false
+		Binary 			 	= "{~DEFAULT_PROHIBITED~}"
+		IncludeAzureStudio 	= $false
+		InstallPath	       	= "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
 	}
 	
 	ResourceGovernor = @{
 		"{~SQLINSTANCE~}" = @{
+			Enabled = $false # default to off by default. 
+			
+			# actually, might need ... thingies AND pools? i.e., might need 2x different collections of thingies - which could have ~ANY~ names... 
+			
+			"{~ANY~}" = @{
+				
+				PoolNameOrWhatever = "{~PARENT~}"
+			}
 		}
 	}
 	
@@ -384,8 +387,7 @@
 				Enabled						    = $false
 				PortNumber					    = 5022
 				Name						    = ""
-				AllowedOwnersConnectingAccounts = @(
-				)
+				AllowedOwnersConnectingAccounts = @("{~EMPTY~}")
 			}
 			
 			SynchronizationChecks  = @{
@@ -397,26 +399,25 @@
 				}
 			}
 			
+			# TODO: need to create a wrapper here for ... AGs ... which is odd/problematic because that's what I already called the parent wrapper for ALL ag stuff. 
+			# 		but... point is, this needs to be modeled similar to expected disks/nics - where there's a 'wrapper'/key to pull from ... 
 			"{~ANY~}"			   = @{
 				Action   = "NONE"
 				
-				Replicas = @(
-				)
+				Replicas = @("{~EMPTY~}")
 				
 				Seeding  = @{
+					
 				}
 				
-				Databases = @(
-				)
+				Databases = @("{~EMPTY~}")
 				
 				Listener = @{
-					Name			    = ""
+					Name			    = "{~DEFAULT_PROHIBITED~}"
 					PortNumber		    = 1433
-					IPs				    = @(
-					)
+					IPs				    = @("{~EMPTY~}")
 					
-					ReadOnlyRounting    = @(
-					)
+					ReadOnlyRounting    = @("{~EMPTY~}")
 					
 					GenerateClusterSPNs = $false
 				}
@@ -424,9 +425,26 @@
 		}
 	}
 	
-	CustomSqlScripts = @{
+	CustomSqlScripts = @{   # or, call this just 'SqlScripts'?
 		"{~SQLINSTANCE~}" = @{
 			Deploy = $false
+			
+			# _MAY_ end up configuring this (behind the scenes) so that there's a single, default, script group - similar to MSSQLSERVER for sql instances..
+			# 		or, that MAY end up being too much of a pain and i may require explicit groups... 
+			ScriptGroups = @{
+				"{~ANY~}" = @{
+#					whateverGoesHere
+#					ProbablyADirectory
+#					ThenAListOrArrayOfScriptNames
+#					Or
+#					MaybeADirective
+#					Like
+#					ReadAll
+#					etc
+				}
+			}
 		}
 	}
 }
+
+$script:be8c742fDefaultConfigData = $script:ProvisoConfigDefaults;

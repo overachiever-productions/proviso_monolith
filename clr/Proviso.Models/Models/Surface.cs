@@ -125,8 +125,11 @@ namespace Proviso.Models
             // TODO: need to ensure that each facet's NAME is distinct (i.e., can't have the same facet (name) 2x). 
             // further... can't have the same facet with duplicate .ConfigKey properties either.
 
-            if(!facet.ExpectIsSet)
-                throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
+            // TODO: Revisit... i.e., I disabled the following lines cuz... they were causing problems. 
+            // AND... i should be rewriting ALL of this but... need to make sure I'm validating ... so I put an explicit TODO into play... 
+
+            //if(!facet.ExpectIsSet)
+            //    throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Expect switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
 
             if(facet.Test == null)
                 throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");

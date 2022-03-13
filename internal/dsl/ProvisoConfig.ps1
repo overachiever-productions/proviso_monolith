@@ -1,41 +1,18 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
-
-	#$PVConfig.GetValue("Host.NetworkDefinitions.VMNetwork.IpAddress");
-	#$PVConfig.SetValue("Host.NetworkDefinitions.VMNetwork.IpAddress", "10.10.10.10/16");
-	#$PVConfig.GetValue("Host.NetworkDefinitions.VMNetwork.IpAddress");
-	#$fileCount = $PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.Setup.SqlTempDbFileCount");
-
-	#$PVConfig.GetValue("Host.NetworkDefinitions.BilboNetwork.InterfaceAlias");
-
-	#$PVConfig.GetValue("ExpectedDirectories.X3.RawDirectories");
-	#$PVConfig.GetValue("ExpectedDirectories.MSSQLSERVER.RawDirectories");
-	#$PVConfig.GetValue("ExpectedDirectories.RawDirectories");
-	
-	#$PVConfig.GetGroupNames("Host.LocalAdministrators");
-
-	#$PVConfig.GetGroupNames("ExpectedDirectories");
-	
-	#$PVConfig.GetValue("ExpectedDirectories.MSSQLSERVER.VirtualSQLServerServiceAccessibleDirectories");
-
-	$PVConfig.GetValue("Admindb.RestoreTestJobs.JobName");
-	$PVConfig.GetValue("Admindb.MSSQLSERVER.RestoreTestJobs.JobName");
-
-#>
-
-
 [PSCustomObject]$global:PVConfig = $null;
 
+# 'Constants':
+Set-Variable -Name Node_3_ExpectedDirectories_Keys -Option ReadOnly -Value @("VirtualSqlServerServiceAccessibleDirectories", "RawDirectories");
+Set-Variable -Name Node_3_ExpectedShares_Keys -Option ReadOnly -Value @("ShareName", "SourceDirectory", "ReadOnlyAccess", "ReadWriteAccess");
+Set-Variable -Name Node_3_SqlServerInstallation_Keys -Option ReadOnly -Value @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
+Set-Variable -Name Node_3_AdminDb_Keys -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
+Set-Variable -Name Node_3_ExtendedEvents_Keys -Option ReadOnly -Value @("Enabled", "SessionName", "StartWithSystem", "EnabledAtCreation");
+
 filter Get-ProvisoConfigValueByKey {
-	# NOTE: $Config here can be $this (current config) OR it could be the list of DEFAULTS. 
 	param (
 		[Parameter(Mandatory)]
-		[PSCustomObject]$Config,
+		[hashtable]$Config, # NOTE: $Config here can be $this (current config) OR it could be the list of DEFAULTS. 
 		[Parameter(Mandatory)]
 		[string]$Key
 	);
@@ -67,267 +44,237 @@ filter Get-ProvisoConfigValueByKey {
 	return $output;
 }
 
-filter Set-ProvisoConfigValue {
+filter Get-KeyType {
 	param (
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$Key,
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$Value
+		[string]
+		$Key
 	);
 	
-	$keys = $Key -split "\.";
-	$output = $null;
-	switch ($keys.Count) {
-		1 {
-			$this.($keys[0]) = $Value;
+	switch (($Key -split '\.')[0]) {
+		{ "Host" -eq $_ } {
+			if (($Key -like 'Host.NetworkDefinitions*') -or ($Key -like "Host.ExpectedDisks*")) {
+				return "Dynamic";
+			}
+			return "Static";
 		}
-		2 {
-			$this.($keys[0]).($keys[1]) = $Value;
+		{ $_ -in "SqlServerManagementStudio", "ClusterConfiguration" } {
+			return "Static";
 		}
-		3 {
-			$this.($keys[0]).($keys[1]).($keys[2]) = $Value;
+		{ $_ -in "ExpectedShares", "DataCollectorSets" } {
+			return "Dynamic";
 		}
-		4 {
-			$this.($keys[0]).($keys[1]).($keys[2]).($keys[3]) = $Value;
+		{ $_ -in "ExpectedDirectories", "SqlServerInstallation", "SqlServerConfiguration", "SqlServerPatches", "AdminDb" } {
+			return "SqlInstance";
 		}
-		5 {
-			$this.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]) = $Value;
+		{ $_ -in "ExtendedEvents", "AvailabilityGroups", "ResourceGovernor", "CustomSqlScripts"	} {
+			return "Complex"; # SqlInstance + Dynamic
 		}
 		default {
-			throw "Invalid Key. Too many key segments defined.";
+			throw "Proviso Framework Error. Unable to determine Key-Type of Key [$Key].";
 		}
 	}
 }
 
-filter Get-ConfigInstanceNames {
-	#region
-	#
-	#	NOTE: 
-	#		This current implementation is fairly brute-force (i.e., not very elegant). 
-	#			BUT, it's key to determining WHICH SQL Server Instance names can be used at various points within the config. 
-	#	
-	#	LOGIC: 
-	#		> Assume that there was a REQUIRED config node (probably up at the top of the config) that REQUIRED a definition of 
-	#		which SQL Server Instances could/would be addressed within the givin config. 
-	#		> In most cases, this'd just have "MSSQLSERVER" as the only instance. 
-	#		But, there might be instances where it'd be "NamedInstanceX" or the much less-frequent scenario of something like: "DEV2","DEV7", "ETC". 
-	#		> IF the above were true, then we'd easily know which instances to account for. 
-	#		> But, forcing Proviso users to explicitly define which instances they were targeting would suck - even (or possibly especially) if/when
-	#		this value could/would be 'defaulted' to "MSSQLSERVER" as that'd address 95% of scenarios out of the gate. (The remaining 5% would be
-	#		a real pain in the butt in this case, though.)
-	#		> So... instead of the above, the logic in this func assumes 2 things:
-	#			> 1. any/all instances that can be targeted will HAVE to be defined in SqlInstallation. 
-	#				(I may find that it makes sense to change this later on. And, if I do, i could, in theory, passy in different 'blocks'
-	#					to work against INSTEAD of SqlInstallation - in which case, I'd HAVE to look for known-good/required-ish child-keys PER different block type)
-	#			> 2. SqlExePath and Setup are going to be 'known' entity/child-keys. 
-	#
-	#		> and, with the above, it's possible to 'suss-out' 3 potential scenarios/use-cases/outcomes: 
-	#			A. There is NO explicit SQL Server instance defined (i.e., "MSSQLSERVER" is the intended/implicit target). 
-	#			B. MSSQLSERVER is EXPLICITLY defined as a target. 
-	#			C. One or more OTHER (non-MSSQLSERVER/non-default-instance) named instances are the target. 
-	#				As in: if the scenario is not Scenario/Outcome A, and it's NOT scenario/outcome B, then it HAS to be outcome C. 
-	#
-	#			Er, well: _ALL_ of the above is true except: C is NOT mutually exclusive to BOTH A and B. It's mutually exclusive to A, but B & C can both be true. 
-	#				And, the logic/implementation BELOW accounts for A or B|C (i.e., 1 more or more NAMED instances CAN exist along side MSSQLSERVER instance.)
-	# 	
-	# 	TODO: 
-	# 		Look at 'weaponizing' the logic below - as in, there are 3x virtually identical checks - the only real differences are:
-	# 			the PATH for what we're testing. 
-	# 		As such, a bit of weaponization would 
-	# 			- would remove a lot of the tedious if/else crap in here (by collapsing down logic to path checks and a 'func' or whatever that evaluated 'parent', then .SqlExePath, then .Setup, etc.)
-	#			- allow for option to check for OTHER config 'blocks' (surfaces) OTHER than just "SqlInstallation" - i.e., pass in, say, "SqlDirectories" and the 1-2x 'nodes' to use for validation
-	# 					at which point, I could get SQL Server Instance Names PER each "surface" area - meaning that it COULD/WOULD be possible to define differences from one surface to the next. 
-	# 				NOT sure this would 'help' or even be good... but, if I 'need' this, that'd be the way to go.
-	#endregion
-	$sqlInstallationBlock = Get-ProvisoConfigValueByKey -Config $this -Key "SqlServerInstallation";
-	
-	try {
-		# Scenario A:
-		$test = $sqlInstallationBlock.SqlExePath; # check for implicit MSSQLSERVER as solitary instance... 
-		if ($null -ne $test) {
-			$setupNode = $sqlInstallationBlock.Setup; # looks good, but let's verify first:
-			if ($setupNode -is [hashtable]) {
-				return @("MSSQLSERVER");
-			}
-		}
-		
-		# Scenario B:
-		$instances = @();
-		$test = $sqlInstallationBlock.MSSQLSERVER.SqlExePath;
-		if ($null -ne $test) {
-			$setupNode = $sqlInstallationBlock.MSSQLSERVER.Setup; # looks good, but let's verify first:
-			if ($setupNode -is [hashtable]) {
-				#return @("MSSQLSERVER");
-				$instances += "MSSQLSERVER";
-			}
-		}
-		
-		# Scenario C:
-		foreach ($kvp in $sqlInstallationBlock.GetEnumerator()) {
-			$key = $kvp.Key;
-			if ("MSSQLSERVER" -ne $key) {
-				$test = $sqlInstallationBlock.$key.SqlExePath;
-				if ($null -ne $test) {
-					$setupNode = $sqlInstallationBlock.$key.Setup; # looks good, but let's verify first:
-					if ($setupNode -is [hashtable]) {
-						$instances += $key;
-					}
-				}
-			}
-		}
-		
-		if ($instances.Count -gt 0) {
-			return $instances;
-		}
-	}
-	catch {
-		throw "Error Determining SQL Server Instance Names from Current Proviso Config. Please double-check config (.psd1) file. `rEXCEPTION: $_  `r`t$($_.ScriptStackTrace) ";
-	}
-	
-	throw "Error Determining SQL Server Instance Names from Current Proviso COnfig. Please verify config (.psd1) structure/values.";
-}
-
-filter Get-ProvisoConfigValue {
+filter Is-NonValidChildKey {
 	param (
-		[ValidateNotNullOrEmpty()] 	# TODO: either see if there's a way to get ValidateNotNullOrEmpty to throw a 'friendly' error message, or implement one of my own...
+		[string]$ParentKey,
+		[string]$TestKey
+	);
+	
+	[string[]]$stringsThatAreChildKeysNotSqlServerInstanceNames = @();
+	
+	switch ($ParentKey) {
+		# Dynamic Keys: 
+		"NetworkDefinitions" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("ProvisioningPriority", "InterfaceAlias", "AssumableIfNames", "IpAddress", "Gateway", "PrimaryDns", "SecondaryDns");
+		}
+		"ExpectedDisks" { 
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("ProvisioningPriority", "VolumeName", "VolumeLabel", "PhysicalDiskIdentifiers");
+		}
+		"ExpectedShares" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_ExpectedShares_Keys;
+		}
+		"DataCollectorSets" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("Enabled", "EnableStartWithOS", "DaysWorthOfLogsToKeep");
+		}
+		# Sql Instance Keys:
+		"ExpectedDirectories" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_ExpectedDirectories_Keys;
+		}
+		"SqlServerInstallation" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
+		}
+		"SqlServerConfiguration"{
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisablSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
+		}	
+		"SqlServerPatches" {
+			#$stringsThatAreChildKeysNotSqlServerInstanceNames += @("
+			throw 'Proviso Framework Error. Determination of non-valid child keys for SQL Server Patches has not been completed yet.';
+		}
+		"AdminDb" {
+			# add common 'typos' or keys used as child keys that can't/shouldn't be SQL Server instance names: 
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += "Enabled";
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_AdminDb_Keys;
+		}
+		# Complex Keys: 
+		"ExtendedEvents" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("DisableTelemetry", "Enabled", "SessionName", "StartWithSystem", "EnabledAtCreation");
+		}
+		"ExtendedEvents.{~SQLINSTANCE~}" {
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_ExtendedEvents_Keys;
+		}
+		"AvailabilityGroups"{
+			throw 'Proviso Framework Error. Determination of non-valid child keys for Availability Group Configuration has not been completed yet.';
+		}
+		"ResourceGovernor" {
+			throw 'Proviso Framework Error. Determination of non-valid child keys for Resource Governor Configuration has not been completed yet.';
+		}
+		"CustomSqlScripts" {
+			throw 'Proviso Framework Error. Determination of non-valid child keys for Custom Sql Server Script Batches has not been completed yet.';
+		}
+	}
+	
+	return $stringsThatAreChildKeysNotSqlServerInstanceNames -contains $TestKey;
+}
+
+filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
+	param (
+		[Parameter(Mandatory)]
 		[string]$Key
 	);
 	
-	# TODO: ExtendedEvents and AvailabilityGroups are BOTH 'instance' AND 'sqlinstance'.
-	$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
-	
-	if (-not ($this.AllowDefaults) -or ($null -ne $output)) {
-		return $output;
+	$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $Key;
+	if ($null -eq $value) {
+		$keyType = Get-KeyType -Key $Key;
+		
+		$parts = $Key -split '\.';
+		switch ($keyType) {
+			"SqlInstance" {
+				if (Is-NonValidChildKey -ParentKey $parts[0] -TestKey $parts[1]) {
+					return $null; # i.e., the key is invalid
+				}
+				$sqlInstanceDefaultedKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
+				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $sqlInstanceDefaultedKey;
+			}
+			"Dynamic" {
+				$targetPart = 1;
+				if ($Key -like 'Host*') {
+					$targetPart = 2;
+				}
+				
+				if (Is-NonValidChildKey -ParentKey $parts[$targetPart - 1] -TestKey $parts[$targetPart]) {
+					return $null; # i.e., the key is invalid
+				}
+				
+				$anyDefaultedKey = $Key -replace $parts[$targetPart], "{~ANY~}";
+				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $anyDefaultedKey;
+			}
+			"Complex" {
+				if (Is-NonValidChildKey -ParentKey $parts[0] -TestKey $parts[1]) {
+					return $null; # i.e., the key is invalid
+				}
+		
+				if (Is-NonValidChildKey -ParentKey ("$($parts[0]).{~SQLINSTANCE~}") -TestKey $parts[1]) {
+					return $null; # i.e., the key is invalid
+				}
+				
+				$complexKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
+				
+				if (($Key -like "ExtendedEvents*DisableTelemetry")) {
+					# TODO: this is a one-off (for now)... just need to figure out how to do this for 'Surface-Globals' - i.e., a 'global' config key/value for a specific surface's SQL Instance... etc. 
+					$complexKey = "ExtendedEvents.{~SQLINSTANCE~}.DisableTelemetry";
+				}
+				elseif ($parts.Count -gt 2) {
+					$complexKey = $Key -replace $parts[2], "{~ANY~}";
+				}
+				
+				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $complexKey;
+			}
+		}
 	}
 	
-	#region Scope/Dev Notes
-	# At this point, the EXACT key specified wasn't found AND Target allows GlobalDefaults. 
-	#  	Types (families) of defaults we might find at this point: 
-	#   A. Scalar Defaults. 
-	# 		> Expected/Core defaults - i.e., something hard-coded like: "Host.RequiredPackages.NetFxForPre2016InstancesRequired" = $false;
-	# 				in which case, we just return the hard-coded value.
-	# 		> Ditto - but DYNAMIC - e.g., (well, actually, don't currently have an example - all {~DYNAMIC~} are currently SQL instances?)... 
-	# 				in which case... there should be a helper or some other logic to 'compute'/define a 'default' based on something within 
-	# 				the environment - and then we simply return that value (i.e., kind of like 'hard-coded' but 'dynamic').
-	#       > Ditto - but DEFAULT_PROHIBITED. like "Host.TargetServer" = "{~DEFAULT_PROHIBITED~}" -
-	# 				in which case: throw... 
-	# 	B. Instance-Scoped-Defaults - i.e., keys with the ability to have an {~ANY~} within the path... 
-	# 			Examples: disks, network adapters, data-collector-sets. 
-	# 		These, in turn, can then have 3x different default 'types':
-	#  			> scalar or 'hard-coded' - i.e., just like NORMAL hard-coded values, but with an {~ANY~} in the key name that gets 'handled'. 
-	# 			> dynamic - just as in 'group A', but will be part of a specific instance... 
-	# 					examples: block-size for a disk - 64K (as in, for any/all disks, if .psd1 doesn't specify a block size, then ... 64K is the default.)
-	# 			> prohibited - as above, but... a case where a default doesn't make sense.
-	# 					examples: subnet mask/network-size for an IP or ... volumeLetter for a disk. 
-	#   C. SqlServer-Instance-Scoped-Defaults. 
-	# 			Virtually identical to 'family B' - but instead of {~ANY~} these will be {~SQLINSTANCE~} ... denoting an allowable SQL Server instance. 
-	# 		So, again, 3x types of values: 
-	# 			> hard-coded (but by SqlInstance) - example: "SqlServerConfiguration.{~SQLINSTANCE~}.DisableSaLogin" = $false (by default per/for every instance... )
-	# 			> dynamic (but by SqlInstance) - example: "SqlServerInstallation.{~SQLINSTANCE~}.ServiceAccounts.SqlServiceAccountName" = ... dynamic: NT SERVICE\xxx (by virtue of instance name... )
-	# 			> prohibited (per/for SqlInstance) - example: "SqlServerInstallation.{~SQLINSTANCE~}.SqlExePath" - there can't be a default for this, HAS to be specified... 
+	return $value;
+}
+
+filter Is-ValidProvisoKey {
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
 	
-	#  Finally, if/when a {~SQLINSTANCE~} is detected, MSSQLSERVER will be implied unless an explicit value for another instance name exists. 
-	#endregion
+	if ($null -eq $script:be8c742fDefaultConfigData) {
+		throw "Proviso Framwork Error. Proviso Config Defaults are not yet loaded.";
+	}
 	
-	# Start by Looking for simple, hard-coded matches: 
-	$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
+	try {
+		$value = Get-TokenizableDefaultValueFromDefaultConfigSettings -Key $Key;
+	}
+	catch {
+		return $false; # anything that threw an exception would be ... because of an INVALID key... 
+	}
 	
-	# Check for INSTANCE keys (i.e., non-SQL Server Instances that allow wildcards... disks, network adapters, etc.)
-	[string]$instanceName = $null;
-	[string]$sqlInstanceName = $null;
-	if ($null -eq $output) {
-		$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.ExpectedDisks|ExpectedShares|DataCollectorSets)\.(?<instanceName>[^\.]+)');
-		if ($match) {
-			$instanceName = ($match[0].Groups['instanceName']).Value;
-			$anyKey = $Key -replace $instanceName, "{~ANY~}";
-			
-			$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $anyKey;
-			if ($output -is [hashtable]) {
-				$output = $null; # don't allow export of an entire key GROUP... 
+	return ($null -ne $value);
+}
+
+filter Get-ProvisoConfigDefaultValue {
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	if ($null -eq $script:be8c742fDefaultConfigData) {
+		throw "Proviso Framwork Error. Proviso Config Defaults are not yet loaded.";
+	}
+	
+	if (-not (Is-ValidProvisoKey -Key $Key)) {
+		throw "Invalid Configuration Key: [$Key].";
+	}
+	
+	$value = Get-TokenizableDefaultValueFromDefaultConfigSettings -Key $Key;
+	
+	# check for {PARENT}, {PROHIBITED}, {EMPTY}
+	if ("{~DEFAULT_PROHIBITED~}" -eq $value) {
+		throw "Default Values for Key: [$Key] are NOT permitted. Please provide an explicit value via configuration file or through explictly defined inputs.";
+	}
+	
+	if ("{~EMPTY~}" -eq $value) { # NOTE: this if-check sucks. It's PowerShell 'helping me'. I should have to check for ($value -is [string[]]) -and ($value.count -eq 1) -and ("{~EMPTY~}" -eq $value[0])
+		return ""; # I should have to return @() for keys expecting arrays (vs scalar empty strings). but... PowerShell 'helps' there too. 
+	}
+	
+	if ("{~PARENT~}" -eq $value) {
+		$pattern = $null;
+		switch ($Key) {
+			{ $_ -like "Host*" } {
+				$pattern = 'Host.(NetworkDefinitions|ExpectedDisks).(?<parent>[^\.]+).(VolumeLabel|InterfaceAlias)';
 			}
-			
-			if ("{~PARENT~}" -eq $output) {
-				$output = $instanceName;
+			{ $_ -like "ExpectedShares*" } {
+				$pattern = 'ExpectedShares.(?<parent>[^\.]+).ShareName';
+			}
+			{ $_ -like "ExtendedEvents*" } {
+				#$pattern = 'ExtendedEvents.(?<sqlinstance>[^\.]+).(?<sessionName>[^\.]+).SessionName';
+				$pattern = 'ExtendedEvents.(?<sqlinstance>[^\.]+).(?<parent>[^\.]+).SessionName';
+			}
+			{ $_ -like "ResourceGovernor*" } {
+				throw "Resource Governor {~PARENT~} key defaults are not supported - YET.";
+			}
+			default {
+				throw "Provoso Framework Error. Unmatched {~PARENT~} key type for Key [$Key].";
 			}
 		}
 		
-		return $output;
-	}
-	
-	# Check for a SQL Server Instance Key - i.e., a key that REQUIREs a SqlServerInstance - or that can use {~SQLINSTANCE~}... 
-	if ($null -eq $output) {
-		# MKC: Holy Crap. What an UTTER mess this ended up being... 
-		# 	there are 2 locations to check for a match: actual/explicit config.
-		#  and there are 2 paths to check: explicit SQLInstanceName or ImplicitSqlInstanceName
-		#  		that yields at LEAST 4x permutations in the code... 
-		#  		which is made worse by the fact that there are named instances, and MSSQLSERVER (implicit/explicit)... 
-		# 			and then... {~SQLINSTANCE~} vs ... or not... 
-		# 		so, the whole thing is a nightmare - and obscenely complicated.  
-		$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|Admindb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.', 'IgnoreCase');
+		$match = [regex]::Matches($Key, $pattern, 'IgnoreCase');
 		if ($match) {
-			[string[]]$configDefinedInstanceNames = Get-ConfigInstanceNames;
-	
-			if (($configDefinedInstanceNames.Count -eq 1) -and ("MSSQLSERVER" -eq $configDefinedInstanceNames[0])) {
-				if ($Key -like '*MSSQLSERVER*') {
-					# NOTE: this is a legit scenario to address - but I added this logic 'back in after the fact' - i.e., this is a bit of a hack... 
-					$implicitKey = $Key -replace 'MSSQLSERVER\.', '';
-					$output = Get-ProvisoConfigValueByKey -Config $this -Key $implicitKey;
-					
-					if ($null -eq $output) {
-						$wildcardKey = $Key -replace 'MSSQLSERVER\.', '{~SQLINSTANCE~}.';
-						$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $wildcardKey;
-					}
-					
-					if ($null -ne $output) {
-						return $output;
-					}
-				}
-	
-				# attempt to extract implicit (non-named) values first, and, if null, then grab by MSSQLSERVER instance:
-				$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
-				if ($null -eq $output) {
-					$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
-				}
-				
-				if ($null -eq $output) {
-					$keyParts = $Key -split '\.';
-					$newKey = $keyParts[0] + '.' + "MSSQLSERVER" + ($Key -replace $keyParts[0], "")
-					$output = Get-ProvisoConfigValueByKey -Config $this -Key $newKey;
-					
-					if ($null -eq $output) {
-						# if there wasn't an explicit key, look for a default - but, in this case, look for a 'generic' SqlInstance value:
-						$newKey = $newKey -replace "MSSQLSERVER", "{~SQLINSTANCE~}";
-						$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $newKey;
-					}
-				}
-				return $output;
-			}
-			else {
-				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|AvailabilityGroups|CustomSqlScripts)\.(?<sqlInstanceName>[^\.]+)', 'IgnoreCase');
-				if ($match) {
-					$sqlInstanceName = $match[0].Groups['sqlInstanceName'];
-					
-					Write-Host "Explicit and for InstanceName: $sqlInstanceName"
-					
-				}
-			}
+			$value = $match[0].Groups['parent'].Value;
 		}
 		else {
-			throw "Proviso Framework Error. Invalid Key: [$Key] detected in `$PVConfig.GetValue().";
+			throw "Proviso Framework Error. Unable to determine {~PARENT~} for key [$Key].";
 		}
 	}
 	
-	if ($null -eq $output) { # TODO: MIGHT make sense to THROW here if -Strict... 
-		return $null; # no matches found - i.e., no hard-coded matches, no 'instance' matches, and no 'sql instance' matches - effectively, an invalid key. 
-	}
-	
-	if ("{~DEFAULT_PROHIBITED~}" -eq $output) {
-		throw "Configuration Exception. An explicit Configuration value for Key [$Key] was not defined - and Default values for this key are NOT allowed.";
-	}
-	
-	if ("{~DYNAMIC~}" -eq $output) {
+	if ("{~DYNAMIC~}" -eq $value) {
+		
+		$parts = $Key -split '\.';
+		
 		switch ($Key) {
 			{ $_ -like '*SqlTempDbFileCount' } {
 				$coreCount = Get-WindowsCoreCount;
@@ -341,7 +288,6 @@ filter Get-ProvisoConfigValue {
 
 				if ($match) {
 					$instanceName = $match[0].Groups['instanceName'];
-					$parts = $Key -split '\.';
 					$directoryName = $parts[$parts.length - 1];
 					
 					return Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
@@ -350,11 +296,16 @@ filter Get-ProvisoConfigValue {
 					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
 				}
 			}
+			{ $_ -like "SqlServerInstallation*Setup*Instal*Directory"} {
+				$instanceName = $parts[1];
+				$directoryName = $parts[3];
+				
+				return Get-SqlServerDefaultInstallationPath -InstanceName $instanceName -DirectoryName $directoryName;
+			}
 			{ $_ -like "*ServiceAccounts*"} {
 				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
 				if ($match) {
 					$instanceName = $match[0].Groups['instanceName'];
-					$parts = $Key -split '\.';
 					$serviceName = $parts[$parts.length - 1];
 					
 					return Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $serviceName;
@@ -362,33 +313,96 @@ filter Get-ProvisoConfigValue {
 				else {
 					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
 				}
-			}			
+			}
+			{ $_ -like "Admindb*TimeZoneForUtcOffset" } {
+				throw "Proviso Framework Error. TimeZone-Offsets have not YET been made dynmaic.";
+			}
+			{ $_ -like "DataCollectorSets*XmlDefinition" }  {
+				$match = [regex]::Matches($Key, 'SDataCollectorSets.(?<instanceName>[^\.]+).(?<setName>[^\.]+).XmlDefinition');
+				if ($match) {
+					$collectorSetName = $match[0].Groups['setName'].Value;
+					
+					return "$collectorSetName.xml";
+				}
+				else {
+					throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$Key]."
+				}
+			}
 			default {
 				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
 			}
 		}
 	}
 	
-	return $output;
+	return $value;
 }
 
-filter Validate-ConfigKey {
+$script:be8c742fFlattenedConfigKeys = $null;
+filter Recurse-Keys {
 	param (
 		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
+		[hashtable]$Source,
+		[string]$ParentKey = ""
+	);
+	
+	foreach ($kvp in $Source.GetEnumerator()) {
+		$key = $kvp.Key;
+		$value = $kvp.Value;
+		
+		$chainedKey = $key;
+		if (-not ([string]::IsNullOrEmpty($ParentKey))) {
+			$chainedKey = "$ParentKey.$key";
+		}
+		
+		if ($value -is [hashtable]) {
+			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
+			Recurse-Keys -Source $value -ParentKey $chainedKey;
+		}
+		else {
+			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
+		}
+	}
+}
+
+filter Get-KeyValue {
+	param (
+		[Parameter(Mandatory)]
 		[string]$Key
 	);
 	
-	$exists = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
-	if ($null -eq $exists) {
-		return $false; 
+	if (-not (Is-ValidProvisoKey -Key $Key)) {
+		throw "Fatal Error. Invalid Configuration key requested: [$Key].";
 	}
 	
-	return $exists;
+	# Uhh. Either flattening keys (via RecurseKeys) into the $pvStateHashtable and/or converting that to PSCustomObject 'converted'
+	# 		the keys to the point where they're simple, string, keys at this point - which is perfect. (It's what I wanted). 
+	# 		That said, the DEFAULTS object is ... still the old/multi-hashtable/multi-keys kind of object so need the 'helper' method to traverse it.
+	$output = $this[$Key];
 	
-	# NOTE: this can't/won't be able to target the actual $PVConfig/$this - it HAS to work against $ConfigDefaults object.
-	# and, while there are effectively 3x 'families' * 3x types (i.e., 9 combinations) of keys that could work, we're ONLY
-	# 	looking for a match - be it a hard-coded match, a dynamic match, or EVEN a default-prohibitied match. 
+	if (-not ($this.AllowDefaults) -or ($null -ne $output)) {
+		return $output;
+	}
+	
+	return Get-ProvisoConfigDefaultValue -Key $Key;
+}
+
+filter Set-KeyValue {
+	param (
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Key,
+		[Parameter(Mandatory)]
+		[ValidateNotNullOrEmpty()]
+		[string]$Value
+	);
+	
+	# See notes in Get-KeyValue about accessing keys in $this vs $provisoDefaults hashtable... 
+	if ($this.ContainsKey($Key)) {
+		$this[$Key] = $Value;
+	}
+	else {
+		$this.Add($Key, $Value);
+	}
 }
 
 filter Get-ProvisoConfigGroupNames {
@@ -399,234 +413,140 @@ filter Get-ProvisoConfigGroupNames {
 		[string]$OrderByKey
 	);
 	
-	# do validations/etc. 
-	$decrementKey = [int]::MaxValue;
-	
-	$block = $this.GetValue($GroupKey);
-	$keys = $block.Keys;
-	
-	if ($OrderByKey) {
-		
-		$prioritizedKeys = New-Object "System.Collections.Generic.SortedDictionary[int, string]";
-		
-		foreach ($key in $keys) {
-			$orderingKey = "$GroupKey.$key.$OrderByKey";
-			
-			$priority = Get-ProvisoConfigValueByKey -Key $orderingKey -Config $PVConfig;
-			if (-not ($priority)) {
-				$decrementKey = $decrementKey - 1;
-				$priority = $decrementKey;
-			}
-			
-			$prioritizedKeys.Add($priority, $key);
-		}
-		
-		$keys = @();
-		foreach ($orderedKey in $prioritizedKeys.GetEnumerator()) {
-			$keys += $orderedKey.Value;
-		}
-	}
-	
-	# HACK
-	$keys = Scrub-Keys -GroupKey $GroupKey -Keys $keys;
-	return $keys;
-}
-
-filter Scrub-Keys {
-	param (
-		[string]$GroupKey,
-		[object[]]$Keys
-	);
-	
-	if (($null -eq $Keys) -or ($Keys.Count -lt 1)) {
-		return $Keys;
-	}
-	
-	switch ($GroupKey) {
-		"ExpectedDirectories" {
-			if ($Keys -contains "VirtualSqlServerServiceAccessibleDirectories") {
-				return @("MSSQLSERVER");
-			}
-		}
-#		"ExpectedShares" {
-#			if($Keys -contains "S")
-#		}
-	}
-	
-	return $Keys;
+	Write-Host "doling stuff"
 }
 
 filter Set-ConfigTarget {
 	param (
 		[Parameter(Mandatory)]
-		[PSCustomObject]$ConfigData,
+		[hashtable]$ConfigData,
 		[switch]$Strict = $false,
-		[switch]$AllowDefaults = $true,
-		[Switch]$Force = $false
+		[switch]$AllowDefaults = $true
 	);
 	
-	[PSCustomObject]$Config = $ConfigData;
+	if ($null -eq $script:be8c742fDefaultConfigData) {
+		$script:be8c742fDefaultConfigData = $script:ProvisoConfigDefaults;
+	}
+	
 	if ($Strict) {
-		if ($null -eq $Config.Host.TargetServer) {
-			throw "-Strict set to TRUE, but Configuration.Host.TargetServer value not set or found.";
+		if ($null -eq $ConfigData.Host.TargetServer) {
+			throw "Fatal Error. Switch -Strict set to $true, but the [Host.TargetServer] was not found within input defined via -ConfigData parameter.";
 		}
 		
 		$currentHostName = [System.Net.Dns]::GetHostName();
-		if ($currentHostName -ne $Config.Host.TargetServer) {
-			throw "-Strict is set to TRUE, and Current Host Name of [$currentHostName] does not match [$($Config.Host.TargetServer)].";
+		if ($currentHostName -ne $ConfigData.Host.TargetServer) {
+			throw "Fatal Error. Switch -Strict is set to $true, but Current Host Name of [$currentHostName] does not match [$($ConfigData.Host.TargetServer)].";
 		}
 	}
 	
-	[bool]$addMembers = $true;
-	if (($Config.PSObject.Properties.Name -eq "MembersConfigured") -and (-not ($Force))) {
-		$addMembers = $false;
+	# validate config inputs/data: 
+	$script:be8c742fFlattenedConfigKeys = @{};
+	Recurse-Keys -Source $ConfigData;
+	
+	$hashtableForPVConfigContents = @{};
+	
+	# actually. no. fixed by simply NOT adding legit values that are hash-tables. 
+	# So... need to extract this foreach into a func of its own. that'll take in a hashtable of values and ... run through each. 
+	# 		and, for each, it'll see if key is valid or ... not. and if not, try to cast from implict to explict - otherwise, throw. 
+	# 		but, where it IS valid. IF the $value -is [hashtable] ... I then need to recurse ... over that hashtable - i.e. for each key... is it legit? 
+	# 			and so on... 
+	foreach ($key in $script:be8c742fFlattenedConfigKeys.Keys | Sort-Object { $_ }) {
+		
+		$value = Get-ProvisoConfigValueByKey -Config $ConfigData -Key $key;
+		if (Is-ValidProvisoKey -Key $key) {
+			if ($value -isnot [hashtable]) {
+				# a hashtable at, say. "SqlServerInstallation" might contain an entire 'list' of 'bad'(implict) keys... and adding them causes a 'leak' of implicit keys. 
+				# 	whereas, interestingly enough, as we iterate EACH key... whether the hashtable was 'bad' or 'good', it gets added 'anyhow'
+				$hashtableForPVConfigContents.Add($key, $value);
+			}
+		}
+		else {
+			$parts = $key -split '\.';
+			
+			switch ($key) {
+				{ $_ -like "SqlServerInstallation*"	} {
+					if ($parts[1] -notin $Node_3_SqlServerInstallation_Keys) {
+						throw "Fatal Error. Invalid SqlServerInstallation Configuration Key: [$key].";
+					}
+				}
+				{ $_ -like "AdminDb*" } {
+					if ($parts[1] -notin $Node_3_AdminDb_Keys) {
+						throw "Fatal Error. Invalid AdminDb Configuration Key: [$key].";
+					}
+				}
+				{ $_ -like "ExpectedDirectories*" } {
+					if ($parts[1] -notin $Node_3_ExpectedDirectories_Keys) {
+						throw "Fatal Error. Invalid ExpectedDirectories Configuration Key: [$key].";
+					}
+				}
+				{ $_ -like "ExpectedShares*" } {
+					if ($parts[1] -notin $Node_3_ExpectedShares_Keys) {
+						throw "Fatal Error. Invalid ExpectedShares Configuration Key: [$key].";
+					}
+				}
+				{ $_ -like "ExtendedEvents*" } {
+					if ($parts[1] -notin $Node_3_ExtendedEvents_Keys) {
+						throw "Fatal Error. Invalid Extended Events Configuration Key: [$key].";
+					}
+				}
+				default {
+					throw "Fatal Error. Invalid Configuration Key: [$key].";
+				}
+			}
+	
+			$explicitKey = $key -replace "$($parts[0])", "$($parts[0]).MSSQLSERVER";
+			$hashtableForPVConfigContents.Add($explicitKey, $value);
+		}
 	}
 	
-	if ($addMembers) {
-		Add-Member -InputObject $Config -MemberType NoteProperty -Name MembersConfigured -Value $true -Force;
-		Add-Member -InputObject $Config -MemberType NoteProperty -Name Strict -Value $Strict -Force;
-		Add-Member -InputObject $Config -MemberType NoteProperty -Name AllowDefaults -Value $AllowDefaults -Force;
-		
-		[ScriptBlock]$setValue = (Get-Item "Function:\Set-ProvisoConfigValue").ScriptBlock;
-		[ScriptBlock]$getValue = (Get-Item "Function:\Get-ProvisoConfigValue").ScriptBlock;
-		[ScriptBlock]$getGroupNames = (Get-Item "Function:\Get-ProvisoConfigGroupNames").ScriptBlock;
-		
-		Add-Member -InputObject $Config -MemberType ScriptMethod -Name SetValue -Value $setValue;
-		Add-Member -InputObject $Config -MemberType ScriptMethod -Name GetValue -Value $getValue;
-		Add-Member -InputObject $Config -MemberType ScriptMethod -Name GetGroupNames -Value $getGroupNames;
-	}
+	#$hashtableForPVConfigContents.Keys | Sort-Object { $_ } | Format-List;
 	
-	$global:PVConfig = $Config;
+	# add members/etc. 
+	[PSCustomObject]$configObject = $hashtableForPVConfigContents;
+	
+	$configObject | Add-Member -MemberType NoteProperty -Name Strict -Value $Strict -Force;
+	$configObject | Add-Member -MemberType NoteProperty -Name AllowDefaults -Value $AllowDefaults -Force;
+	
+	[ScriptBlock]$getValue = (Get-Item "Function:\Get-KeyValue").ScriptBlock;
+	[ScriptBlock]$setValue = (Get-Item "Function:\Set-KeyValue").ScriptBlock;
+	[ScriptBlock]$groupNames = (Get-Item "Function:\Get-ProvisoConfigGroupNames").ScriptBlock;
+	
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetValue -Value $getValue -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name SetValue -Value $setValue -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetGroupNames -Value $groupNames -Force;
+	
+	# assign as global/intrinsic: 
+	$global:PVConfig = $configObject;
 }
-
-#region old code
-#filter Get-ProvisoConfigDefault {
-#	param (
-#		[Parameter(Mandatory)]
-#		[ValidateNotNullOrEmpty()]
-#		[string]$Key,
-#		[switch]$ValidateOnly = $false # validate vs return values... 
-#	);
-#	
-#	$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $Key;
-#	# NOTE: this is kind of BS... i have to put the STRING to the left in these evaluations - otherwise a value of $true will trigger as TRUE and complete the -eq ... 
-#	if ("{~DEFAULT_PROHIBITED~}" -eq $defaultValue) {
-#		if ($ValidateOnly) {
-#			return $true;
-#		}
-#		else {
-#			$defaultValue = $null;
-#		}
-#	}
-#	
-#	if ("{~DYNAMIC~}" -eq $defaultValue) {
-#Write-Host "DYNAMIC SWITCH on Key: $Key"
-#		switch ($Key) {
-#			{ $_ -like '*SqlTempDbFileCount' } {
-#				$coreCount = Get-WindowsCoreCount;
-#				if ($coreCount -le 4) {
-#					return $coreCount;
-#				}
-#				return 4;
-#			}
-#			{ $_ -like "*SqlServerInstallation*SqlServerDefaultDirectories*" } {
-#				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
 #
-#				if ($match) {
-#					$instanceName = $match[0].Groups['instanceName'];
-#					$parts = $Key -split '\.';
-#					$directoryName = $parts[$parts.length - 1];
-#					
-#					return Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
-#				}
-#				else {
-#					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
-#				}
-#			}
-#			{ $_ -like "*ServiceAccounts*"} {
-#	Write-Host "got here"
-#				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).');
-#				if ($match) {
-#					$instanceName = $match[0].Groups['instanceName'];
-#					$parts = $Key -split '\.';
-#					$serviceName = $parts[$parts.length - 1];
-#					
-#					return Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $serviceName;
-#				}
-#				else {
-#					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
-#				}
-#			}
-#			default {
-#				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
-#			}
-#		}
-#	}
-#	
-#	if ($null -ne $defaultValue) {
-#		return $defaultValue;
-#	}
-#	
-#	# Non-SQL-Instance Partials (pattern):
-#	$match = [regex]::Matches($Key, '(Host\.NetworkDefinitions|Host\.LocalAdministrators|Host\.ExpectedDisks|ExpectedShares|AvailabilityGroups)\.(?<partialName>[^\.]+)');
-#	if ($match) {
-#		$partialName = $match[0].Groups['partialName'];
-#		
-#		if (-not ([string]::IsNullOrEmpty($partialName))) {
-#			$nonSqlPartialKey = $Key.Replace($partialName, '{~ANY~}');
-#			
-#			$defaultValue = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $nonSqlPartialKey;
-#			
-#			if ($null -ne $defaultValue) {
-#				if ($ValidateOnly -and ($defaultValue.GetType() -in "hashtable", "System.Collections.Hashtable", "system.object[]")) {
-#					return $defaultValue;
-#				}
-#				
-#				if ($defaultValue -eq "{~PARENT~}") {
-#					$defaultValue = $partialName;
-#				}
-#				
-#				if ($null -ne $defaultValue) {
-#					return ($defaultValue).Value;
-#				}
-#			}
-#			
-#			if ($ValidateOnly) {
-#				return ($partialName).Value;
-#			}
-#		}
-#	}
-#	
-#	# Address wildcards: 
-#	# 	NOTE: I COULD have used 1x regex (that combined instance AND other (above) details), but went with SRP (i.e., each regex is for ONE thing):
-#	$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
-#	# TODO: dont' think the regex above accounts for anything OTHER THAN JUST MSSQLSERVER as the named instance... 
-#Write-Host "Down here - in SQL Stuff."	
-#	if ($match) {
-#		$keyWithoutDefaultMSSQLServerName = $Key.Replace('MSSQLSERVER', '{~ANY~}');
-#		$output = Get-ProvisoConfigValueByKey -Config $script:ProvisoConfigDefaults -Key $keyWithoutDefaultMSSQLServerName;
-#		
-#write-host "non-named instances: $output"		
-#		
-#		if ($null -ne $output) {
-#			return $output;
-#		}
-#	}
-#	
-#	return $null;
-#}
+#. .\ProvisoConfig-Defaults.ps1;
+#$script:be8c742fDefaultConfigData = $script:ProvisoConfigDefaults;
+#
+#$ConfigFile = "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
+#$data = Import-PowerShellDataFile $ConfigFile;
+#
+#Set-ConfigTarget -ConfigData $data -Strict:$false -AllowDefaults;
+
+#$PVConfig.GetValue("AdminDb.Deploy");  # should throw... (does)
+
+# TODO: there's a potential problem with this one:
+#$PVConfig.GetValue("AdminDb.MSSQLSERVER.Deploy"); # should return #true via explicit config... and does. 
+#$PVConfig.GetValue("AdminDb.MSSQLSERVER.DatabaseMail.OperatorEmail");
+#$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.Setup.InstallDirectory");
+#$PVConfig.GetValue("ExpectedDirectories.MSSQLSERVER.RawDirectories");
+
+# Defaults:
+#Write-Host "Defaults:"
+#$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.SETUP.SqlTempdbFileSize");
+#
+## settting a default value - explicitly
+#$PVConfig.SetValue("SqlServerInstallation.MSSQLSERVER.SETUP.SqlTempdbFileSize", 2048); # should overwrite default and set.. 
+#$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.SETUP.SqlTempdbFileSize"); # should, now, report 2048 vs 1024
 
 
-#filter Get-ProvisoConfigCompoundValues {
-#	param (
-#		[Parameter(Mandatory)]
-#		[PSCustomObject]$Config,
-#		[Parameter(Mandatory)]
-#		[string]$FullCompoundKey,
-#		[switch]$OrderDescending = $false
-#	);
-#	
-#	$keys = Get-ProvisoConfigValueByKey -Config $Config -Key $FullCompoundKey;
-#}
+# overwritting a non-default: 
+#$PVConfig.GetValue("AdminDb.MSSQLSERVER.DatabaseMail.SmtpPassword");
+#$PVConfig.SetValue("AdminDb.MSSQLSERVER.DatabaseMail.SmtpPassword", "secret and stuff");
+#$PVConfig.GetValue("AdminDb.MSSQLSERVER.DatabaseMail.SmtpPassword");
 
-#endregion
+#$PVConfig.GetGroupNames("Admindb.")

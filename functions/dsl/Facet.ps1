@@ -5,21 +5,15 @@ function Facet {
 		[Parameter(Mandatory, Position = 0, ParameterSetName = "named")]
 		[string]$Name,
 		$Expect,
-		#$ConfiguredBy,
 		[switch]$UsesBuild = $false,
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$FacetBlock,
 		[string]$For = "",
-		[string]$ExpectKeyValue = $null,
-		# expect a single, specific, key. e.g., -ExpectKeyValue "Host.FirewallRules.EnableICMP"
-		[switch]$ExpectCurrentKeyValue = $false,
-		# expect the current key value for Value or Group Keys e.g., if the key is "Host.LocalAdministrators", 'expect' an entry for each key-value. Whereas, if the key is "AdminDb.*", expect a value/key for each SQL Server instance (MSSQLSERVER, X3, etc.)
-		[string]$ExpectChildKeyValue = $null,
-		# e.g., -ExpectChildKeyValue "Enabled" would return the key for, say, AdminDb.RestoreTestJobs..... Enabled (i.e., parent/iterator + current child-key)
-		[string]$IterationKey,
-		# e.g., if the -Scope is "ExpectedDirectories.*", then -IterationKey could be "RawDirectories" or "VirtualSqlServerServiceAccessibleDirectories"
-		[switch]$ExpectIterationKeyValue = $false,
-		# e.g., if we're working through an -IterationKey of "RawDirectories" (for a -Scope of "ExpectedDirectories"), then we'd Expect one entry/value her for each 'Raw Directory' (or path) defined in the config
+		[string]$ExpectKeyValue = $null, 				# expect a single, specific, key. e.g., -ExpectKeyValue "Host.FirewallRules.EnableICMP"
+		[switch]$ExpectCurrentKeyValue =  $false, 		# expect the current key value for Value or Group Keys e.g., if the key is "Host.LocalAdministrators", 'expect' an entry for each key-value. Whereas, if the key is "AdminDb.*", expect a value/key for each SQL Server instance (MSSQLSERVER, X3, etc.)
+		[string]$ExpectChildKeyValue = $null,			# e.g., -ExpectChildKeyValue "Enabled" would return the key for, say, AdminDb.RestoreTestJobs..... Enabled (i.e., parent/iterator + current child-key)
+		[string]$IterationKey,							# e.g., if the -Scope is "ExpectedDirectories.*", then -IterationKey could be "RawDirectories" or "VirtualSqlServerServiceAccessibleDirectories"
+		[switch]$ExpectIterationKeyValue = $false,		# e.g., if we're working through an -IterationKey of "RawDirectories" (for a -Scope of "ExpectedDirectories"), then we'd Expect one entry/value her for each 'Raw Directory' (or path) defined in the config
 		[switch]$RequiresReboot = $false
 	)
 	
@@ -30,43 +24,28 @@ function Facet {
 		if ($Scope) {
 			$trimmedScopeKey = $Scope -replace ".\*", "";
 			
-			$keyType = Validate-ConfigKey -Key $trimmedScopeKey;
-			# TODO: https://overachieverllc.atlassian.net/browse/PRO-241
-			#  $keyType is doing double-duty. It's BOTH letting us know if the key is a valid key (and the implementation of that (i.e., Validate-ConfigKey) 
-			# 		may NOT be doing a good enough job)
-			# 			AND it's being used to determine a Facet (scope) type. 
-			#        What needs to happen is: a) Validate-ConfigKey needs to return true/false as to whether the key is legit or not (and needs to be thoroughly vetted)
-			# 				      and 
-			# 								  b) need a new method called Get-ScopeType ... that determines the facet scope when/as needed. 
-			#			if ($null -eq $keyType) {
-			#				throw "Invalid -Scope value ([$($Scope)]) specified for Facet [$Name] within Surface [$($surface.Name)].";
-			#			}
-			
-			switch ($keyType.GetType()) {
-				"bool" {
-				}
-				"string" {
-				}
-				{
-					"hashtable" -or "System.Collections.Hashtable"
-				} {
-					if ($IterationKey) {
-						$facetType = [Proviso.Enums.FacetType]::Compound;
-					}
-					else {
-						$facetType = [Proviso.Enums.FacetType]::Group;
-					}
-				}
-				"system.object[]" {
-					$facetType = [Proviso.Enums.FacetType]::Value;
-				}
-				default {
-					throw "Invalid DataType for -Scope ([$($Scope)]) specified for Facet [$Name] within Surface [$($surface.Name)].";
-				}
+			if (-not (Is-ValidProvisoKey -Key $trimmedScopeKey)) {
+				throw "Fatal Error. Aspect Scope for Facet [$Name] within Surface [$($surface.Name)] is invalid. Key [$Scope] is not valid.";
 			}
 			
-			#Write-Host "$trimmedScopeKey => $($keyType.GetType())"
-			#Write-Host "$($surface.Name).$Name -> $facetType ";
+			$keyType = Get-KeyType $trimmedScopeKey;
+			
+			switch ($keyType) {
+				"Static" {
+				}
+				"Dynamic" {
+					$facetType = [Proviso.Enums.FacetType]::Value;
+				}
+				"SqlInstance" {
+					$facetType = [Proviso.Enums.FacetType]::Group;
+				}
+				"Complex" {
+					$facetType = [Proviso.Enums.FacetType]::Compound;
+				}
+				default {
+					throw
+				}
+			}
 		}
 		
 		# additional, per type, validations:
@@ -87,6 +66,8 @@ function Facet {
 				
 			}
 		}
+		
+		Write-Host "$($surface.Name).$Name -> $facetType ";
 	}
 	
 	process {

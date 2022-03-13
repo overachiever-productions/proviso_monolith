@@ -128,93 +128,93 @@ function Target {
 #				Set-ProvisoConfigValueByKey -Config $this -Key $Key -Value $Value;
 #			}
 #			Add-Member -InputObject $Config -MemberType ScriptMethod -Name "SetValue" -Value $setValue -Force;
-			
-			[scriptblock]$getValue = {
-				param (
-					[ValidateNotNullOrEmpty()]
-					# TODO: either see if there's a way to get ValidateNotNullOrEmpty to throw a 'friendly' error message, or implement one of my own...
-					[string]$Key
-				);
-				
-				$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
-				
-				if ($null -ne $output) {
-					return $output;
-				}
-				
-				# account for instance-specific keys defaulted to MSSQLSERVER: 
-				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
-				if ($match) {
-					$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
-					$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
-				}
-				
-				if ($null -ne $output) {
-					return $output;
-				}
-				
-				$firstLevelElementName = $Key.Split(".")[0];
-				$firstLevelElement = Get-ProvisoConfigValueByKey -Config $this -Key $firstLevelElementName;
-				if ($null -eq $firstLevelElement) {
-					if (-not ($this.AllowGlobalDefaults)) {
-						# first-level key doesn't exist i.e., check for global defaults... 
-						throw "First-Level config key [$firstLevelElementName] not defined in configuration object and -AllowGlobalDefaults is false.";
-					}
-				}
-				
-				# If we haven't found an explicit value, grab a default (which may be null):
-				$output = Get-ProvisoConfigDefault -Key $Key;
-				
-				# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
-				if ($null -eq $output) {
-					switch -regex ($Key) {
-						'Host\.NetworkDefinitions\.[^.]+\.AssumableIfNames' {
-							throw "Host.NetworkDefinitions<interfaceName>.AssumableIfNames cannot be null or use defaults.";
-						}
-						'Host\.NetworkDefinitions\.[^.]+\.(IpAddress|Gateway|PrimaryDns|SecondaryDns)+' {
-							throw "Host.NetworkDefinitions.<interfaceName> core networking details (IP, gateway, DNS) cannot be null or use defaults.";
-						}
-						'Host\.ExpectedDisks\..+.PhysicalDiskIdentifiers\..+' {
-							throw "Host.ExpectedDisk.<diskName>.PhysicalDiskIdentifiers cannot be null or use defaults.";
-						}
-						'Host\.ExpectedDisks\..+.VolumeName' {
-							throw "Host.ExpectedDisks.<diskName>.VolumeName (drive letter) cannot be null or use defaults.";
-						}
-						# TODO: this isn't correctly accounting for both MSSQLSERVER and <empty>
-						'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
-							[string[]]$parts = $Key -split '\.';
-							$instanceName = $parts[1];
-							
-							if ($instanceName -eq "MSSQLSERVER") {
-								$accountType = $parts[3];
-								$accountType = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $accountType;
-							}
-							else {
-								# vNEXT: actually... this is pretty easy to configure... 
-								throw "SqlServerInstallation.<INSTANCE>.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
-							}
-						}
-						'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
-							[string[]]$parts = $Key -split '\.';
-							$instanceName = $parts[1];
-							
-							if ($instanceName -eq "MSSQLSERVER") {
-								$directoryName = $parts[3];
-								$output = Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
-							}
-							else {
-								# vNEXT: will, eventually, allow for D:\<instanceName>\<defaultDir> as an option here - instead of throwing... 
-								throw "SqlServerInstallation.<INSTANCE>.SQLServerDefaultDirectories cannot be null or use defaults for instances OTHER than [MSSQLSERVER].";
-							}
-						}
-						'TODO-match on cluster stuff here ' {
-							throw "Need to implement cluster checks and AG checks and anything else that makes sense";
-						}
-					}
-				}
-				
-				return $output;
-			}
+#			
+#			[scriptblock]$getValue = {
+#				param (
+#					[ValidateNotNullOrEmpty()]
+#					# TODO: either see if there's a way to get ValidateNotNullOrEmpty to throw a 'friendly' error message, or implement one of my own...
+#					[string]$Key
+#				);
+#				
+#				$output = Get-ProvisoConfigValueByKey -Config $this -Key $Key;
+#				
+#				if ($null -ne $output) {
+#					return $output;
+#				}
+#				
+#				# account for instance-specific keys defaulted to MSSQLSERVER: 
+#				$match = [regex]::Matches($Key, '(ExpectedDirectories|SqlServerInstallation|SqlServerConfiguration|SqlServerPatches|AdminDb|ExtendedEvents|ResourceGovernor|CustomSqlScripts)\.MSSQLSERVER');
+#				if ($match) {
+#					$keyWithoutDefaultMSSQLServerName = $Key.Replace(".MSSQLSERVER", "");
+#					$output = Get-ProvisoConfigValueByKey -Config $this -Key $keyWithoutDefaultMSSQLServerName;
+#				}
+#				
+#				if ($null -ne $output) {
+#					return $output;
+#				}
+#				
+#				$firstLevelElementName = $Key.Split(".")[0];
+#				$firstLevelElement = Get-ProvisoConfigValueByKey -Config $this -Key $firstLevelElementName;
+#				if ($null -eq $firstLevelElement) {
+#					if (-not ($this.AllowGlobalDefaults)) {
+#						# first-level key doesn't exist i.e., check for global defaults... 
+#						throw "First-Level config key [$firstLevelElementName] not defined in configuration object and -AllowGlobalDefaults is false.";
+#					}
+#				}
+#				
+#				# If we haven't found an explicit value, grab a default (which may be null):
+#				$output = Get-ProvisoConfigDefault -Key $Key;
+#				
+#				# in SOME cases, a requested value SHOULD exist (either explicitly or by default), and if it doesn't, we SHOULD throw... 
+#				if ($null -eq $output) {
+#					switch -regex ($Key) {
+#						'Host\.NetworkDefinitions\.[^.]+\.AssumableIfNames' {
+#							throw "Host.NetworkDefinitions<interfaceName>.AssumableIfNames cannot be null or use defaults.";
+#						}
+#						'Host\.NetworkDefinitions\.[^.]+\.(IpAddress|Gateway|PrimaryDns|SecondaryDns)+' {
+#							throw "Host.NetworkDefinitions.<interfaceName> core networking details (IP, gateway, DNS) cannot be null or use defaults.";
+#						}
+#						'Host\.ExpectedDisks\..+.PhysicalDiskIdentifiers\..+' {
+#							throw "Host.ExpectedDisk.<diskName>.PhysicalDiskIdentifiers cannot be null or use defaults.";
+#						}
+#						'Host\.ExpectedDisks\..+.VolumeName' {
+#							throw "Host.ExpectedDisks.<diskName>.VolumeName (drive letter) cannot be null or use defaults.";
+#						}
+#						# TODO: this isn't correctly accounting for both MSSQLSERVER and <empty>
+#						'SqlServerInstallation\.[^.]+\.ServiceAccounts\.' {
+#							[string[]]$parts = $Key -split '\.';
+#							$instanceName = $parts[1];
+#							
+#							if ($instanceName -eq "MSSQLSERVER") {
+#								$accountType = $parts[3];
+#								$accountType = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $accountType;
+#							}
+#							else {
+#								# vNEXT: actually... this is pretty easy to configure... 
+#								throw "SqlServerInstallation.<INSTANCE>.ServiceAccount details cannot be null or use defaults with non-default SQL Server instances.";
+#							}
+#						}
+#						'SqlServerInstallation\.[^.]+\.SqlServerDefaultDirectories\.' {
+#							[string[]]$parts = $Key -split '\.';
+#							$instanceName = $parts[1];
+#							
+#							if ($instanceName -eq "MSSQLSERVER") {
+#								$directoryName = $parts[3];
+#								$output = Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
+#							}
+#							else {
+#								# vNEXT: will, eventually, allow for D:\<instanceName>\<defaultDir> as an option here - instead of throwing... 
+#								throw "SqlServerInstallation.<INSTANCE>.SQLServerDefaultDirectories cannot be null or use defaults for instances OTHER than [MSSQLSERVER].";
+#							}
+#						}
+#						'TODO-match on cluster stuff here ' {
+#							throw "Need to implement cluster checks and AG checks and anything else that makes sense";
+#						}
+#					}
+#				}
+#				
+#				return $output;
+#			}
 			
 			#Add-Member -InputObject $Config -MemberType ScriptMethod -Name "GetValue" -Value $getValue -Force;
 		}

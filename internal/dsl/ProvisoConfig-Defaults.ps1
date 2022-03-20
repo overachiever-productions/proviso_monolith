@@ -60,11 +60,11 @@
 				VolumeLabel		     	= "{~PARENT~}"
 				
 				PhysicalDiskIdentifiers = @{
-					DiskNumber 		= "{~DEFAULT_PROHIBITED~}"
-					VolumeId		= "{~DEFAULT_PROHIBITED~}"
-					ScsiMapping		= "{~DEFAULT_PROHIBITED~}"
-					DeviceId    	= "{~DEFAULT_PROHIBITED~}"
-					RawSize    		= "{~DEFAULT_PROHIBITED~}"
+					DiskNumber 		= "{~DEFAULT_IGNORED~}"
+					VolumeId		= "{~DEFAULT_IGNORED~}"
+					ScsiMapping		= "{~DEFAULT_IGNORED~}"
+					DeviceId    	= "{~DEFAULT_IGNORED~}"
+					RawSize    		= "{~DEFAULT_IGNORED~}"
 				}
 			}
 		}
@@ -311,6 +311,7 @@
 		}
 	}
 	
+	#region Encryption Keys
 # TODO: determine if this needs to be part of the admindb - think it does. NOT cuz it 'does', but because I don't want to bother 
 # 		trying to create certs and stuff WITHOUT the admindb... 
 #	SqlEncryptionKeys = @{
@@ -330,6 +331,7 @@
 #			}
 #		}
 #	}
+	#endregion 
 	
 	DataCollectorSets = @{
 		"{~ANY~}" = @{
@@ -345,7 +347,7 @@
 			DisableTelemetry = $true
 			"{~ANY~}"	     = @{
 				Enabled 		= $true  # if we're going to define it, it'll default to true
-				SessionName							       = "{~PARENT~}"
+				SessionName		= "{~PARENT~}"
 				
 				# TODO: add these params to Is-NonValidChildKey
 				DefinitionPathOrWhateverElseWeWouldUseHere = "somethingName" # which'd be a .sql file found at: \assets\xetraces\<name>.sql or whatever.

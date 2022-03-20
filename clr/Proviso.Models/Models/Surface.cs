@@ -90,20 +90,37 @@ namespace Proviso.Models
             this.ConfigKey = key;
         }
 
+        #region Re-Address
         public List<Facet> GetSimpleFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Simple).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.Simple) | (f.FacetType == FacetType.NonKey)).ToList();
         }
 
-        public List<Facet> GetBaseValueFacets()
+        public List<Facet> GetSimpleArrayFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Value).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.SimpleArray)).ToList();
         }
 
-        public List<Facet> GetBaseGroupFacets()
+        public List<Facet> GetObjectFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Group).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.Object) | (f.FacetType == FacetType.ObjectArray)).ToList();
         }
+
+        public List<Facet> GetSqlInstanceFacets()
+        {
+            return this.Facets.Where(f => (f.FacetType == FacetType.SqlObject) | (f.FacetType == FacetType.SqlObjectArray)).ToList();
+        }
+
+        //public List<Facet> GetBaseValueFacets()
+        //{
+        //    return this.Facets.Where(d => d.FacetType == FacetType.Value).ToList();
+        //}
+
+        //public List<Facet> GetBaseGroupFacets()
+        //{
+        //    return this.Facets.Where(d => d.FacetType == FacetType.Group).ToList();
+        //}
+        #endregion
 
         public List<Facet> GetBaseCompoundFacets()
         {

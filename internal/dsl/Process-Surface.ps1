@@ -4,21 +4,107 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
+	#Validate-ServerName;	
+	#Validate-NetworkAdapters;
+	#Validate-WindowsPreferences;
+	#Validate-RequiredPackages;
+	#Validate-HostTls;
+	#Validate-FirewallRules; 
+	#Validate-ExpectedDisks;
+	#Validate-SqlInstallation;
+	Validate-SqlConfiguration;
 
-	$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.Setup.SqlTempDbFileCount");
-
-
-	Validate-TestingSurface;
-	Configure-TestingSurface;
-	Validate-WindowsPreferences;
-
-	Validate-LocalAdministrators;
-
-	Summarize -Last 2;
+	Summarize;
 
 #>
+
+filter Get-SqlInstanceNameForDynamicFacets {
+	param (
+		[string]$CurrentInstanceName,
+		[string[]]$TargetInstances
+	);
+	
+	if (("MSSQLSERVER" -eq $CurrentInstanceName) -and ($TargetInstances.Count -lt 2)) {
+		return "";  # i.e., no need to append 'MSSQLSERVER' to Dynamic Facet Names if/when it's the ONLY instance... 
+	}
+	
+	return $CurrentInstanceName;
+}
+
+filter New-DynamicFacet {
+	param (
+		[Proviso.Models.Facet]$BaseFacet,
+		[string]$ChildName,
+		[string]$SubChildName,
+		[string]$SqlInstanceName,
+		[string]$ObjectName
+	);
+	
+	$facetName = $BaseFacet.Name;
+	if (-not ([string]::IsNullOrEmpty($ChildName))) {
+		$facetName = "$($facetName).$($ChildName)";
+	}
+	if (-not ([string]::IsNullOrEmpty($SubChildName))) {
+		$facetName = "$($facetName)-$($SubChildName)";
+	}
+	
+	$key = $BaseFacet.Key;
+	if (-not ([string]::IsNullOrEmpty($SqlInstanceName))) {
+		$key = $key -replace "{~SQLINSTANCE~}", $SqlInstanceName;
+	}
+	if (-not ([string]::IsNullOrEmpty($ObjectName))) {
+		$key = $key -replace "{~ANY~}", $ObjectName;
+	}
+	
+	$newFacet = New-Object Proviso.Models.Facet(($BaseFacet.Parent), $facetName, $BaseFacet.FacetType, $key);
+	
+	if ($null -eq $BaseFacet.Expect) {
+		$script = $null;
+		if ($BaseFacet.ExpectsKeyValue) {
+			$script = "return `$PVConfig.GetValue(`"$key`");";
+		}
+		elseif ($BaseFacet.ExpectCurrentIterationKey) {
+			# Note, these SHOULD always be strings: 
+			if ($BaseFacet.FacetType -eq "SqlObject") {
+				$script = "return '$SqlInstanceName';";
+			}
+			else {
+				$script = "return '$ObjectName'";
+			}
+		}
+		
+		$expectedBlock = [ScriptBlock]::Create($script);
+		$newFacet.SetExpect($expectedBlock);
+	}
+	else {
+		$newFacet.SetExpect($BaseFacet.Expect);
+	}
+	
+	$newFacet.SetTest($BaseFacet.Test);
+	$newFacet.SetConfigure($BaseFacet.Configure, $BaseFacet.UsesBuild);
+	
+	if (-not ([string]::IsNullOrEmpty($SqlInstanceName))) {
+		$newFacet.CurrentSqlInstanceName = $SqlInstanceName;
+	}
+	
+	if (-not ([string]::IsNullOrEmpty($ObjectName))) {
+		$newFacet.CurrentObjectName = $ObjectName;
+	}
+	
+	$newFacet.CurrentKey = $key;
+	if (-not ([string]::IsNullOrEmpty($key))) {
+		if ($newFacet.FacetType -in @("SimpleArray", "ObjectArray", "SqlObjectArray", "CompoundArray")) {
+			$newFacet.CurrentKeyValue = $ObjectName; # otherwise, we get the 'array' of values (which... might make sense but I don't THINK it does... )
+		}
+		else {
+			$newFacet.CurrentKeyValue = $PVConfig.GetValue($key);
+		}
+	}
+	
+	return $newFacet;
+}
 
 function Process-Surface {
 	param (
@@ -134,171 +220,144 @@ function Process-Surface {
 		}
 		
 		# --------------------------------------------------------------------------------------
+		# Facet Aseembly
+		# --------------------------------------------------------------------------------------
+		$facets = @();
+		
+		$simpleFacets = $surface.GetSimpleFacets();
+		foreach ($simpleFacet in $simpleFacets) {
+			if ($simpleFacet.ExpectsKeyValue) {
+				
+				$script = "return `$PVConfig.GetValue(`"$($simpleFacet.Key)`");";
+				$expectedBlock = [ScriptBlock]::Create($script);
+				$simpleFacet.SetExpect($expectedBlock);
+				
+				$simpleFacet.CurrentKey = $simpleFacet.Key;
+				$simpleFacet.CurrentKeyValue = $PVConfig.GetValue($simpleFacet.Key);
+			}
+			
+			$facets += $simpleFacet;
+		}
+		
+		$simpleArrayFacets = $surface.GetSimpleArrayFacets();
+		if ($simpleArrayFacets) {
+			foreach ($arrayFacet in $simpleArrayFacets) {
+				$values = @($PVConfig.GetValue($arrayFacet.Key));
+				foreach ($value in $values) {
+					$facets += New-DynamicFacet -BaseFacet $arrayFacet -SubChildName $value -ObjectName $value;
+				}
+			}
+		}
+		
+		$objectFacets = $surface.GetObjectFacets();
+		if ($objectFacets) {
+
+			foreach ($objectFacet in $objectFacets) {
+				$objects = @($PVConfig.GetObjects($objectFacet.Key));
+				
+				# TODO: implement sort-order stuff... (might need to actually 'move' this logic up into the call to $PVConfig.GetObjects ... as that might make more sense as a place to do the sort by CHILD key stuff.	
+				#$descending = $false;
+				#$prop = "Name";
+				foreach ($objectName in $objects) { # | Sort-Object -Property $prop -Descending:$descending) {
+					$facets += New-DynamicFacet -BaseFacet $objectFacet -SubChildName $objectName -ObjectName $objectName;
+				}
+			}
+		}
+		
+		$sqlInstanceFacets = $surface.GetSqlInstanceFacets();
+		if ($sqlInstanceFacets) {
+			
+			# NOTE: Nested Loops. This will do A. Each Facet by, B. each SQL Instance. Arguably, it MIGHT make more sense to do each 1. Each SqlInstance, and 2. each/all Facets. 
+			# 		BUT, that logic actually becomes a) a LOT harder (the nesting of loops becomes 'stupid tedious') and, more importantly: b) there's no 1000% guarantee that the 
+			# 			same number of SQL Instances will be defined from ONE Facet to the NEXT (i.e., a Surface COULD check in 2 or 3 'root'/surface key/areas ... with diff configs)
+			foreach ($instanceFacet in $sqlInstanceFacets) {
+				
+				$sqlInstances = @(($PVConfig.GetSqlInstanceNames($instanceFacet.Key)));
+				if ($sqlInstances.Count -lt 1) {
+					# TODO: throw UNLESS there's a -SkipIFNoSqlInstance (needs a better name) switch defined. (Which MAY or may not make sense to implement - I've toyed with the idea in the past).
+					throw "Not Implemented Yet.";
+				}
+				
+				if ($instanceFacet.FacetType -eq "SqlObject") {
+					foreach ($sqlInstance in $sqlInstances) {
+						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+						
+						$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
+					}
+					
+#					if ($sqlInstances.Count -eq 1) {
+#						
+#						$sqlInstance = $sqlInstances[0];
+#						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+#						
+#						$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
+#					}
+#					else { # multiple SqlInstances
+#						foreach ($sqlInstance in $sqlInstances) {
+#							$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+#							
+#							$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
+#						}
+#					}
+				}
+				else { 	# we're dealing with a SqlObjectArray - i.e., TraceFlags (> 1 key value per each SQL Server instance)
+					foreach ($sqlInstance in $sqlInstances) {
+						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+						$instanceKey = $instanceFacet.Key -replace "{~SQLINSTANCE~}", $sqlInstance;
+						$instanceArrayValues = $PVConfig.GetValue($instanceKey);
+						
+						foreach ($arrayValue in $instanceArrayValues) {
+							$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
+						}
+					}
+					
+#					if ($sqlInstances.Count -eq 1) {
+#						
+#						$sqlInstance = $sqlInstances[0];
+#						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+#						
+#						$instanceKey = $instanceFacet.Key -replace "{~SQLINSTANCE~}", $sqlInstance;
+#						$instanceArrayValues = $PVConfig.GetValue($instanceKey);
+#						
+#						foreach ($arrayValue in $instanceArrayValues) {
+#							$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
+#						}
+#					}
+#					else {
+#						foreach ($sqlInstance in $sqlInstances){
+#							$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+#							
+#							$instanceKey = $instanceFacet.Key -replace "{~SQLINSTANCE~}", $sqlInstance;
+#							
+#							$instanceArrayValues = $PVConfig.GetValue($instanceKey);
+#							
+#							foreach ($arrayValue in $instanceArrayValues) {
+#								$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
+#							}
+#							
+#						}
+#					}
+				}
+			}
+		}
+		
+		#		Write-Host "count of Facets: $($facets.Count)";
+#		foreach ($facet in $facets) {
+#			Write-Host "FACET: $($facet.Name):"
+#			Write-Host "	CurrentKey: $($facet.CurrentKey)"
+#			Write-Host "	CurrentKeyValue: $($facet.CurrentKeyValue)"
+#			Write-Host "	CurrentObject: $($facet.CurrentObjectName)"
+#			Write-Host "	CurrentSqlInstance: $($facet.CurrentSqlInstanceName)"
+#			Write-Host "		Expect: $($facet.Expect) ";
+#		}
+#		return;
+		
+		# --------------------------------------------------------------------------------------
 		# Validations
 		# --------------------------------------------------------------------------------------	
 		$validations = @();
 		$surfaceProcessingResult.StartValidations();
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
-		
-		$facets = $surface.GetSimpleFacets();
-		$valueFacets = $surface.GetBaseValueFacets();
-		$groupFacets = $surface.GetBaseGroupFacets();
-		$compoundFacets = $surface.GetBaseCompoundFacets();
-		
-		if ($valueFacets) {
-			$expandedFacets = @();
-			
-			foreach ($facet in $valueFacets) {
-				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-				$values = $PVConfig.GetValue($trimmedKey);
-				if ($values.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Config Array-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
-				}
-				
-				# TODO: add in OrderBy functionality (ascending (by default) or descending if/when switch is set... )
-				foreach ($value in $values) {
-					$newName = "$($facet.Name):$($value)";
-				
-					$expandedValueFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newName, [Proviso.Enums.FacetType]::Value);
-					$expandedValueFacet.SetTest(($facet.Test));
-					$expandedValueFacet.SetConfigure(($facet.ConfiguredBy), ($facet.UsesBuild));
-					
-					if ($facet.ExpectCurrentIterationKey) {
-						$script = "return '$value';";
-						$expectedBlock = [scriptblock]::Create($script);
-						
-						$expandedValueFacet.SetExpect($expectedBlock);
-					}
-					else {
-						$expandedValueFacet.SetExpect(($facet.Expect));
-					}
-					
-					$expandedValueFacet.SetCurrentIteratorDetails($facet.IterationKey, $value);
-					$expandedFacets += $expandedValueFacet;
-				}
-			}
-			
-			$facets += $expandedFacets;
-		}
-		
-		if ($groupFacets) {
-			$expandedFacets = @();
-			
-			foreach ($facet in $groupFacets) {
-				
-				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-				$groupNames = $PVConfig.GetGroupNames($trimmedKey, ($facet.OrderByChildKey)); #Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
-				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
-				}
-				
-				foreach ($groupName in $groupNames) {
-					$newName = "$($facet.Name):$($groupName)";
-					$expandedGroupFacet = New-Object Proviso.Models.Facet(($facet.Parent), $newName, [Proviso.Enums.FacetType]::Group);
-					
-					$expandedGroupFacet.SetTest(($facet.Test));
-					$expandedGroupFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
-					
-					$currentIteratorKey = "$($trimmedKey).$($groupName)";
-					$currentIteratorKeyValue = $groupName;
-					
-					$currentIteratorChildKey = $null;
-					$currentIteratorChildKeyValue = $null;
-					
-					if ($facet.ExpectCurrentIterationKey) {
-						$script = "return '$currentIteratorKeyValue';";
-						$expectedBlock = [scriptblock]::Create($script);
-						
-						$expandedGroupFacet.SetExpect($expectedBlock);
-					}
-					else {
-						if ($facet.ExpectGroupChildKey) {
-							
-							$currentIteratorChildKey = "$($trimmedKey).$($groupName).$($facet.ChildKey)";
-							$currentIteratorChildKeyValue = $PVConfig.GetValue($currentIteratorChildKey);
-									
-							$script = "return '$currentIteratorChildKeyValue';";
-							$expectedBlock = [scriptblock]::Create($script);
-							
-							$expandedGroupFacet.SetExpect($expectedBlock);
-						}
-						else {
-							# then it's 'just' a normal expect: 
-							$expandedGroupFacet.SetExpect(($facet.Expect));
-						}
-					}
-					
-					$expandedGroupFacet.SetCurrentIteratorDetails($currentIteratorKey, $currentIteratorKeyValue, $currentIteratorChildKey, $currentIteratorChildKeyValue);
-					
-					$expandedFacets += $expandedGroupFacet;
-				}
-			}
-			
-			$facets += $expandedFacets;
-		}
-		
-		if ($compoundFacets) {
-			$expandedFacets = @();
-			
-			foreach ($facet in $compoundFacets){
-				[string]$trimmedKey = ($facet.IterationKey) -replace ".\*", "";
-				$groupNames = $PVConfig.GetGroupNames($trimmedKey, ($facet.OrderByChildKey)); #Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey $trimmedKey -OrderByKey:$($facet.OrderByChildKey);
-				if ($groupNames.Count -lt 1) {
-					$PVContext.WriteLog("NOTE: No Configuration Group-Values were found at key [$($facet.IterationKey)] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
-				}
-				
-				foreach ($groupName in $groupNames){
-					$fullCompoundKey = "$trimmedKey.$groupName.$($facet.CompoundIterationKey)";
-					# TODO: implement the .OrderDescending logic in this helper func... 
-					# TODO: implement OrderBy in here... i.e., this used to call Get-ProvisoConfigCompoundValues which ... ??? no idea why i had a full-blown method for that. 
-					# 		but... it didn't implement an order-by either... 
-					
-					$compoundChildElements = $PVConfig.GetValue($fullCompoundKey);
-					
-					if ($compoundChildElements.Count -lt 1){
-						$PVContext.WriteLog("NOTE: No COMPOUND Keys were found at key [$fullCompoundKey] for Facet [$($facet.Parent.Name)::$($facet.Name)].", "Important");
-					}
-					else{
-						foreach ($compoundValue in $compoundChildElements){
-							$compoundName = "$($facet.Name):$($groupName).$compoundValue";
-							
-							$compoundFacet = New-Object Proviso.Models.Facet(($facet.Parent), $compoundName, [Proviso.Enums.FacetType]::Compound);
-							$compoundFacet.SetTest($facet.Test);
-							$compoundFacet.SetConfigure(($facet.Configure), ($facet.UsesBuild));
-							
-							$iteratorKey = "$($trimmedKey).$($groupName)";
-							$iteratorValue = $groupName;
-							
-							$iteratorChildKey = $fullCompoundKey;
-							$iteratorChildKeyValue = $compoundValue;
-							
-							if ($facet.ExpectCurrentIterationKey){
-								$script = "return '$iteratorValue';";
-								$expectedBlock = [scriptblock]::Create($script);
-								
-								$compoundFacet.SetExpect($expectedBlock);
-							}
-							else {
-								if ($facet.ExpectCompoundValueKey) {
-									$script = "return '$iteratorChildKeyValue';";
-									$expectedBlock = [scriptblock]::Create($script);
-									
-									$compoundFacet.SetExpect($expectedBlock);
-								}
-								else {
-									$compoundFacet.SetExpect(($facet.Expect));
-								}
-							}
-							
-							$compoundFacet.SetCurrentIteratorDetails($iteratorKey, $iteratorValue, $iteratorChildKey, $iteratorChildKeyValue);
-							$expandedFacets += $compoundFacet;
-						}
-					}
-				}
-			}
-			
-			$facets += $expandedFacets;
-		}
 		
 		foreach ($facet in $facets) {
 			$validationResult = New-Object Proviso.Processing.ValidationResult($facet, $processingGuid); 
@@ -306,13 +365,7 @@ function Process-Surface {
 			
 			[ScriptBlock]$expectedBlock = $facet.Expect;
 			if ($null -eq $expectedBlock) {
-				if ($facet.ExpectStaticKey) {
-					$script = "return `$PVConfig.GetValue('$($facet.Key)');";
-					$expectedBlock = [scriptblock]::Create($script);
-				}
-				else {
-					throw "Proviso Framework Error. Expect block should be loaded (via various options) - but is NOT.";	
-				}
+				throw "Proviso Framework Error. Expect block should be loaded - but is NOT.";	
 			}
 			
 			$expectedResult = $null;

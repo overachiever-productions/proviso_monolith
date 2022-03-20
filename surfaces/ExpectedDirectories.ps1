@@ -1,17 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-TestingSurface;
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-ExpectedDirectories;
-
-Summarize -Latest;
-
-#>
-
-Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
+Surface ExpectedDirectories -Target "ExpectedDirectories" {
 	
 	Assertions {
 		Assert-HostIsWindows;
@@ -29,8 +18,9 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 		}
 	}
 	
-	Aspect -Scope "ExpectedDirectories.*" {
-		Facet "SqlDirExists" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectIterationKeyValue {
+	Aspect {
+		#Facet "SqlDirExists" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectIterationKeyValue {
+		Facet "SqlDirExists" -Key "VirtualSqlServerServiceAccessibleDirectories" -ExpectKeyValue {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				
@@ -47,7 +37,8 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Facet "SqlDirHasPerms" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
+		#Facet "SqlDirHasPerms" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
+		Facet "SqlDirHasPerms" -Key "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
 			Test {
 				$instanceName = $PVContext.CurrentKeyValue;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
@@ -87,7 +78,8 @@ Surface ExpectedDirectories -For -Key "ExpectedDirectories" {
 			}
 		}
 		
-		Facet "RawDirExists" -IterationKey "RawDirectories" -ExpectIterationKeyValue {
+		#Facet "RawDirExists" -IterationKey "RawDirectories" -ExpectIterationKeyValue {
+		Facet "RawDirExists" -Key "RawDirectories" -ExpectKeyValue {
 			Test {
 				$keyValue = $PVContext.CurrentChildKeyValue;
 				

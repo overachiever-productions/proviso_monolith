@@ -1,29 +1,16 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-Assign -ProvisoRoot "\\storage\Lab\proviso";
-
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-SqlConfiguration;
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-SqlConfiguration;
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
-
-Summarize -Latest;
-
-#>
-
-Surface SqlConfiguration {
+Surface SqlConfiguration -Target "SqlServerConfiguration" {
 	
 	Assertions  {
 		Assert-UserIsAdministrator; 	# can't set user rights otherwise... 
 		Assert-SqlServerIsInstalled -AssertOnConfigureOnly;
 	}
 	
-	Aspect -Scope "SqlServerConfiguration.*" {
-		Facet "ForceEncryptedConnections" -ExpectChildKeyValue "LimitSqlServerTls1dot2Only" {
+	Aspect {
+		Facet "ForceEncryptedConnections" -Key "LimitSqlServerTls1dot2Only" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				try {
 					$path = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL\' -ErrorAction SilentlyContinue).$instanceName;
 					$currentValue = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\$path\MSSQLServer\SuperSocketNetLib\" -Name "ForceEncryption" -ErrorAction SilentlyContinue).ForceEncryption;
@@ -39,8 +26,8 @@ Surface SqlConfiguration {
 				}
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				if ($expectedSetting) {
 					try {
@@ -63,9 +50,9 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "DisableSa" -ExpectChildKeyValue "DisableSaLogin" {
+		Facet "DisableSa" -Key "DisableSaLogin" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$result = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [is_disabled] FROM master.sys.[server_principals] WHERE [name] = 'sa';").is_disabled;
 				
@@ -76,8 +63,8 @@ Surface SqlConfiguration {
 				return $result;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				if ($expectedSetting) {
 					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER LOGIN [sa] DISABLE; ";
@@ -88,9 +75,9 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "ContingencySpace" -ExpectChildKeyValue "DeployContingencySpace" {
+		Facet "ContingencySpace" -Key "DeployContingencySpace" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$sqlDirectories = @{};
 				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceName.SqlServerDefaultDirectories.InstallSqlDataDir");
@@ -132,8 +119,8 @@ Surface SqlConfiguration {
 				return $true;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$contingencyZipSource = $PVResources.GetAsset("ContingencySpace", "zip");
 				if (-not (Test-Path $contingencyZipSource)) {
@@ -189,15 +176,15 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "UserRight:LPIM" -ExpectChildKeyValue "EnabledUserRights.LockPagesInMemory" {
+		Facet "UserRight:LPIM" -Key "EnabledUserRights.LockPagesInMemory" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight LPIM;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				try {
 					if ($expectedSetting) {
@@ -215,15 +202,15 @@ Surface SqlConfiguration {
 			}
 		}
 		
-		Facet "UserRight:PVMT" -ExpectChildKeyValue "EnabledUserRights.PerformVolumeMaintenanceTasks" {
+		Facet "UserRight:PVMT" -Key "EnabledUserRights.PerformVolumeMaintenanceTasks" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight PVMT;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				try {
 					if ($expectedSetting) {
@@ -243,24 +230,19 @@ Surface SqlConfiguration {
 		
 		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
 		# and... not sure if that means we HAVE to have domain creds (or not).
-		#		Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
-		#			Test {
-		#				
-		#			}
-		#			Configure {
-		#				
-		#			}
-		#		}		
+		#Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
+		#	Test {
+		#		
+		#	}
+		#	Configure {
+		#		
+		#	}
+		#}		
 		
-		
-	}
-	
-	# Hmmm... while I CAN put 2x scopes into the same facet... why NOT move trace flags into their own facet? (i.e., WOULD that make MORE sense? I think it would)
-	Aspect -Scope "SqlServerConfiguration.*" {
-		Facet "TraceFlag" -IterationKey "TraceFlags" -Expect $true {
+		Facet "TraceFlag" -Key "TraceFlags" -Expect $true {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$traceFlag = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$traceFlag = $PVContext.CurrentConfigKeyValue;
 				
 				$enabled = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DBCC TRACESTATUS(`$(FLAG));" -Variable "FLAG=$traceFlag").Global;
 				
@@ -271,12 +253,12 @@ Surface SqlConfiguration {
 				return $true;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$traceFlag = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$traceFlag = $PVContext.CurrentConfigKeyValue;
 				
 				# NOTE: if we're in here (i.e., doing configuration 'stuff') it's because 'required' trace flag is missing - i.e., no worries about needing to REMOVE them.
 				try {
-					Add-TraceFlag -InstanceName $instanceName -Flag $traceFlag;  
+					Add-TraceFlag -InstanceName $instanceName -Flag $traceFlag;
 					$PVContext.WriteLog("Trace Flag [$traceFlag] enabled for instance [$instanceName]. Restart of SQL Server instance is NOT required.", "Verbose");
 				}
 				catch {

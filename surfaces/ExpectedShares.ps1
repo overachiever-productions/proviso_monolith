@@ -12,7 +12,7 @@
 
 #>
 
-Surface ExpectedShares {
+Surface ExpectedShares -Target "ExpectedShares" {
 	
 	Assertions {
 		Assert-HostIsWindows;
@@ -30,11 +30,13 @@ Surface ExpectedShares {
 		}
 	}
 	
-	Aspect -Scope "ExpectedShares.*" {
-		Facet "DirectoryExists" -Expect $true {
+	Aspect {
+		#Facet "DirectoryExists" -Expect $true {
+		Facet "DirectoryExists" -Key "SourceDirectory" -Expect $true {
 			Test {
-				$currentKey = $PVContext.CurrentKeyValue;
-				$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
+				#$currentKey = $PVContext.CurrentKeyValue;
+				#$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
+				$targetDirectory = $PVConfig.CurrentConfigKeyValue; # i think... 
 				
 				return Test-Path $targetDirectory;
 			}
@@ -46,7 +48,8 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Facet "IsShared" -Expect $true {
+		#Facet "IsShared" -Expect $true {
+		Facet "IsShared" -Key "ShareName" -Expect $true {
 			Test {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
@@ -77,7 +80,8 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Facet "ReadOnlyPermsFor" {
+		#Facet "ReadOnlyPermsFor" {
+		Facet "ReadOnlyPermsFor" -Key "ReadOnlyAccess" {
 			Expect {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$readOnlyUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadOnlyAccess");
@@ -130,7 +134,8 @@ Surface ExpectedShares {
 			}
 		}
 		
-		Facet "ReadWritePermsFor" {
+		#Facet "ReadWritePermsFor" {
+		Facet "ReadWritePermsFor" -Key "ReadWriteAccess" {
 			Expect {
 				$currentKey = $PVContext.CurrentKeyValue;
 				$readWriteUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadWriteAccess");

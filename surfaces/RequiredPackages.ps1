@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
+Surface "RequiredPackages" -Target "Host" {
 	
 	Assertions {
 		Assert-UserIsAdministrator;
@@ -8,8 +8,8 @@ Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
 		Assert-ProvisoResourcesRootDefined;
 	}
 	
-	Aspect {
-		Facet "WSFCRequired" -ExpectKeyValue "Host.RequiredPackages.WsfcComponents" -RequiresReboot {
+	Aspect -Scope "RequiredPackages" {
+		Facet "WSFCRequired" -Key "WsfcComponents" -ExpectKeyValue -RequiresReboot {
 			Test {
 				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
 				$PVContext.SetSurfaceState("WSFC_Installed", $installed);
@@ -22,9 +22,10 @@ Surface "RequiredPackages" -For -Key "Host.RequiredPackages" {
 				
 				return $false;
 			}
-			
 			Configure {
-				if ($PVConfig.GetValue("Host.RequiredPackages.WsfcComponents")) {
+				
+				#if ($PVConfig.GetValue("Host.RequiredPackages.WsfcComponents")) {
+				if($PVContext.CurrentConfigKeyValue) {
 					
 					$rebootRequired = Install-WsfcComponents;
 					

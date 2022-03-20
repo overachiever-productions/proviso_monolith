@@ -1,16 +1,17 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbDiskMonitoring {
+Surface AdminDbDiskMonitoring -Target "AdminDb" {
 	Assertions {
 		Assert-SqlServerIsInstalled;
 		Assert-AdminDbInstalled;
 	}
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 
-	Aspect -Scope "AdminDb.*" {
-		Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" -UsesBuild {
+	Aspect -Scope "DiskMonitoring" {
+		#Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" -UsesBuild {
+		Facet "DiskMonitoringEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$state = Get-AgentJobStartTime -SqlServerInstanceName $instanceName -SqlServerAgentJob "Regular Drive Space Checks";
 				
@@ -22,22 +23,23 @@ Surface AdminDbDiskMonitoring {
 			}
 		}
 		
-		Facet "WarnWhenGBsGoBelow" -UsesBuild {
+		#Facet "WarnWhenGBsGoBelow" -UsesBuild {
+		Facet "WarnWhenGBsGoBelow" -Key "WarnWhenFreeGBsGoBelow" -UsesBuild {
 			Expect {
 				# TODO: look at implementing a param called something like -ExpectedValueFormat = "0:xxxx" or something like that so'z I can 
 				#  use "32" treated as "32.0" or whatever, instead of having to create an 'explicit Expect {} block' like I've done here. 
 				#  that said, notice how I also have to cast/format the TEST output as well - so this'll need a bit more work.
 				#  	actually, it might just mean that there's a -Format for the Facet itself? and a -RemoveWhiteSpace switch for the Scope too? 
 				
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedValue = $PVConfig.GetValue("AdminDb.$instanceName.DiskMonitoring.WarnWhenFreeGBsGoBelow");
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedValue = $PVConfig.CurrentConfigKeyValue;
 				$double = [double]$expectedValue;
 				
 				return $double.ToString("###0.0");
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular Drive Space Checks" -JobStepName "Check on Disk Space and Send Alerts" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
@@ -56,7 +58,7 @@ Surface AdminDbDiskMonitoring {
 		}
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;

@@ -13,7 +13,7 @@
 #>
 
 
-Surface "ServerName" {
+Surface "ServerName" -Target "Host" {
 	
 	Assertions {
 		
@@ -48,12 +48,12 @@ Surface "ServerName" {
 	}
 	
 	Aspect {
-		Facet "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
+		Facet "Target Server" -Key "TargetServer" -ExpectKeyValue -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();
 			}
 			Configure {
-				$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
+				$targetMachineName = $PVContext.CurrentConfigKeyValue;
 				
 				# see notes on Outcomes/configuration in comments at the top of this surface:
 				# since we're in here, we already KNOW that the current HostName doesn't match the Desired (Target) host-name. 
@@ -90,7 +90,7 @@ Surface "ServerName" {
 			}
 		}
 		
-		Facet "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
+		Facet "Target Domain" -Key "TargetDomain" -ExpectKeyValue -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {

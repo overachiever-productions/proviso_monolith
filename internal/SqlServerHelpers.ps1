@@ -35,6 +35,35 @@ filter Get-ConnectionInstance {
 	return ".";
 }
 
+filter Get-SqlServerDefaultInstallationPath {
+	param (
+		[Parameter(Mandatory)]
+		[PSCustomObject]$InstanceName,
+		[Parameter(Mandatory)]
+		[PSCustomObject]$DirectoryName
+	);
+	
+	if ("MSSQLSERVER" -eq $InstanceName) {
+		switch ($DirectoryName) {
+			"InstallDirectory" {
+				return "C:\Program Files\Microsoft SQL Server";
+			}
+			"InstallSharedDirectory" {
+				return "C:\Program Files\Microsoft SQL Server";
+			}
+			"InstallSharedWowDirectory" {
+				return "C:\Program Files (x86)\Microsoft SQL Server";
+			}
+			default {
+				throw "Proviso Framework Error. Invalid Directory-Type defined for Get-SqlServerDefaultInstancePath.";
+			}
+		}
+	}
+	
+	# TODO: Implement a set of rules/defaults for this (there's probably an existing convention established and documented online):
+	return "{~DEFAULT_PROHIBITED~}"
+}
+
 filter Get-SqlServerDefaultDirectoryLocation {
 	param (
 		[Parameter(Mandatory)]
@@ -44,8 +73,28 @@ filter Get-SqlServerDefaultDirectoryLocation {
 	);
 	
 	if ("MSSQLSERVER" -eq $InstanceName) {
-		throw "Proviso Framework Error. Default Directory Locations for Default SQL Server Instance (MSSQLSERVER) should NOT be retrieved dynamicall.y";
-	}	
+		switch ($SqlDirectory)
+		{
+			"InstallSqlDataDir" {
+				return "D:\SQLData";
+			}
+			"SqlDataPath" {
+				return "D:\SQLData";
+			}
+			"SqlLogsPath" {
+				return "D:\SQLData";
+			}
+			"SqlBackupsPath" {
+				return "D:\SQLBackups";
+			}
+			"TempDbPath" {
+				return "D:\SQLData";
+			}
+			"TempDbLogsPath" {
+				return "D:\SQLData";
+			}
+		}
+	}
 	
 	switch ($SqlDirectory) {
 		"InstallSqlDataDir" {

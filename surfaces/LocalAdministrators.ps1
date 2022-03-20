@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
  
-Surface -Name "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
+Surface -Name "LocalAdministrators" -Target "Host" {
 	
 	Setup {
 		$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
@@ -13,11 +13,12 @@ Surface -Name "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
 		Assert-HostIsWindows;
 	}
 	
-	Aspect -Scope "Host.LocalAdministrators.*" {
-		Facet "AccountExists" -ExpectCurrentKeyValue {
+	Aspect -Scope "LocalAdministrators" {
+		#Facet "AccountExists" -ExpectCurrentKeyValue {
+		Facet "AccountExists" -NoKey -ExpectIteratorValue {
 			Test {
-				$expectedAccount = $PVContext.CurrentKeyValue;
-				
+				$expectedAccount = $PVContext.CurrentConfigKeyValue;
+		
 				$exists = ConvertTo-WindowsSecurityIdentifier -Name $expectedAccount;
 				if ($exists) {
 					return $expectedAccount;
@@ -26,14 +27,15 @@ Surface -Name "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
 				return "";
 			}
 			Configure {
-				$expectedAccount = $PVContext.CurrentKeyValue;
+				$expectedAccount = $PVContext.CurrentConfigKeyValue;
 				throw "Unable to CREATE AD or LOCAL user [$expectedAccount]. Proviso can't/won't know the password or other critical detaiils. Make sure this user EXISTS before continuing.";
 			}
 		}
 		
-		Facet "IsLocalAdmin" -Expect $true { 
+		#Facet "IsLocalAdmin" -Expect $true { 
+		Facet "IsLocalAdmin" -Expect $true -NoKey {
 			Test {
-				$expectedAccount = $PVContext.CurrentKeyValue;
+				$expectedAccount = $PVContext.CurrentConfigKeyValue;
 				
 				$currentAdmins = $PVContext.GetSurfaceState("CurrentAdmins");
 				if ($currentAdmins.Name -contains $expectedAccount) {
@@ -43,7 +45,7 @@ Surface -Name "LocalAdministrators" -For -Key "Host.LocalAdministrators" {
 				return $false;
 			}
 			Configure {
-				$expectedAccount = $PVContext.CurrentKeyValue;
+				$expectedAccount = $PVContext.CurrentConfigKeyValue;
 				
 				Add-LocalGroupMember -Group Administrators -Member $expectedAccount;
 				$PVContext.WriteLog("Added [$expectedAccount] to Local Administrators Group...", "Verbose");

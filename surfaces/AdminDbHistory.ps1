@@ -1,16 +1,17 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbHistory {
+Surface AdminDbHistory -Target "AdminDb" {
 	Assertions {
 		Assert-SqlServerIsInstalled;
 		Assert-AdminDbInstalled;
 	}
 	
 	# TODO: add in the abililty to change the NAME of the JOB that handles these cleanups.
-	Aspect -Scope "AdminDb.*" {
-		Facet "CleanupEnabled" -ExpectChildKeyValue "HistoryManagement.Enabled" -UsesBuild {
+	Aspect -Scope "HistoryManagement" {
+		#Facet "CleanupEnabled" -ExpectChildKeyValue "HistoryManagement.Enabled" -UsesBuild {
+		Facet "CleanupEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$state = Get-AgentJobStartTime -SqlServerAgentJob "Regular History Cleanup" -SqlServerInstanceName $instanceName;
 				if ($state -like "<*") {
@@ -21,9 +22,10 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "SQLServerLogsToKeep" -ExpectChildKeyValue "HistoryManagement.SqlServerLogsToKeep" -UsesBuild {
+		#Facet "SQLServerLogsToKeep" -ExpectChildKeyValue "HistoryManagement.SqlServerLogsToKeep" -UsesBuild {
+		Facet "SQLServerLogsToKeep" -Key "SqlServerLogsToKeep" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# could read the registry directly... but INSTANCE_reg_read is nice/easy
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DECLARE @NumberOfServerLogsToKeep int;
@@ -38,10 +40,11 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "AgentJobHistory" -ExpectChildKeyValue "HistoryManagement.AgentJobHistoryRetention" -UsesBuild {
+		#Facet "AgentJobHistory" -ExpectChildKeyValue "HistoryManagement.AgentJobHistoryRetention" -UsesBuild {
+		Facet "AgentJobHistory" -Key "AgentJobHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$retentionSettings = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Job History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
@@ -58,10 +61,11 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "BackupHistory" -ExpectChildKeyValue "HistoryManagement.BackupHistoryRetention" -UsesBuild {
+		#Facet "BackupHistory" -ExpectChildKeyValue "HistoryManagement.BackupHistoryRetention" -UsesBuild {
+		Facet "BackupHistory" -Key "BackupHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$retentionSettings = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Backup History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
@@ -78,10 +82,11 @@ Surface AdminDbHistory {
 			}
 		}
 		
-		Facet "EmailHistory" -ExpectChildKeyValue "HistoryManagement.EmailHistoryRetention" -UsesBuild {
+		#Facet "EmailHistory" -ExpectChildKeyValue "HistoryManagement.EmailHistoryRetention" -UsesBuild {
+		Facet "EmailHistory" -Key "EmailHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$retentionSettings = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Email History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
@@ -101,7 +106,7 @@ Surface AdminDbHistory {
 		# TODO: Implement -Detailed facets for FTI cleanup and so on... 
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;

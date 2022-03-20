@@ -37,7 +37,6 @@
 
 						function Build {  # up to 1x per Aspect... 
 
-
 						}
 
 						function Deploy {
@@ -46,51 +45,11 @@
 					}
 				}
 
-
-
-
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-
 
 #>
 
 # vNEXT: add error-handling/try-catches... 
-
-filter Validate-SurfaceKey {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	$parts = $Key -split '\.';
-	if ($parts.Count -gt 1) {
-		throw "Invalid Surface Key: [$Key]. Surface Keys must be 'root' level keys - i.e., they can not be multi-part.";
-	}
-	
-	if (-not (Is-ValidProvisoKey -Key $Key)) {
-		throw "Invalid Surface Key: [$Key]. Key is NOT valid.";
-	}
-}
-
-filter Validate-AspectKey {
-	param (
-		[Parameter(Mandatory)]
-		[string]$AspectKey
-	);
-	
-	$parts = $AspectKey -split '\.';
-	if ($parts.Count -lt 2) {
-		throw "Invalid Aspect Key: [$AspectKey]. Aspect Keys must be child-keys - i.e., they must be multi-part.";
-	}
-	elseif ($parts.Count -gt 4) {
-		throw "Invalid Aspect Key: [$AspectKey]. Aspect Keys can not have more children/parts than 3.";
-	}
-	
-	
-	if (-not (Is-ValidProvisoKey -Key $AspectKey)) {
-		throw "Invalid Aspect Key: [$AspectKey]. Key is NOT valid.";
-	}
-}
 
 function Surface {
 	param (
@@ -98,15 +57,12 @@ function Surface {
 		[string]$Name,
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$Scripts,
-		[Switch]$For, # syntactic sugar only... i.e., allows a block of script to accompany a surface 'facet' - for increased context/natural-language
-		[Parameter(Mandatory)]
 		[ValidateNotNullOrEmpty()]
-		[string]$Key
+		[string]$Target   # i.e., the surface or root-key we're targetting
 	);
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Surface";
-		Validate-SurfaceKey -Key $Key;
 		
 		$surfaceFileName = Split-Path -Path $MyInvocation.ScriptName -LeafBase;
 		if ($null -eq $Name) {
@@ -114,8 +70,8 @@ function Surface {
 		}
 		
 		$surface = New-Object Proviso.Models.Surface($Name, $surfaceFileName, ($MyInvocation.ScriptName).Replace($ProvisoScriptRoot, ".."));
-		if (-not ([string]::IsNullOrEmpty($Key))) {
-			$surface.AddConfigKey($Key);
+		if (-not ([string]::IsNullOrEmpty($Target))) {
+			$surface.AddConfigKey($Target);
 		}
 	}
 	
@@ -125,7 +81,6 @@ function Surface {
 	}
 	
 	end {
-		
 		$surface.Validate();
 		$global:PVCatalog.AddSurface($surface);
 	}
@@ -520,35 +475,39 @@ function Assert-SqlServerIsInstalled {
 			return;
 		}
 		
-		try {
-			[ScriptBlock]$codeBlock = {
-				# TODO: standardize calls into Get-provisoConfigGroupNames. I was doing "SQLServerInstallation.*" here and ... it returned nothing... 
-				# 		i.e., need to probably just roll this func into the $PVConfig object itself ANYHOW... and then address parameter cleanup options there vs in callers (not sure what I was thinking)
-				$instanceNames = $PVConfig.GetGroupNames("SQLServerInstallation");
-				if ($instanceNames.Count -lt 1) {
-					throw "Expected 1 or more instances - but none were defined at [SQLServerInstallation.*].";
-				}
+#		try {
+#			[ScriptBlock]$codeBlock = {
 				
-				$installedInstances = Get-ExistingSqlServerInstanceNames;
+				# WOW. What the hell was I thinking. 
+				# I shouldn't be pulling info from the CONFIG. 
+				# 	i need to be checking the equivalent of $PVEnvironment.NamedSqlInstances or whatever... 
+				# 		i.e., the code to check is currently in: internal\SqlServerHelpers.ps1\Get-ExistingSqlServerInstanceNames ... 
 				
-				foreach ($instance in $instanceNames) {
-					if ($installedInstances -notcontains $instance) {
-						throw "Expected SQL Server Instance [$instance] is not installed.";
-					}
-				}
-			}
-			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
-		}
-		catch {
-			throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
-		}
+#				$instanceNames = $PVConfig.GetGroupNames("SQLServerInstallation");
+#				if ($instanceNames.Count -lt 1) {
+#					throw "Expected 1 or more instances - but none were defined at [SQLServerInstallation.*].";
+#				}
+#				
+#				$installedInstances = Get-ExistingSqlServerInstanceNames;
+#				
+#				foreach ($instance in $instanceNames) {
+#					if ($installedInstances -notcontains $instance) {
+#						throw "Expected SQL Server Instance [$instance] is not installed.";
+#					}
+#				}
+#			}
+#			
+#			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
+#		}
+#		catch {
+#			#throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+#		}
 	}
 	
 	end {
-		if (-not ($Ignored)) {
-			$surface.AddAssertion($assertion);
-		}
+#		if (-not ($Ignored)) {
+#			$surface.AddAssertion($assertion);
+#		}
 	}
 }
 
@@ -624,13 +583,14 @@ function Aspect {
 	);
 	
 	Validate-SurfaceBlockUsage -BlockName "Aspect";
-	$aspectKey = $Key;
-	if ($null -ne $Scope) {
+	
+	$aspectKey = $Target;
+	if(-not([string]::IsNullOrEmpty($Scope))) {
 		$aspectKey += ".$Scope";
 	}
-	
-	
-	$ExpectBlock = $null; # Required as a declaration to allow the Expect{} func to set this (if it's defined/called/set)
+	if (-not ([string]::IsNullOrEmpty($aspectKey))) {
+		$aspectKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $aspectKey;
+	}
 	
 	& $AspectBlock;
 }
@@ -644,146 +604,91 @@ function Facet {
 		[Parameter(Mandatory, Position = 2, ParameterSetName = "named")]
 		[ScriptBlock]$FacetBlock,
 		[string]$For = "",
-		[string]$ExpectKeyValue = $null,
-		# expect a single, specific, key. e.g., -ExpectKeyValue "Host.FirewallRules.EnableICMP"
-		[switch]$ExpectCurrentKeyValue = $false,
-		# expect the current key value for Value or Group Keys e.g., if the key is "Host.LocalAdministrators", 'expect' an entry for each key-value. Whereas, if the key is "AdminDb.*", expect a value/key for each SQL Server instance (MSSQLSERVER, X3, etc.)
-		[string]$ExpectChildKeyValue = $null,
-		# e.g., -ExpectChildKeyValue "Enabled" would return the key for, say, AdminDb.RestoreTestJobs..... Enabled (i.e., parent/iterator + current child-key)
-		[string]$IterationKey,
-		# e.g., if the -Scope is "ExpectedDirectories.*", then -IterationKey could be "RawDirectories" or "VirtualSqlServerServiceAccessibleDirectories"
-		[switch]$ExpectIterationKeyValue = $false,
-		# e.g., if we're working through an -IterationKey of "RawDirectories" (for a -Scope of "ExpectedDirectories"), then we'd Expect one entry/value her for each 'Raw Directory' (or path) defined in the config
+		[string]$Key = "",
+		[string]$FullKey = "",
+		[switch]$NoKey = $false,
+		[switch]$ExpectKeyValue = $false,					
+		[switch]$ExpectIteratorValue = $false,				
 		[switch]$RequiresReboot = $false
 	)
 	
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Facet";
 		
-		$facetType = [Proviso.Enums.FacetType]::Simple;
-		if ($Scope) {
-			$trimmedScopeKey = $Scope -replace ".\*", "";
-			
-			if (-not (Is-ValidProvisoKey -Key $trimmedScopeKey)) {
-				throw "Fatal Error. Aspect Scope for Facet [$Name] within Surface [$($surface.Name)] is invalid. Key [$Scope] is not valid.";
+		# determine key/key-type for current facet: 
+		$facetKey = $null;
+		$facetType = $null;
+		if (-not ($NoKey)) {
+			if ($FullKey) {
+				$facetKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $FullKey;
+			}
+			else {
+				$facetKey = "$($aspectKey).$Key";
 			}
 			
-			$keyType = Get-KeyType $trimmedScopeKey;
+			$facetKey = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key $facetKey;
+			if (-not (Is-ValidProvisoKey -Key $facetKey)) {
+				throw "Invalid Configuration Key [$facetKey] found in Surface [$($surface.Name)] and Facet of [$Name].";
+			}
 			
-			switch ($keyType) {
-				"Static" {
-				}
-				"Dynamic" {
-					$facetType = [Proviso.Enums.FacetType]::Value;
-				}
-				"SqlInstance" {
-					$facetType = [Proviso.Enums.FacetType]::Group;
-				}
-				"Complex" {
-					$facetType = [Proviso.Enums.FacetType]::Compound;
-				}
-				default {
-					throw
-				}
+			$stringFacetType = Get-FacetTypeByKey -Key $facetKey;
+			$facetType = [Proviso.Enums.FacetType]$stringFacetType;
+		}
+		else {
+			if ([string]::IsNullOrEmpty($aspectKey)) {
+				$facetType = [Proviso.Enums.FacetType]::NonKey;	
+			}
+			else {
+				$facetType = Get-FacetTypeByKey -Key $aspectKey;
+				$facetKey = $aspectKey;
 			}
 		}
-		
-		# additional, per type, validations:
-		switch ($facetType) {
-			Simple {
-				# OrderBy operations can only be set by specific facet types: 
-				if ($OrderByChildKey -or $OrderDescending) {
-					throw "Aspects may NOT specify an -OrderByChildKey or -OrderDescending directive unless they specify -Scope arguments for configuration keys to evaluate.";
-				}
-			}
-			Value {
-				
-			}
-			Group {
-				
-			}
-			Compound {
-				
-			}
-		}
-		
-		Write-Host "$($surface.Name).$Name -> $facetType ";
 	}
 	
 	process {
-		$facet = New-Object Proviso.Models.Facet($surface, $Name, $facetType);
+		$facet = New-Object Proviso.Models.Facet($surface, $Name, $facetType, $facetKey);
 		
 		if ($RequiresReboot) {
-			$facet.SetRequiresReboot();
+			$facet.RequiresReboot = $true;
 		}
 		
-		if ($ExpectKeyValue) {
-			$facet.SetStaticKey($ExpectKeyValue);
-			$facet.SetExpectAsStaticKeyValue(); # TODO: see if there's any reason to NOT combine these 2x calls down/into a single operation... 
+		# aspect-level order-by directives:
+		if ($OrderByChildKey) {
+			if ($facetType -notin @("Object", "OjectArray")) {  # crazy that I can just compare strings like this (when it's an enum). 
+				throw "The -OrderByChildKey switch can ONLY be used with configuration sections that yield multiple outputs/objects (i.e., Disks, Adapters, etc.).";
+			}
+			
+			# TODO: Verify that the OrderBy key is legit... 
+			$facet.OrderByChildKey = $OrderByChildKey;
+		}
+		if ($OrderDescending) {
+			if ($facetType -notin @("Object", "OjectArray")) {
+				throw "The -OrderDescending switch can ONLY be used with configuration sections that yield multiple outputs/objects (i.e., Disks, Adapters, etc.).";
+			}
+			
+			$facet.OrderDescending = $true;
 		}
 		
-		switch ($facet.FacetType) {
-			Simple {
-			}
-			Value {
-				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
-				
-				if ($ExpectCurrentKeyValue) {
-					$facet.SetExpectAsCurrentIterationKeyValue();
-				}
-				
-				if ($OrderDescending) {
-					$facet.AddOrderDescending();
-				}
-			}
-			Group {
-				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
-				
-				if ($ExpectCurrentKeyValue) {
-					$facet.SetExpectAsCurrentIterationKeyValue();
-				}
-				
-				if ($ExpectChildKeyValue) {
-					$facet.SetExpectAsCurrentChildKeyValue($ExpectChildKeyValue);
-				}
-				
-				if ($OrderByChildKey) {
-					$facet.AddOrderByChildKey($OrderByChildKey);
-				}
-			}
-			Compound {
-				$facet.SetIterationKeyForValueAndGroupFacets($Scope);
-				$facet.SetCompoundIterationValueKey($IterationKey);
-				
-				if ($ExpectCurrentKeyValue) {
-					$facet.SetExpectAsCurrentIterationKeyValue();
-				}
-				
-				if ($ExpectIterationKeyValue) {
-					$facet.SetExpectAsCompoundKeyValue();
-				}
-				
-				if ($OrderByChildKey) {
-					$facet.AddOrderByChildKey($OrderByChildKey);
-				}
-			}
+		# Expects (other than code blocks):
+		if (-not ($facet.ExpectIsSet) -and $ExpectKeyValue) {
+			$facet.SetExpectForKeyValue();
 		}
-		
-		& $FacetBlock;
-	}
-	
-	end {
-		# -Expect is just 'syntactic sugar':
-		if ($Expect -and ($null -eq $facet.Expectation)) {
+		if (-not ($facet.ExpectIsSet) -and $ExpectIteratorValue) {
+			$facet.SetExpectForIteratorValue();
+		}
+		if (-not ($facet.ExpectIsSet) -and $Expect) { # The -Expect (switch) is just 'syntactic sugar':
 			$script = "return '$Expect';";
 			$ExpectBlock = [scriptblock]::Create($script);
 			
 			$facet.SetExpect($ExpectBlock);
 		}
 		
+		& $FacetBlock;
+	}
+	
+	end {
 		if ($UsesBuild -and ($null -eq $facet.Configure)) {
-			#$surface.VerifyCanUseBuild(); # throws if there aren't BUILD/DEPLOY funcs. 
-			$facet.SetUsesBuild();
+			$facet.UsesBuild = $true;
 		}
 		
 		$surface.AddFacet($facet);

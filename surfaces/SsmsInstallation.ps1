@@ -1,12 +1,13 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface SsmsInstallation {
+Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 	Assertions {
 		
 	}
 	
 	Aspect {
-		Facet "SSMS Installed" -ExpectKeyValue "SqlServerManagementStudio.InstallSsms" {
+		#Facet "SSMS Installed" -ExpectKeyValue "SqlServerManagementStudio.InstallSsms" {
+		Facet "SSMS Installed" -Key "InstallSsms" -ExpectKeyValue {
 			Test {
 				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\Folders
 				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server Management Studio

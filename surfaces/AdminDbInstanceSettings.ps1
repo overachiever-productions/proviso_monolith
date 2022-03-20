@@ -1,24 +1,24 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbInstanceSettings {
+Surface AdminDbInstanceSettings -Target "AdminDb" {
 	Assertions {
 		Assert-SqlServerIsInstalled;
 		Assert-AdminDbInstalled;
 	}
 	
-	Aspect -Scope "AdminDb.*" {
-		Facet "MAXDOP" -ExpectChildKeyValue "InstanceSettings.MAXDOP" {
+	Aspect -Scope "InstanceSettings" {
+		#Facet "MAXDOP" -ExpectChildKeyValue "InstanceSettings.MAXDOP" {
+		Facet "MAXDOP" -Key "MAXDOP" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$maxdop = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'max degree of parallelism'; ").current;
 				
 				return $maxdop;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				# TODO: Invoke-SQLCmd's Parameter implementation is _USELESS_. 
 				#   see https://overachieverllc.atlassian.net/browse/PRO-187 and https://overachieverllc.atlassian.net/browse/PRO-188
@@ -27,10 +27,12 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Facet "MaxServerMemory" {
+		#Facet "MaxServerMemory" {
+		Facet "MaxServerMemory" -Key "MaxServerMemoryGBs" {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.ConfigureInstance.MaxServerMemoryGBs");
+				$instanceName = $PVContext.CurrentSqlInstance;
+				#$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.ConfigureInstance.MaxServerMemoryGBs");
+				$nonDefaultValue = $PVConfig.CurrentConfigKeyValue;
 				if ($nonDefaultValue) {
 					return $nonDefaultValue;
 				}
@@ -38,8 +40,7 @@ Surface AdminDbInstanceSettings {
 				return "<UNLIMITED>";
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$maxMem = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT CAST(CAST(value_in_use AS int) / 1024.0 AS decimal(8,1)) [current] FROM sys.[configurations] WHERE [name] = N'max server memory (MB)'; ").current;
 				if ($maxMem -eq 2097152.0) {
@@ -50,7 +51,7 @@ Surface AdminDbInstanceSettings {
 				
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# Pull from config
 				$expectedSetting = 2097152.0; # unlimited... 
@@ -63,27 +64,28 @@ Surface AdminDbInstanceSettings {
 			}
 		}
 		
-		Facet "CTFP" -ExpectChildKeyValue "InstanceSettings.CostThresholdForParallelism" {
+		#Facet "CTFP" -ExpectChildKeyValue "InstanceSettings.CostThresholdForParallelism" {
+		Facet "CTFP" -Key "CostThresholdForParallelism" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$ctfp = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'cost threshold for parallelism'; ").current;
 				
 				return $ctfp;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.[configure_instance] @CostThresholdForParallelism = $expectedSetting; ";
 			}
 		}
 		
-		Facet "OptimizeForAdHoc" -ExpectChildKeyValue "InstanceSettings.OptimizeForAdHocQueries" {
+		#Facet "OptimizeForAdHoc" -ExpectChildKeyValue "InstanceSettings.OptimizeForAdHocQueries" {
+		Facet "OptimizeForAdHoc" -Key "OptimizeForAdHocQueries" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$optimizeForAdhoc = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'optimize for ad hoc workloads'; ").current;
 				
@@ -94,7 +96,7 @@ Surface AdminDbInstanceSettings {
 				return $false;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$expectedSetting = $PVContext.CurrentChildKeyValue;
 				
 				$setting = 0;

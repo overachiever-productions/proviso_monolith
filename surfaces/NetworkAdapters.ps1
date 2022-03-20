@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface -For "NetworkAdapters" {
+Surface "NetworkAdapters" -Target "Host" {
 	
 	Assertions {
 		Assert-UserIsAdministrator;
@@ -8,13 +8,13 @@ Surface -For "NetworkAdapters" {
 		Assert-HostIsWindows;
 	}
 	
-	Aspect -Scope "Host.NetworkDefinitions.*" -OrderByChildKey "ProvisioningPriority" {
-		Facet "Interface.Exists" -Expect $true {
+	Aspect -Scope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
+		Facet "Interface.Exists" -Expect $true -NoKey {
 			Test {
 				# Note: IfNames in the config are a bit weird... need to always look for EXPLICIT implmenations of Host.NetworkDefinitions.<AdapterName>.InterfaceAlias
 				#  		that value will ALWAYS default to the name of the <AdapterName> IF it's not specified. BUT, if it IS specified it allows a shorthand <AdapterName> of
 				# 			say HeartBeat to be translated to "Heartbeat Network" or whatever. 
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object { $_.Name -eq $expectedInterfaceName };
@@ -26,7 +26,7 @@ Surface -For "NetworkAdapters" {
 				return $false;
 			}
 			Configure {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				$assumableAdapters = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.AssumableIfNames");
 				$availableAdapters = Get-ExistingNetAdapters;
@@ -59,9 +59,9 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "IpAddress" -ExpectChildKeyValue "IpAddress" {
+		Facet "IpAddress" -Key "IpAddress" -ExpectKeyValue {
 			Test {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
@@ -81,7 +81,7 @@ Surface -For "NetworkAdapters" {
 				return $actualIp;
 			}
 			Configure {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
@@ -125,9 +125,9 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "Gateway" -ExpectChildKeyValue "Gateway" {
+		Facet "Gateway" -Key "Gateway" -ExpectKeyValue {
 			Test {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
@@ -151,7 +151,7 @@ Surface -For "NetworkAdapters" {
 				return $gateway;
 			}
 			Configure {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
@@ -194,9 +194,9 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "PrimaryDns" -ExpectChildKeyValue "PrimaryDns" {
+		Facet "PrimaryDns" -Key "PrimaryDns" -ExpectKeyValue {
 			Test {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
@@ -217,7 +217,7 @@ Surface -For "NetworkAdapters" {
 			}
 			Configure {
 				# if we weren't able to SET the adapter from previous steps, don't 'bother' trying to set the gateway:
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
@@ -247,9 +247,9 @@ Surface -For "NetworkAdapters" {
 			}
 		}
 		
-		Facet "SecondaryDns" -ExpectChildKeyValue "SecondaryDns" {
+		Facet "SecondaryDns" -Key "SecondaryDns" -ExpectKeyValue {
 			Test {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
@@ -269,7 +269,7 @@ Surface -For "NetworkAdapters" {
 				return $dnsServers[1];
 			}
 			Configure {
-				$expectedAdapterKey = $PVContext.CurrentKeyValue;
+				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
 				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {

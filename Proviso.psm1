@@ -1,9 +1,10 @@
 ﻿Set-StrictMode -Version 3.0;
 
 [string]$script:ProvisoScriptRoot = $PSScriptRoot;
-#[PSCustomObject]$global:PVConfig = $null;
 $global:PVExecuteActive = $false;
 $global:PVRunBookActive = $false;
+
+$script:be8c742fDefaultConfigData = $null;
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
@@ -49,6 +50,8 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 		throw "Unable to dot source Internal Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
+
+
 
 # 3. Public Functions 
 [string[]]$provisoPublicModuleMembers = @();

@@ -18,15 +18,16 @@ Summarize -Latest;
 
 #>
 
-Surface SqlInstallation {
+Surface SqlInstallation -Target "SqlServerInstallation" {
 	Assertions {
 		
 	}
 		
-	Aspect -Scope "SQLServerInstallation.*" {
-		Facet "InstanceExists" -ExpectCurrentKeyValue -UsesBuild {
+	Aspect {
+		#Facet "InstanceExists" -ExpectCurrentKeyValue -UsesBuild {
+		Facet "InstanceExists" -NoKey -ExpectIteratorValue -UsesBuild {
 			Test {
-				$instanceKey = $PVContext.CurrentKeyValue;
+				$instanceKey = $PVContext.CurrentSqlInstance;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
 				
 				if ($instanceKey -in $installedInstances) {
@@ -40,9 +41,10 @@ Surface SqlInstallation {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		Facet "Version" -ExpectChildKeyValue "Setup.Version" -UsesBuild  {
+		#Facet "Version" -ExpectChildKeyValue "Setup.Version" -UsesBuild  {
+		Facet "Version" -Key "Setup.Version" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -52,9 +54,10 @@ Surface SqlInstallation {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		Facet "Edition" -ExpectChildKeyValue "Setup.Edition" -UsesBuild {
+		#Facet "Edition" -ExpectChildKeyValue "Setup.Edition" -UsesBuild {
+		Facet "Edition" -Key "Setup.Edition" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -75,9 +78,10 @@ Surface SqlInstallation {
 #			}
 #		}
 		
-		Facet "Collation" -ExpectChildKeyValue "Setup.Collation" -UsesBuild {
+		#Facet "Collation" -ExpectChildKeyValue "Setup.Collation" -UsesBuild {
+		Facet "Collation" -Key "Setup.Collation" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -86,9 +90,10 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "SqlServiceAccount" -ExpectChildKeyValue "ServiceAccounts.SqlServiceAccountName" -UsesBuild {
+		#Facet "SqlServiceAccount" -ExpectChildKeyValue "ServiceAccounts.SqlServiceAccountName" -UsesBuild {
+		Facet "SqlServiceAccount" -Key "ServiceAccounts.SqlServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -102,9 +107,10 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "SqlAgentAccount" -ExpectChildKeyValue "ServiceAccounts.AgentServiceAccountName" -UsesBuild {
+		#Facet "SqlAgentAccount" -ExpectChildKeyValue "ServiceAccounts.AgentServiceAccountName" -UsesBuild {
+		Facet "SqlAgentAccount" -Key "ServiceAccounts.AgentServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -118,9 +124,10 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "AllowSqlAuth" -ExpectChildKeyValue "SecuritySetup.EnableSqlAuth" -UsesBuild {
+		#Facet "AllowSqlAuth" -ExpectChildKeyValue "SecuritySetup.EnableSqlAuth" -UsesBuild {
+		Facet "AllowSqlAuth" -Key "SecuritySetup.EnableSqlAuth" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -131,9 +138,10 @@ Surface SqlInstallation {
 		
 		# members of sys-admin... 
 		
-		Facet "DataPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlDataPath" -UsesBuild {
+		#Facet "DataPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlDataPath" -UsesBuild {
+		Facet "DataPath" -Key "SQLServerDefaultDirectories.SqlDataPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -142,9 +150,10 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "LogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlLogsPath" -UsesBuild {
+		#Facet "LogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlLogsPath" -UsesBuild {
+		Facet "LogsPath" -Key "SQLServerDefaultDirectories.SqlLogsPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -153,9 +162,10 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "BackupsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlBackupsPath" -UsesBuild {
+		#Facet "BackupsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlBackupsPath" -UsesBuild {
+		Facet "BackupsPath" -Key "SQLServerDefaultDirectories.SqlBackupsPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -194,7 +204,7 @@ Surface SqlInstallation {
 		#		}		
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$matched = $PVContext.Matched;
 			
 			if (-not ($matched)) {

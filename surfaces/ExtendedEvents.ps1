@@ -11,14 +11,15 @@
 
 #>
 
-Surface ExtendedEvents -Key "ExtendedEvents" {
+Surface ExtendedEvents -Target "ExtendedEvents" {
 	
 	Assertions {
 		
 	}
 	
-	Aspect -Scope "ExtendedEvents.*" {
-		Facet "DisableXETelemetry" {
+	Aspect {
+		#Facet "DisableXETelemetry"  {
+		Facet "DisableXETelemetry" -Key "DisableTelemetry" {
 			Expect {
 				$instanceName = $PVContext.CurrentKeyValue;
 				

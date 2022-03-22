@@ -6,7 +6,6 @@ Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 	}
 	
 	Aspect {
-		#Facet "SSMS Installed" -ExpectKeyValue "SqlServerManagementStudio.InstallSsms" {
 		Facet "SSMS Installed" -Key "InstallSsms" -ExpectKeyValue {
 			Test {
 				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\Folders

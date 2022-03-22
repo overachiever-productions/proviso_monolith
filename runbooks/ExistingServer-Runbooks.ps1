@@ -22,3 +22,20 @@
 #	# then... do SomethingOther (i.e., data collectors, extended events, etc.. )
 #	#    only, skip SSMS?
 #}
+
+# runbook AWSKitchenSinkRevamp {
+# 		# basically... a set of steps to run to take an AWS 'sql base image' (i.e., kitchen sink install)
+# 		# 	and roll it back to something with a minimal footprint. 
+#		
+# 		#e.g.
+# 		Validate-Compute (not Run-Compute... but just validate)
+# 		Run-Network
+# 		Run-Servername i.e., this kind of stuff. 
+# 	
+# 		Run-RequiredPackages
+# 		etc. 
+# 	
+# 		Run-SqlInstall -Force:$true  # i.e., some way to REMOVE features. 
+# 		other config/needs
+# 		and so on... 
+#}

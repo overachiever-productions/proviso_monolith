@@ -7,7 +7,6 @@ Surface AdminDbBackups -Target "AdminDb" {
 	}
 	
 	Aspect -Scope "BackupJobs" {
-		#Facet "BackupsEnabled" -ExpectChildKeyValue "BackupJobs.Enabled" -UsesBuild {
 		Facet "BackupsEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				# this one's a bit complex. IF no jobs exist, then $false. 
@@ -57,7 +56,6 @@ Surface AdminDbBackups -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -UsesBuild {
 		Facet "UserTargets" -Key "UserDatabasesToBackup" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -80,7 +78,6 @@ Surface AdminDbBackups -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -UsesBuild {
 		Facet "TLogFrequency" -Key "LogBackupsEvery" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;

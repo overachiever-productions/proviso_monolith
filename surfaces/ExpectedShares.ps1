@@ -1,17 +1,5 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1";
-
-	Validate-ExpectedShares;
-	Summarize;
-
-
-#>
-
 Surface ExpectedShares -Target "ExpectedShares" {
 	
 	Assertions {
@@ -31,27 +19,23 @@ Surface ExpectedShares -Target "ExpectedShares" {
 	}
 	
 	Aspect {
-		#Facet "DirectoryExists" -Expect $true {
 		Facet "DirectoryExists" -Key "SourceDirectory" -Expect $true {
 			Test {
-				#$currentKey = $PVContext.CurrentKeyValue;
-				#$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
-				$targetDirectory = $PVConfig.CurrentConfigKeyValue; # i think... 
+				$targetDirectory = $PVContext.CurrentConfigKeyValue;
 				
 				return Test-Path $targetDirectory;
 			}
 			Configure {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
 				
 				Mount-Directory -Path $targetDirectory;
 			}
 		}
 		
-		#Facet "IsShared" -Expect $true {
 		Facet "IsShared" -Key "ShareName" -Expect $true {
 			Test {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
 				
@@ -65,7 +49,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 				return $false;
 			}
 			Configure {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$targetDirectory = $PVConfig.GetValue("ExpectedShares.$currentKey.SourceDirectory");
 				
@@ -80,10 +64,9 @@ Surface ExpectedShares -Target "ExpectedShares" {
 			}
 		}
 		
-		#Facet "ReadOnlyPermsFor" {
 		Facet "ReadOnlyPermsFor" -Key "ReadOnlyAccess" {
 			Expect {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$readOnlyUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadOnlyAccess");
 				
 				if ($readOnlyUsers.Count -eq 0) {
@@ -93,7 +76,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 				return $true;
 			}
 			Test {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$smbShare = Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue;
 				
@@ -119,7 +102,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 				return $true;
 			}
 			Configure {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$smbShare = Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue;
 				
@@ -134,10 +117,9 @@ Surface ExpectedShares -Target "ExpectedShares" {
 			}
 		}
 		
-		#Facet "ReadWritePermsFor" {
 		Facet "ReadWritePermsFor" -Key "ReadWriteAccess" {
 			Expect {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$readWriteUsers = $PVConfig.GetValue("ExpectedShares.$currentKey.ReadWriteAccess");
 				
 				if ($readWriteUsers.Count -eq 0) {
@@ -147,7 +129,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 				return $true;
 			}
 			Test {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$smbShare = Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue;
 				
@@ -173,7 +155,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 				return $true;
 			}
 			Configure {
-				$currentKey = $PVContext.CurrentKeyValue;
+				$currentKey = $PVContext.CurrentObjectName;
 				$shareName = $PVConfig.GetValue("ExpectedShares.$currentKey.ShareName");
 				$smbShare = Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue;
 				

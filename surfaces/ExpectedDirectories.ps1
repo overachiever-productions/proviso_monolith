@@ -7,8 +7,10 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 		
 		Assert-UserIsAdministrator;
 		
-		Assert-SqlServerIsInstalled -AssertOnConfigureOnly -FailureMessage "Directory permissions for SQL Server service accounts can NOT be configured until SQL Server has been installed"; 
+		Assert-SqlServerIsInstalled -AssertOnConfigureOnly -FailureMessage "Directory permissions for SQL Server service accounts can NOT be configured until SQL Server has been installed";
 		
+		# TODO: make it so I can use the following (with a context-sensitive failure message vs 'having' to use the whole func... )
+		# Assert-ConfigIsStrict -FailureMessage
 		Assert "Config Is -Strict" {
 			$targetHostName = $PVConfig.GetValue("Host.TargetServer");
 			$currentHostName = [System.Net.Dns]::GetHostName();
@@ -19,10 +21,9 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 	}
 	
 	Aspect {
-		#Facet "SqlDirExists" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -ExpectIterationKeyValue {
-		Facet "SqlDirExists" -Key "VirtualSqlServerServiceAccessibleDirectories" -ExpectKeyValue {
+		Facet "SqlDirExists" -Key "VirtualSqlServerServiceAccessibleDirectories" -ExpectIteratorValue {
 			Test {
-				$keyValue = $PVContext.CurrentChildKeyValue;
+				$keyValue = $PVContext.CurrentConfigKeyValue;
 				
 				if (Test-Path -Path $keyValue) {
 					return $keyValue;
@@ -31,23 +32,22 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 				return "";
 			}
 			Configure {
-				$keyValue = $PVContext.CurrentChildKeyValue;
+				$keyValue = $PVContext.CurrentConfigKeyValue;
 				
 				Mount-Directory $keyValue;
 			}
 		}
 		
-		#Facet "SqlDirHasPerms" -IterationKey "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
 		Facet "SqlDirHasPerms" -Key "VirtualSqlServerServiceAccessibleDirectories" -Expect "FullControl" {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
 				
 				if ($instanceName -notin $installedInstances) {
 					return "";
 				}
 				
-				$directory = $PVContext.CurrentChildKeyValue;
+				$directory = $PVContext.CurrentConfigKeyValue;
 				
 				$virtualAccountName = Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType "SqlServiceAccountName";
 				$aclSummary = Get-DirectoryPermissionsSummary -Directory $directory | Where-Object { $_.Account -eq $virtualAccountName };
@@ -63,10 +63,10 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 				return $aclSummary.Access;
 			}
 			Configure {
-				$directory = $PVContext.CurrentChildKeyValue;
+				$directory = $PVContext.CurrentConfigKeyValue;
 				Mount-Directory $directory;
 				
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
 				
 				if ($instanceName -notin $installedInstances) {
@@ -78,10 +78,9 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 			}
 		}
 		
-		#Facet "RawDirExists" -IterationKey "RawDirectories" -ExpectIterationKeyValue {
-		Facet "RawDirExists" -Key "RawDirectories" -ExpectKeyValue {
+		Facet "RawDirExists" -Key "RawDirectories" -ExpectIteratorValue {
 			Test {
-				$keyValue = $PVContext.CurrentChildKeyValue;
+				$keyValue = $PVContext.CurrentConfigKeyValue;
 				
 				if (Test-Path -Path $keyValue) {
 					return $keyValue;
@@ -90,7 +89,7 @@ Surface ExpectedDirectories -Target "ExpectedDirectories" {
 				return "";
 			}
 			Configure {
-				$keyValue = $PVContext.CurrentChildKeyValue;
+				$keyValue = $PVContext.CurrentConfigKeyValue;
 				Mount-Directory $keyValue;
 			}
 		}

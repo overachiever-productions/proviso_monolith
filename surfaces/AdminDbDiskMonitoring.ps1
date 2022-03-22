@@ -8,7 +8,6 @@ Surface AdminDbDiskMonitoring -Target "AdminDb" {
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 
 	Aspect -Scope "DiskMonitoring" {
-		#Facet "DiskMonitoringEnabled" -ExpectChildKeyValue "DiskMonitoring.Enabled" -UsesBuild {
 		Facet "DiskMonitoringEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -23,16 +22,13 @@ Surface AdminDbDiskMonitoring -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "WarnWhenGBsGoBelow" -UsesBuild {
 		Facet "WarnWhenGBsGoBelow" -Key "WarnWhenFreeGBsGoBelow" -UsesBuild {
 			Expect {
 				# TODO: look at implementing a param called something like -ExpectedValueFormat = "0:xxxx" or something like that so'z I can 
 				#  use "32" treated as "32.0" or whatever, instead of having to create an 'explicit Expect {} block' like I've done here. 
 				#  that said, notice how I also have to cast/format the TEST output as well - so this'll need a bit more work.
 				#  	actually, it might just mean that there's a -Format for the Facet itself? and a -RemoveWhiteSpace switch for the Scope too? 
-				
-				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedValue = $PVConfig.CurrentConfigKeyValue;
+				$expectedValue = $PVContext.CurrentConfigKeyValue;
 				$double = [double]$expectedValue;
 				
 				return $double.ToString("###0.0");

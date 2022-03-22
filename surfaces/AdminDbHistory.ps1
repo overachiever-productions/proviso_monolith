@@ -8,7 +8,6 @@ Surface AdminDbHistory -Target "AdminDb" {
 	
 	# TODO: add in the abililty to change the NAME of the JOB that handles these cleanups.
 	Aspect -Scope "HistoryManagement" {
-		#Facet "CleanupEnabled" -ExpectChildKeyValue "HistoryManagement.Enabled" -UsesBuild {
 		Facet "CleanupEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -22,7 +21,6 @@ Surface AdminDbHistory -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SQLServerLogsToKeep" -ExpectChildKeyValue "HistoryManagement.SqlServerLogsToKeep" -UsesBuild {
 		Facet "SQLServerLogsToKeep" -Key "SqlServerLogsToKeep" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -40,7 +38,6 @@ Surface AdminDbHistory -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "AgentJobHistory" -ExpectChildKeyValue "HistoryManagement.AgentJobHistoryRetention" -UsesBuild {
 		Facet "AgentJobHistory" -Key "AgentJobHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -61,7 +58,6 @@ Surface AdminDbHistory -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "BackupHistory" -ExpectChildKeyValue "HistoryManagement.BackupHistoryRetention" -UsesBuild {
 		Facet "BackupHistory" -Key "BackupHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -82,7 +78,6 @@ Surface AdminDbHistory -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "EmailHistory" -ExpectChildKeyValue "HistoryManagement.EmailHistoryRetention" -UsesBuild {
 		Facet "EmailHistory" -Key "EmailHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;

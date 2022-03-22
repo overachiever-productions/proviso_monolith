@@ -9,7 +9,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 	
 	
 	Aspect -Scope "DatabaseMail" {
-		#Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" -UsesBuild {
 		Facet "DatabaseMail Enabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -29,7 +28,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SmtpAccountName" -ExpectChildKeyValue "DatabaseMail.SmtpAccountName" -UsesBuild {
 		Facet "SmtpAccountName" -Key "SmtpAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -41,7 +39,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "OperatorEmail" -ExpectChildKeyValue "DatabaseMail.OperatorEmail" -UsesBuild {
 		Facet "OperatorEmail" -Key "OperatorEmail" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -54,7 +51,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SmtpServerName" -ExpectChildKeyValue "DatabaseMail.SmtpServerName" -UsesBuild {
 		Facet "SmtpServerName" -Key "SmtpServerName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -66,7 +62,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "OutgoingSmtpAddress" -ExpectChildKeyValue "DatabaseMail.SmtpOutgoingEmailAddress" -UsesBuild {
 		Facet "OutgoingSmtpAddress" -Key "SmtpOutgoingEmailAddress" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -79,7 +74,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SmtpPortNumber" -ExpectChildKeyValue "DatabaseMail.SmtpPortNumber" -UsesBuild {
 		Facet "SmtpPortNumber" -Key "SmtpPortNumber" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -92,7 +86,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "RequireSSL" -ExpectChildKeyValue "DatabaseMail.SmtpRequiresSSL" -UsesBuild {
 		Facet "RequireSSL" -Key "SmtpRequiresSSL" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -109,7 +102,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SmtpAuthType" -ExpectChildKeyValue "DatabaseMail.SmtpAuthType" -UsesBuild {
 		Facet "SmtpAuthType" -Key "SmtpAuthType" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -122,7 +114,6 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SmptUserName" -ExpectChildKeyValue "DatabaseMail.SmptUserName" -UsesBuild {
 		Facet "SmptUserName" -Key "SmptUserName" -ExpectKeyValue -UsesBuild {
 			# TODO: account for scenarios where ... SmtpAuthType is WindowsAuth or Anonymous... 
 			#   probably makes the most sense to implement an explicit Expect {} block to handle this... 

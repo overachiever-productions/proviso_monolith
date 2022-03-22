@@ -8,7 +8,6 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 	}
 	
 	Aspect -Scope "ConsistencyChecks" {
-		#Facet "ConsistencyCheckJobEnabled" -ExpectChildKeyValue "ConsistencyChecks.Enabled" -UsesBuild {
 		Facet "ConsistencyCheckJobEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -23,24 +22,20 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "ConsistencyCheckDays" -UsesBuild {
 		Facet "ConsistencyCheckDays" -Key "ExecutionDays" -UsesBuild {
 			Expect {
-				$instanceName = $PVContext.CurrentSqlInstance;
-				#$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.ConsistencyChecks.ExecutionDays");
 				$expectedDays = $PVContext.CurrentConfigKeyValue;
 				
 				return $expectedDays -replace " ", "";
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$jobName = "Database Consistency Checks";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
-		#Facet "Targets" -ExpectChildKeyValue "ConsistencyChecks.Targets" -UsesBuild {
 		Facet "Targets" -Key "Targets" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -61,7 +56,6 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "StartTime" -ExpectChildKeyValue "ConsistencyChecks.StartTime" -UsesBuild {
 		Facet "StartTime" -Key "StartTime" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -70,6 +64,8 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 				return Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
+		
+		# TODO: implement -Detailed facets here. 
 		
 		Build {
 			$sqlServerInstance = $PVContext.CurrentSqlInstance;
@@ -139,7 +135,5 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 						@OverWriteExistingJobs = 1; ";
 			}
 		}
-		
-		# TODO: implement -Detailed facets here. 
 	}
 }

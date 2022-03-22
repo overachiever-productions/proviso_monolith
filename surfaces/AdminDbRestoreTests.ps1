@@ -7,13 +7,12 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 		Assert-AdminDbInstalled;
 	}
 	
+	# TODO: job name is hard-coded... (in facets, but not in Build... odd)
 	Aspect -Scope "RestoreTestJobs" {
-		#Facet "RestoreTestsEnabled" -ExpectChildKeyValue "RestoreTestJobs.Enabled" -UsesBuild {
 		Facet "RestoreTestsEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				#$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-				$expectedJobName = $PVContext.CurrentConfigKeyValue;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				$start = Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
 				
@@ -25,23 +24,19 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "StartTime" -ExpectChildKeyValue "RestoreTestJobs.JobStartTime" -UsesBuild {
 		Facet "StartTime" -Key "JobStartTime" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				#$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-				$expectedJobName = $PVContext.CurrentConfigKeyValue;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				return Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
-		#Facet "DatabasesToRestore" -ExpectChildKeyValue "RestoreTestJobs.DatabasesToRestore"  -UsesBuild {
 		Facet "DatabasesToRestore" -Key "DatabasesToRestore" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				#$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-				$expectedJobName = $PVContext.CurrentConfigKeyValue;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $expectedJobName -JobStepName "Restore Tests" -SqlServerInstanceName $instanceName;
 				
@@ -58,6 +53,8 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 				}
 			}
 		}
+		
+		# TODO: Implement -Detailed facets... 
 		
 		Build {
 			$sqlServerInstance = $PVContext.CurrentSqlInstance;
@@ -147,7 +144,5 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 						@OverWriteExistingJob = 1; ";
 			}
 		}
-		
-		# TODO: Implement -Detailed facets... 
 	}
 }

@@ -7,7 +7,6 @@ Surface AdminDbAlerts -Target "AdminDb" {
 	}
 	
 	Aspect -Scope "Alerts" {
-		#Facet "IOAlertsEnabled" -ExpectChildKeyValue "Alerts.IOAlertsEnabled" -UsesBuild {
 		Facet "IOAlertsEnabled" -Key "IOAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -32,7 +31,6 @@ Surface AdminDbAlerts -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -UsesBuild {
 		Facet "SeverityAlertsEnabled" -Key "SeverityAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -57,7 +55,6 @@ Surface AdminDbAlerts -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -UsesBuild {
 		Facet "IOAlertsFiltered" -Key "IOAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -75,7 +72,6 @@ Surface AdminDbAlerts -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -UsesBuild {
 		Facet "SeverityAlertsFiltered" -Key "SeverityAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -95,6 +91,7 @@ Surface AdminDbAlerts -Target "AdminDb" {
 		
 		Build {
 			$sqlServerInstance = $PVContext.CurrentSqlInstance;
+			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;
 			

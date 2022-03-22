@@ -6,8 +6,6 @@
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
 	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-
-
 #>
 
 
@@ -426,7 +424,7 @@ filter Get-ProvisoConfigDefaultValue {
 	}
 	
 	if ("{~EMPTY~}" -eq $value) { # NOTE: this if-check sucks. It's PowerShell 'helping me'. I should have to check for ($value -is [string[]]) -and ($value.count -eq 1) -and ("{~EMPTY~}" -eq $value[0])
-		return ""; # I should have to return @() for keys expecting arrays (vs scalar empty strings). but... PowerShell 'helps' there too. 
+		return $null;
 	}
 		
 	if ("{~PARENT~}" -eq $value) {

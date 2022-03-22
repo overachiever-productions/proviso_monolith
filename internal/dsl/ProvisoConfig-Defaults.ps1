@@ -215,7 +215,7 @@
 			DiskMonitoring   = @{
 				Enabled			       	= $true
 				JobName					= "Regular Drive Space Checks"
-				WarnWhenFreeGBsGoBelow 	= "32"
+				WarnWhenFreeGBsGoBelow 	= 32
 				OverWriteExistingJobs  	= $false
 			}
 			
@@ -299,7 +299,7 @@
 				RestoreDataPath	      		= "{DEFAULT}"
 				RestoreLogsPath	      		= "{DEFAULT}"
 				RestoredDbNamePattern 		= "{0}_s4test"
-				AllowReplace		  		= "{~DEFAULT_PROHIBITED~}"
+				AllowReplace		  		= "{~EMPTY~}"
 				RpoThreshold		  		= "24 hours"
 				DropDatabasesAfterRestore   = $true
 				MaxNumberOfFailedDrops 		= 3

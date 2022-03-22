@@ -520,46 +520,46 @@ function Assert-AdminDbInstalled {
 		[Switch]$Ignored = $false
 	);
 	
-	begin {
-		Validate-SurfaceBlockUsage -BlockName "Assert";
-	}
-	
-	process {
-		if ($Ignored) {
-			return;
-		}
-		
-		try {
-			[ScriptBlock]$codeBlock = {
-				$instanceNames = $PVConfig.GetGroupNames("AdminDb");
-				if ($instanceNames.Count -lt 1) {
-					throw "Expected 1 or more instances - but none were defined at [AdminDb.*].";
-				}
-				
-				foreach ($instance in $instanceNames) {
-					if ($PVConfig.GetValue("AdminDb.$instance.Deploy")) {
-						$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instance) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
-						if (-not ($exists)) {
-							return $false;
-						}
-					}
-				}
-				
-				return $true;
-			}
-			
-			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
-		}
-		catch {
-			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
-		}
-	}
-	
-	end {
-		if (-not ($Ignored)) {
-			$surface.AddAssertion($assertion);
-		}
-	}
+#	begin {
+#		Validate-SurfaceBlockUsage -BlockName "Assert";
+#	}
+#	
+#	process {
+#		if ($Ignored) {
+#			return;
+#		}
+#		
+#		try {
+#			[ScriptBlock]$codeBlock = {
+#				$instanceNames = $PVConfig.GetGroupNames("AdminDb");
+#				if ($instanceNames.Count -lt 1) {
+#					throw "Expected 1 or more instances - but none were defined at [AdminDb.*].";
+#				}
+#				
+#				foreach ($instance in $instanceNames) {
+#					if ($PVConfig.GetValue("AdminDb.$instance.Deploy")) {
+#						$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instance) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
+#						if (-not ($exists)) {
+#							return $false;
+#						}
+#					}
+#				}
+#				
+#				return $true;
+#			}
+#			
+#			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
+#		}
+#		catch {
+#			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+#		}
+#	}
+#	
+#	end {
+#		if (-not ($Ignored)) {
+#			$surface.AddAssertion($assertion);
+#		}
+#	}
 }
 
 function Rebase {

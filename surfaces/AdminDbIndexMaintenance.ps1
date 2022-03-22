@@ -8,7 +8,6 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 	
 	# TODO: currently using hard-coded job-names... 
 	Aspect -Scope "IndexMaintenance" {
-		#Facet "IndexMaintenanceEnabled" -UsesBuild {
 		Facet "IndexMaintenanceEnabled" -Key "Enabled" -UsesBuild {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -70,7 +69,6 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." {
 		Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." -NoKey {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -106,7 +104,6 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "DailyJobEnabled" -UsesBuild{
 		Facet "DailyJobEnabled" -Key "DailyJobRunsOnDays" -UsesBuild {
 			Expect {
 				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Facet class/object - which'll strip white-space from the expected key value.
@@ -114,7 +111,6 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 				#  	so, maybe: -StripExpectedKeyCharacters " " or something? 
 				
 				$instanceName = $PVContext.CurrentSqlInstance;
-				#$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.DailyJobRunsOnDays");
 				$expectedDays = $PVContext.CurrentConfigKeyValue;
 				
 				return $expectedDays -replace " ", "";
@@ -127,13 +123,10 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "WeekendJobEnabled" -UsesBuild{
 		Facet "WeekendJobEnabled" -Key "WeekendJobRunsOnDays" -UsesBuild {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				$expectedSetting = $PVContext.CurrentConfigKeyValue;
-				
-				#$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.WeekendJobRunsOnDays");
 				
 				return $expectedSetting -replace " ", "";
 			}

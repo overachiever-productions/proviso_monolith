@@ -7,7 +7,6 @@ Surface AdminDb -Target "AdminDb" {
 	}
 	
 	Aspect {
-		#Facet "Deployed" -ExpectChildKeyValue "Deploy" {
 		Facet "Deployed" -Key "Deploy" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -40,7 +39,6 @@ Surface AdminDb -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "AdminDbVersion" {
 		Facet "AdminDbVersion" -NoKey {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;

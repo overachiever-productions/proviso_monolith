@@ -14,7 +14,13 @@
 	#Validate-FirewallRules; 
 	#Validate-ExpectedDisks;
 	#Validate-SqlInstallation;
-	Validate-SqlConfiguration;
+	#Validate-SqlConfiguration;
+	#Validate-ExpectedDirectories;
+	#Validate-ExpectedShares;
+	#Validate-SsmsInstallation;
+
+	#Validate-AdminDbInstanceSettings;
+	Validate-AdminDbDiskMonitoring;
 
 	Summarize;
 
@@ -284,21 +290,6 @@ function Process-Surface {
 						
 						$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
 					}
-					
-#					if ($sqlInstances.Count -eq 1) {
-#						
-#						$sqlInstance = $sqlInstances[0];
-#						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
-#						
-#						$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
-#					}
-#					else { # multiple SqlInstances
-#						foreach ($sqlInstance in $sqlInstances) {
-#							$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
-#							
-#							$facets += New-DynamicFacet -BaseFacet $instanceFacet -ChildName $instanceName -SqlInstanceName $sqlInstance;
-#						}
-#					}
 				}
 				else { 	# we're dealing with a SqlObjectArray - i.e., TraceFlags (> 1 key value per each SQL Server instance)
 					foreach ($sqlInstance in $sqlInstances) {
@@ -310,38 +301,11 @@ function Process-Surface {
 							$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
 						}
 					}
-					
-#					if ($sqlInstances.Count -eq 1) {
-#						
-#						$sqlInstance = $sqlInstances[0];
-#						$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
-#						
-#						$instanceKey = $instanceFacet.Key -replace "{~SQLINSTANCE~}", $sqlInstance;
-#						$instanceArrayValues = $PVConfig.GetValue($instanceKey);
-#						
-#						foreach ($arrayValue in $instanceArrayValues) {
-#							$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
-#						}
-#					}
-#					else {
-#						foreach ($sqlInstance in $sqlInstances){
-#							$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
-#							
-#							$instanceKey = $instanceFacet.Key -replace "{~SQLINSTANCE~}", $sqlInstance;
-#							
-#							$instanceArrayValues = $PVConfig.GetValue($instanceKey);
-#							
-#							foreach ($arrayValue in $instanceArrayValues) {
-#								$facets += New-DynamicFacet -BaseFacet $instanceFacet -SqlInstanceName $sqlInstance -ObjectName $arrayValue -ChildName $instanceName -SubChildName $arrayValue;
-#							}
-#							
-#						}
-#					}
 				}
 			}
 		}
 		
-		#		Write-Host "count of Facets: $($facets.Count)";
+#		Write-Host "count of Facets: $($facets.Count)";
 #		foreach ($facet in $facets) {
 #			Write-Host "FACET: $($facet.Name):"
 #			Write-Host "	CurrentKey: $($facet.CurrentKey)"

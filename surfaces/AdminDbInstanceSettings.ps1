@@ -7,7 +7,6 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 	}
 	
 	Aspect -Scope "InstanceSettings" {
-		#Facet "MAXDOP" -ExpectChildKeyValue "InstanceSettings.MAXDOP" {
 		Facet "MAXDOP" -Key "MAXDOP" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -27,11 +26,9 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "MaxServerMemory" {
 		Facet "MaxServerMemory" -Key "MaxServerMemoryGBs" {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				#$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.ConfigureInstance.MaxServerMemoryGBs");
 				$nonDefaultValue = $PVConfig.CurrentConfigKeyValue;
 				if ($nonDefaultValue) {
 					return $nonDefaultValue;
@@ -64,7 +61,6 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 			}
 		}
 		
-		#Facet "CTFP" -ExpectChildKeyValue "InstanceSettings.CostThresholdForParallelism" {
 		Facet "CTFP" -Key "CostThresholdForParallelism" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -75,17 +71,15 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC admindb.dbo.[configure_instance] @CostThresholdForParallelism = $expectedSetting; ";
 			}
 		}
 		
-		#Facet "OptimizeForAdHoc" -ExpectChildKeyValue "InstanceSettings.OptimizeForAdHocQueries" {
 		Facet "OptimizeForAdHoc" -Key "OptimizeForAdHocQueries" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$optimizeForAdhoc = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'optimize for ad hoc workloads'; ").current;
 				
@@ -97,7 +91,7 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$setting = 0;
 				if ($expectedSetting) {

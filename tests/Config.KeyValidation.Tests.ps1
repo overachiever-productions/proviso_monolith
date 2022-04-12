@@ -1,11 +1,9 @@
 ﻿Set-StrictMode -Version 1.0;
 
 BeforeAll {
-	# NOTE: non-standard setup for ProvisoConfig (requires access to defaults as well):
-	$root = Split-Path -Parent $PSCommandPath.Replace("\tests\internal", "");
-	$sut = Split-Path -Leaf $PSCommandPath.Replace(".Tests.", ".");
+	$root = Split-Path -Parent $PSCommandPath.Replace("\tests", "");
 	
-	. "$root\internal\dsl\$sut";
+	. "$root\internal\dsl\ProvisoConfig.ps1";
 	. "$root\internal\dsl\ProvisoConfig-Defaults.ps1";
 	$script:be8c742fDefaultConfigData = $script:ProvisoConfigDefaults;
 }
@@ -13,30 +11,74 @@ BeforeAll {
 Describe "Unit Tests for Get-KeyType" -Tags "UnitTests" {
 	Context "Static Key Tests" {
 		It "Should return Static as Type for Static Host Surface Entry" {
-			
 			Get-KeyType -Key "Host.TargetServer" | Should -Be "Static";
-		}
-		
-		It "Should return Dynamic for ExpectedDisks Key" {
-			
-			Get-KeyType -Key "Host.ExpectedDisks.BackupsDisk.VolumeName" | Should -Be "Dynamic";
 		}
 	}
 	
-#	Context "Dynamic Key Tests" {
+	Context "Dynamic Key Tests" {
+		It "Should return Dynamic for ExpectedDisks Key" {
+			Get-KeyType -Key "Host.ExpectedDisks.BackupsDisk.VolumeName" | Should -Be "Dynamic";
+		}
+		
+		It "Should return Dynamic for ExpectedShares Key" {
+			Get-KeyType -Key "ExpectedShares.SqlBackup.SourceDirectory" | Should -Be "Dynamic";
+		}
+	}
+	
+	Context "Sql Instance Key Tests" {
+		It "Should return SqlInstance for Explicit AdminDb Key"		 {
+			Get-KeyType -Key "AdminDb.MSSQLSERVER.InstanceSettings.MAXDOP" | Should -Be "SqlInstance";
+		}
+		
+		It "Should return SqlInstance for Implicit AdminDb Key" {
+			Get-KeyType -Key "AdminDb.InstanceSettings.MAXDOP" | Should -Be "SqlInstance";
+		}
+		
+		It "Should return SqlInstance for Explicit SqlInstallation Key" {
+			Get-KeyType -Key "SqlServerInstallation.XMKC12.Features" | Should -Be "SqlInstance";
+		}
+		
+		It "Should return SqlInstance for Implicit SqlInstallation Key" {
+			Get-KeyType -Key "SqlServerInstallation.Features" | Should -Be "SqlInstance";
+		}
+		
+		It "Should return SqlInstance for SqlServerConfiguration Key"{
+			Get-KeyType -Key "SqlServerConfiguration.EnabledUserRights.LocakPagesInMemory" | Should -Be "SqlInstance";
+			Get-KeyType -Key "SqlServerConfiguration.MSSQLSERVER.EnabledUserRights.LocakPagesInMemory" | Should -Be "SqlInstance";
+		}
+		
+		It "Should return Complex for ExpectedDirectories Key" {
+			Get-KeyType -Key "ExpectedDirectories.MSSQLSERVER.RawDirectories" | Should -Be "SqlInstance";
+			Get-KeyType -Key "ExpectedDirectories.RawDirectories" | Should -Be "SqlInstance";
+		}
+	}
+	
+	Context "Complex Key Tests" {
+		It "Should return Complex for ExtendedEvents 'Global' Key" {
+			Get-KeyType -Key "ExtendedEvents.DisableTelemetry" | Should -Be "Complex";
+			Get-KeyType -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be "Complex";
+		}
+		
+		It "Should return Complex for ExtendedEvents Key" {
+			Get-KeyType -Key "ExtendedEvents.BlockedProcesses.Enabled" | Should -Be "Complex";
+			Get-KeyType -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled" | Should -Be "Complex";
+		}
+		
+		#		It "Should return Complex for AvailabilityGroups Key" {
+#			
+#		}
 #		
-#	}
-#	
-#	Context "Sql Instance Key Tests" {
+#		It "Should return Complex for ResourceGovernor Key" {
+#			
+#		}
 #		
-#	}
-#	
-#	Context "Complex Key Tests" {
-#		
-#	}
+#		It "Should return Complex for CustomScripts Key" {
+#			
+#		}
+	}
 }
 
-Describe "Tests for Is-ValidProvisoKey" {
+Describe "Proviso-Key Validation Tests" {
 	Context "Static Keys" {
 		It "Returns false for invalid Static Keys" {
 			# typos/etc.
@@ -45,7 +87,7 @@ Describe "Tests for Is-ValidProvisoKey" {
 			Is-ValidProvisoKey -Key "Host.ServerPreferences.SetPowerConfigHigh" | Should -Be $false; # windowsPrefs not ServerPrefs
 			Is-ValidProvisoKey -Key "Host.LimitHostTls" | Should -Be $false;
 		}
-		
+				
 		It "Returns true for valid Static Keys" {
 			# corrolaries for the above - i.e., correct versions: 
 			Is-ValidProvisoKey -Key "Host.TargetServer" | Should -Be $true;
@@ -79,6 +121,7 @@ Describe "Tests for Is-ValidProvisoKey" {
 			Is-ValidProvisoKey -Key "DataCollectorSets.Enabled" | Should -Be $false;
 			Is-ValidProvisoKey -Key "DataCollectorSets.DaysWorthOfLogsToKeep" | Should -Be $false;
 			
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.Revoked" | Should -Be $false;
 		}
 		
 		It "Returns true for valid key definitions" {
@@ -103,7 +146,7 @@ Describe "Tests for Is-ValidProvisoKey" {
 		}
 	}
 	
-	Context "Implicit Sql Instance Keys - Are all Non-Valid" {
+	Context "Implicit Sql Instance Keys are Non-Valid" {
 		It "Returns false for Implicit Sql Keys" {
 			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.SessionName" | Should -Be $false;
 			Is-ValidProvisoKey -Key "ExpectedDirectories.RawDirectories" | Should -Be $false;
@@ -115,9 +158,8 @@ Describe "Tests for Is-ValidProvisoKey" {
 		}
 	}
 	
-	Context "Explicit Sql Instance Keys - are viable" {
+	Context "Explicit Sql Instance Keys are Valid" {
 		It "Returns true for Explicitly Defined Keys"	 {
-			
 			Is-ValidProvisoKey -Key "AdminDb.MSSQLSERVER.Deploy" | Should -Be $true;
 			Is-ValidProvisoKey -Key "AdminDb.X3.Deploy" | Should -Be $true;
 			
@@ -129,8 +171,6 @@ Describe "Tests for Is-ValidProvisoKey" {
 		}
 		
 		It "Doesn't care about case for SQL Instance Keys" {
-			# some of the same keys from above - but in mixed/different cases: 
-			
 			Is-ValidProvisoKey -Key "adminDb.mssqlserver.deploy" | Should -Be $true;
 			Is-ValidProvisoKey -Key "AdminDb.X3.DEPLOY" | Should -Be $true;
 			
@@ -142,46 +182,52 @@ Describe "Tests for Is-ValidProvisoKey" {
 		}
 	}
 	
-	#	Context "Complex Keys - Extended Events" {
-	#		It "Returns false for Invalid Keys" {
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.DisableTelemetry" | Should -Be $false;
-	#			
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.Enabled" | Should -Be $false;
-	#			
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.SessionName" | Should -Be $false; 
-	#		}
-	#		
-	#		It "Returns true for valid Keys" {
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER" | Should -Be $true;
-	#			
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be $true;
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.MKC2014.DisableTelemetry" | Should -Be $true;
-	#			
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled" | Should -Be $true;
-	#			
-	#			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.SessionName" | Should -Be $true;
-	#		}
-	#		
-	#		It "Ignores case for Complex Keys" {
-	#			Is-ValidProvisoKey -Key "extendedevents.mssqlserver.blockedprocesses.sessionname" | Should -Be $true;
-	#			
-	#			
-	#		}
+	Context "Complex Keys - Extended Events" {
+		It "Returns false for Invalid Keys" {
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.SomeKeyThatIsBogus" | Should -Be $false;
+		}
+
+		It "Returns false for Implicit Keys" {
+			Is-ValidProvisoKey -Key "ExtendedEvents.DisableTelemetry" | Should -Be $false;
+			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.XelFileSizeMb" | Should -Be $false;
+			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.SessionName" | Should -Be $false;
+		}
+		
+		It "Returns true for Explicit Keys" {
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ExtendedEvents.MKC2014.DisableTelemetry" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.XelFileSizeMb" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.SessionName" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "ExtendedEvents.SQL18.BlockedProcesses.Enabled" | Should -Be $true;
+		}
+		
+		It "Ignores Case for Proper Keys" {
+			Is-ValidProvisoKey -Key "extendedevents.mssqlserver.blockedprocesses.sessionname" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "EXTENDEDevENts.mssqlserver.BLOCKEDprocesses.sessionname" | Should -Be $true;
+		}
+		
+		It "Returns true for Legit ExtendedEvents Xel File Keys" {
+			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.XelFileSizeMb" | Should -Be $true;
+		}
+	}
+	
+	#Context "Complex Keys - Availability Groups" {
+	#	It "Returns false for invalid Keys" {
 	#		
 	#	}
 	#	
-	#	Context "Complex Keys - Availability Groups" {
-	#		It "Returns false for invalid Keys" {
-	#			
-	#		}
+	#	It "Returns True for valid Keys" {
 	#		
-	#		It "Returns True for valid Keys" {
-	#			
-	#		}
 	#	}
+	#}
 }
 
-Describe "Tests for Ensure-ProvisoConfigKeyIsNotImplicit" {
+Describe "Explicit vs Implicit Key Tests" {
 	Context "Non-Sql-Instance Keys are Left Unchanged" {
 		It "Leaves Host Keys Alone" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "Host.TargetServer" | Should -Be "Host.TargetServer";
@@ -262,54 +308,57 @@ Describe "Tests for Ensure-ProvisoConfigKeyIsNotImplicit" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be "ExtendedEvents.MSSQLSERVER.DisableTelemetry";
 			
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses" | Should -Be "ExtendedEvents.MSSQLSERVER.BlockedProcesses";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled" | Should -Be "ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.StartWithSystem" | Should -Be "ExtendedEvents.MSSQLSERVER.BlockedProcesses.StartWithSystem";
 		}
 	}
 	
 	Context "Implicit Keys are Transformed to Explicit Keys" {
 		It "Transforms Implicit ExpectedDirectories Keys to Explicit Keys" {
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories" | Should -Be "ExpectedDirectories.{~SQLINSTANCE~}";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories.VirtualSqlServerServiceAccessibleDirectories" | Should -Be "ExpectedDirectories.{~SQLINSTANCE~}.VirtualSqlServerServiceAccessibleDirectories";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories.RawDirectories" | Should -Be "ExpectedDirectories.{~SQLINSTANCE~}.RawDirectories";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories" | Should -Be "ExpectedDirectories.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories.VirtualSqlServerServiceAccessibleDirectories" | Should -Be "ExpectedDirectories.MSSQLSERVER.VirtualSqlServerServiceAccessibleDirectories";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories.RawDirectories" | Should -Be "ExpectedDirectories.MSSQLSERVER.RawDirectories";
 		}
 		
 		It "Transforms Implicit SqlInstall and Config Keys to Explicit Keys" {
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation" | Should -Be "SqlServerInstallation.{~SQLINSTANCE~}";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.SqlExePath" | Should -Be "SqlServerInstallation.{~SQLINSTANCE~}.SqlExePath";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.Setup" | Should -Be "SqlServerInstallation.{~SQLINSTANCE~}.Setup";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.Setup.InstallDirectory" | Should -Be "SqlServerInstallation.{~SQLINSTANCE~}.Setup.InstallDirectory";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation" | Should -Be "SqlServerInstallation.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.SqlExePath" | Should -Be "SqlServerInstallation.MSSQLSERVER.SqlExePath";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.Setup" | Should -Be "SqlServerInstallation.MSSQLSERVER.Setup";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.Setup.InstallDirectory" | Should -Be "SqlServerInstallation.MSSQLSERVER.Setup.InstallDirectory";
 			
 			
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration" | Should -Be "SqlServerConfiguration.{~SQLINSTANCE~}";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.EnabledUserRights" | Should -Be "SqlServerConfiguration.{~SQLINSTANCE~}.EnabledUserRights";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.EnabledUserRights.LockPagesInMemory" | Should -Be "SqlServerConfiguration.{~SQLINSTANCE~}.EnabledUserRights.LockPagesInMemory";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.TraceFlags" | Should -Be "SqlServerConfiguration.{~SQLINSTANCE~}.TraceFlags";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration" | Should -Be "SqlServerConfiguration.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.EnabledUserRights" | Should -Be "SqlServerConfiguration.MSSQLSERVER.EnabledUserRights";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.EnabledUserRights.LockPagesInMemory" | Should -Be "SqlServerConfiguration.MSSQLSERVER.EnabledUserRights.LockPagesInMemory";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.TraceFlags" | Should -Be "SqlServerConfiguration.MSSQLSERVER.TraceFlags";
 			
 			# TODO: Enable
-			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches" | Should -Be "SqlServerPatches.{~SQLINSTANCE~}";
+			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches" | Should -Be "SqlServerPatches.MSSQLSERVER";
 		}
 		
 		It "Transforms Implicit AdminDb Keys to Explicit Keys" {
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Deploy" | Should -Be "AdminDb.{~SQLINSTANCE~}.Deploy";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.InstanceSettings" | Should -Be "AdminDb.{~SQLINSTANCE~}.InstanceSettings";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.InstanceSettings.MAXDOP" | Should -Be "AdminDb.{~SQLINSTANCE~}.InstanceSettings.MAXDOP";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Alerts" | Should -Be "AdminDb.{~SQLINSTANCE~}.Alerts";
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Alerts.IOAlertsFiltered" | Should -Be "AdminDb.{~SQLINSTANCE~}.Alerts.IOAlertsFiltered";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Deploy" | Should -Be "AdminDb.MSSQLSERVER.Deploy";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.InstanceSettings" | Should -Be "AdminDb.MSSQLSERVER.InstanceSettings";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.InstanceSettings.MAXDOP" | Should -Be "AdminDb.MSSQLSERVER.InstanceSettings.MAXDOP";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Alerts" | Should -Be "AdminDb.MSSQLSERVER.Alerts";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "AdminDb.Alerts.IOAlertsFiltered" | Should -Be "AdminDb.MSSQLSERVER.Alerts.IOAlertsFiltered";
 		}
 		
 		It "Transforms Implicit ExtendedEvents Keys to Explicit Keys" {
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents" | Should -Be "ExtendedEvents.{~SQLINSTANCE~}";
 			
-			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.DisableTelemetry" | Should -Be "ExtendedEvents.{~SQLINSTANCE~}.DisableTelemetry";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.DisableTelemetry" | Should -Be "ExtendedEvents.MSSQLSERVER.DisableTelemetry";
 			
-			# TODO: barf... these are really complex/ugly... 
-			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.CorrelatedSpills" | Should -Be "ExtendedEvents.{~SQLINSTANCE~}.CorrelatedSpills";
-			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.CorrelatedSpills.SessionName" | Should -Be "ExtendedEvents.{~SQLINSTANCE~}.CorrelatedSpills.SessionName";
+#			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.CorrelatedSpills" | Should -Be "ExtendedEvents.{~SQLINSTANCE~}.CorrelatedSpills";
+		}
+		
+		It "Does Not Transform Ambiguous Keys" {
+			
+			# Can't know if "CorrelatedSpills" is a SQL Server Instance name OR an XE Session - so, it needs to leave this key 'alone':
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExtendedEvents.CorrelatedSpills" | Should -Be "ExtendedEvents.CorrelatedSpills";
 		}
 	}
 }
 
-Describe "Tests for Get-FacetTypeByKey" {
+Describe "Facet-Type Key Tests" {
 	Context "Host Keys" {
 		It "Identifies Scalar Host Keys as Simple" {
 			Get-FacetTypeByKey -Key "Host.TargetDomain" | Should -Be "Simple";
@@ -405,7 +454,7 @@ Describe "Tests for Get-FacetTypeByKey" {
 		}
 		
 		It "Detects SqlObject-Only/Global Keys" {
-			Get-FacetTypeByKey -Key "ExtendedEvents.DisableTelemetry" | Should -Be "Compound";  # Implicit
+			Get-FacetTypeByKey -Key "ExtendedEvents.DisableTelemetry" | Should -Be "Compound"; # Implicit
 			Get-FacetTypeByKey -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be "Compound"; # Explicit
 		}
 		
@@ -416,11 +465,30 @@ Describe "Tests for Get-FacetTypeByKey" {
 		}
 		
 		It "Throws On Implicit Compound Key Requests" {
-			{ Get-FacetTypeByKey -Key "ExtendedEvents.BlockedProcesses.SessionName" } | Should -Throw;
+			{
+				Get-FacetTypeByKey -Key "ExtendedEvents.BlockedProcesses.SessionName"
+			} | Should -Throw;
 		}
 		
 		It "Reports Object Children as Compound" {
 			Get-FacetTypeByKey -Key "ExtendedEvents.X3.BlockedProcesses.SessionName" | Should -Be "Compound";
+		}
+	}
+}
+
+Describe "Object Extraction Key-Validation Tests" {
+	Context "Top-level Keys are Not Converted to OBJECT place-holders" {
+		It "Does not Add ~ANY~ to Top-Level Key-Nodes" {
+			Ensure-ProvisoConfigKeyIsFormattedForObjects -Key "ExtendedEvents.MSSQLSERVER.DisableTelemetry" | Should -Be "ExtendedEvents.MSSQLSERVER.DisableTelemetry";
+		}
+	}
+	
+	Context "Keys Missing Object Places Get PlaceHolders for Objects" {
+		It "Inserts ~ANY~ into Compound Keys" {
+			
+			# TODO: these tests are/should be WILDLY different than some of my other tests. 
+			# i.e., this function isn't for 'consumer' use  i THINK it's solely for 'compile time' usage? 
+			Ensure-ProvisoConfigKeyIsFormattedForObjects -Key "ExtendedEvents.MSSQLSERVER.StartWithSystem" | Should -Be "ExtendedEvents.MSSQLSERVER.{~ANY~}.StartWithSystem";
 		}
 	}
 }

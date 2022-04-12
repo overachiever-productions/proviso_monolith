@@ -627,6 +627,7 @@ function Facet {
 			}
 			
 			$facetKey = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key $facetKey;
+			
 			if (-not (Is-ValidProvisoKey -Key $facetKey)) {
 				throw "Invalid Configuration Key [$facetKey] found in Surface [$($surface.Name)] and Facet of [$Name].";
 			}

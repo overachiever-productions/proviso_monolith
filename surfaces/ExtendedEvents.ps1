@@ -1,15 +1,17 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<# 
+<#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+
+	#$PVResources.GetXeSessionDefinitionFile("blocked_processes.sql");
 
 	Validate-ExtendedEvents;
-	Summarize -Latest;
 
 #>
+
 
 Surface ExtendedEvents -Target "ExtendedEvents" {
 	
@@ -18,12 +20,11 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 	}
 	
 	Aspect {
-		#Facet "DisableXETelemetry"  {
 		Facet "DisableXETelemetry" -Key "DisableTelemetry" {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
-				$keyValue = $PVConfig.GetValue("ExtendedEvents.$instanceName.DisableTelemetry");
+				$keyValue = $PVConfig.GetValue($PVContext.CurrentConfigKey);
 				$majorVersion = [int]$(Get-SqlServerInstanceMajorVersion -Instance $instanceName);
 				
 				if ($majorVersion -ge 13) {
@@ -37,9 +38,9 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				return "<N/A>";
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
-				$name = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[server_event_sessions] WHERE [name] = N'telemetry_xevents'; ").name;
+				$name = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[dm_xe_sessions] WHERE [name] = N'telemetry_xevents'; ").name;
 				if ($name) {
 					return "<ENABLED>";
 				}
@@ -52,26 +53,126 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				return "<N/A>";
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$expected = $PVContext.Expected;
 				
 				if ($expected) {
 					Disable-TelemetryXEventsTrace -InstanceName $instanceName;
 				}
 				else {
-					$PVContext.WriteLog("Config setting for [ExtendedVents.$sqlServerInstance.DisableTelemetry] is set to `$false - but SQL Telemetry has already been disabled and removed.. Proviso will NOT re-enable. Please make changes manually.", "Critical");
+					$PVContext.WriteLog("Config setting for [ExtendedVents.$sqlServerInstance.DisableTelemetry] is set to `$false - but SQL Telemetry has already been disabled and removed. Proviso will NOT re-enable. Please make changes manually.", "Critical");
 				}
 			}
 		}
 		
-		# TODO: Facets for XE creation. 
-		# and... ideally, either: 
-		#  		a. have an admindb sproc that creates XEs 
-		# 		or ... 
-		#  		b. have some scripts/templates/queries in Proviso somewhere that are used to create XEs. 
-		# 		
-		# 		option A makes the MOST sense ... but, there are concievable scenarios where people will use proviso but not the admindb. 
-		#  		so... i think that option B makes the most sense... 
-		#       	ALONG with the idea that I'll use those same (copy-pasted-ish - or  referenced ) definitions within an admindb sproc as well. 
+		# TODO: 
+		#  HMMMM. Look at how I'm tackling this with SqlInstallation.InstanceExists - i.e., ExpectIteratorKey... (That might be a better option - though I don't want to expect a 'raw' value... )
+		# 		OTHERWISE (original comments below):
+		# 	Using -Key "Enabled" _here_ is a HACK. I'm not ACTUALLY even using the key - just 'forcing' it to be a placeholder. 
+		# 		Instead, I need to add an option for -NoChildKey or -SkipChildKey (or whatever) that allows for these kinds of 'Exists' checks. 
+		# 		as in, they should allow for the creation of the key UP TO the 'current' point (which is different than -NoKey - which ignores keys ENTIRELY)
+		Facet "Exists" -Key "Enabled" -Expect $true {
+			Test {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				
+				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName'; ").name;
+				if ($exists) {
+					return $true;
+				}
+				
+				return $false;
+			}
+			Configure {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+				
+				$definitionFile = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.DefinitionFile");
+				
+				# TODO: determine if we're in a DROP or CREATE scenario and warn/announce that PROVISO won't drop existing XeSessions... 
+				#  	that said, I PRESUME there's a case where this might exist or not? or, is Configure ONLY EVER going to be called if/when we EXPECT an XE session and it doesn't exist?
+				
+				$fullDefinitionPath = $PVResources.GetXeSessionDefinitionFile($definitionFile);
+				if ($null -eq $fullDefinitionPath) {
+					throw "Invalid XE Session Configuration Settings. Unable to locate XE Session Definition file [$definitionFile].";
+				}
+				
+				$template = Get-Content $fullDefinitionPath;
+				
+				
+				# PICKUP / NEXT:
+				#INVALID key requested: [ExtendedEvents.MSSQLSERVER.BlockedProcesses.XelFileCount];
+				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				$enabled = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.Enabled");
+				$startWithSystem = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.StartWithSystem");
+				$fileSize = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFileSizeMb");
+				$fileCount = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFileCount");
+				$xelFilePath = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFilePath");
+				
+				$startupState = "OFF";
+				$isEnabled = "OFF";
+				if ($startWithSystem) {
+					$startupState = "ON";
+				}
+				if ($enabled) {
+					$isEnabled = "ON";
+				}
+				
+				$xeBody = $template -replace "{sessionName}", $sessionName;
+				$xeBody = $template -replace "{storagePath}", $xelFilePath;
+				$xeBody = $template -replace "{maxFileSize}", $fileSize;
+				$xeBody = $template -replace "{maxFiles}", $fileCount;
+				$xeBody = $template -replace "{startupState}", $startupState;
+				$xeBody = $template -replace "{isEnabled}", $isEnabled;
+				
+				Write-Host $xeBody;
+				
+			}
+		}
+		
+		Facet "Enabled" -Key "Enabled" -ExpectKeyValue {
+			Test {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				
+				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[dm_xe_sessions] WHERE [name] = N'$sessionName'; ").name;
+				if ($state) {
+					return $true;
+				}
+				
+				return $false;
+			}
+			Configure {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+			}
+		}
+		
+		Facet "StartWithSystem" -Key "StartWithSystem" -ExpectKeyValue {
+			Test {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				
+				# run a query to see if $sessionName starts with system or not... and return as needed. 
+				
+			}
+			Configure {
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$sessionKey = $PVContext.CurrentObjectName;
+				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				
+				# run an ALTER to set $sessionName to start with system OR NOT... 
+			}
+		}
+		
+		# TODO: treat remaining values like XelFileSize, XelCount, XelPath as advanced options.
 	}
 }

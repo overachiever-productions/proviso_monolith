@@ -168,9 +168,9 @@
 		"{~SQLINSTANCE~}" = @{
 			# TODO: add any keys here to ProvisoConfig.ps1 -> Is-KeyValid and other implementations... 
 			
-			# some kind of base path? or an option to override proviso-root configs... 
-			# then an SP key/entry/option
-			# and a CU key/entry/option
+			# these either use convention of file-name (added to \binaries\xxxx\whatever) or, they provide full-blown, hard-coded paths "e.g., C:\blah\patch_name.exe"
+			TargetSP = "{~DEFAULT_PROHIBITED~}"  
+			TargetCU = "{~DEFAULT_PROHIBITED~}"
 		}
 	}
 	
@@ -345,14 +345,21 @@
 	ExtendedEvents = @{
 		"{~SQLINSTANCE~}" = @{
 			DisableTelemetry = $true
+			DefaultXelDirectory  = "D:\Traces"
+			
+			BlockedProcessThreshold = 0  # can be set to 2 or whatever... as a default
+			
 			"{~ANY~}"	     = @{
-				Enabled 		= $true  # if we're going to define it, it'll default to true
-				SessionName		= "{~PARENT~}"
+				SessionName	    	= "{~PARENT~}"
+				Enabled 			= $false
 				
-				# TODO: add these params to Is-NonValidChildKey
-				DefinitionPathOrWhateverElseWeWouldUseHere = "somethingName" # which'd be a .sql file found at: \assets\xetraces\<name>.sql or whatever.
-				#StartWithSystem	# or is this part of the definition?
-				#EnabledAtCreation  # or is this part of the definition?
+				DefinitionFile 		= "{~DYNAMIC~}"  # defaults, by convention, to [SessionName].sql - but CAN, obviously, be overridden
+				StartWithSystem 	= $false
+				
+				# 'advanced' defaults: 
+				XelFileSizeMb 		= 100
+				XelFileCount		= 6
+				XelFilePath 		= "D:\Traces"
 			}
 		}
 	}
@@ -427,13 +434,17 @@
 		}
 	}
 	
+#	CustomScripts {
+#		
+#	}
+	
 	CustomSqlScripts = @{   # or, call this just 'SqlScripts'?
 		"{~SQLINSTANCE~}" = @{
-			Deploy = $false
+			Deploy = $false  # this probably makes more sense 'down' inside the script groups themselves? 
 			
 			# _MAY_ end up configuring this (behind the scenes) so that there's a single, default, script group - similar to MSSQLSERVER for sql instances..
 			# 		or, that MAY end up being too much of a pain and i may require explicit groups... 
-			ScriptGroups = @{
+			ScriptGroups = @{  # also, not sure that I need this 'parent' group here at all. i.e., think I can have 'global' values IF needed. but simple 'groups' as parts[1] and be JUST FINE.
 				"{~ANY~}" = @{
 #					whateverGoesHere
 #					ProbablyADirectory

@@ -20,7 +20,9 @@
 	#Validate-SsmsInstallation;
 
 	#Validate-AdminDbInstanceSettings;
-	Validate-AdminDbDiskMonitoring;
+	#Validate-AdminDbDiskMonitoring;
+
+	Validate-ExtendedEvents;
 
 	Summarize;
 
@@ -57,13 +59,14 @@ filter New-DynamicFacet {
 	}
 	
 	$key = $BaseFacet.Key;
+#Write-Host "base key: $key  -> Object: $ObjectName"
 	if (-not ([string]::IsNullOrEmpty($SqlInstanceName))) {
 		$key = $key -replace "{~SQLINSTANCE~}", $SqlInstanceName;
 	}
 	if (-not ([string]::IsNullOrEmpty($ObjectName))) {
 		$key = $key -replace "{~ANY~}", $ObjectName;
 	}
-	
+#Write-Host "	keyNow: $key"	
 	$newFacet = New-Object Proviso.Models.Facet(($BaseFacet.Parent), $facetName, $BaseFacet.FacetType, $key);
 	
 	if ($null -eq $BaseFacet.Expect) {
@@ -305,7 +308,56 @@ function Process-Surface {
 			}
 		}
 		
-#		Write-Host "count of Facets: $($facets.Count)";
+		$compoundFacets = $surface.GetCompoundFacets();
+		if ($compoundFacets) {
+			foreach ($compoundFacet in $compoundFacets) {
+				$sqlInstances = @(($PVConfig.GetSqlInstanceNames($compoundFacet.Key)));
+				foreach ($sqlInstance in $sqlInstances) {
+					$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
+					
+					if (Is-InstanceGlobalComplexKey -Key $compoundFacet.Key) {
+						if ($compoundFacet.FacetType -eq "Compound") {
+							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName;
+						}
+						else {
+							$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
+							foreach ($arrayValue in $arrayValues) {
+								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -SubChildName $arrayValue;
+							}
+						}
+					}
+					else {
+#Write-Host "Compound Key: $($compoundFacet.Key) "
+						
+	# call to objects is busted. the compound key above is perfect. 
+	#   but the call into GetObjects is returning SQL Server instances - not objects... 					
+						$objects = @($PVConfig.GetObjects($compoundFacet.Key));
+						
+						if ("Compound" -eq $compoundFacet.FacetType) {
+							foreach ($objectName in $objects) {
+#		Write-Host "	Object: $objectName"						
+								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $objectName;
+							}
+						}
+						else {
+							# CompoundArray
+							foreach ($objectName in $objects) {
+								$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
+								foreach ($arrayValue in $arrayValues) {
+									# Hmmm... I THINK this'll work?'
+									$subChildName = "$($objectName)>>$($arrayValue)";
+									$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $subChildName;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
+#		Write-Host "-------------------------------------------------------------------------------------------------------------------------";
+#		Write-Host "";
+#		Write-Host "Count of Facets: $($facets.Count)";
 #		foreach ($facet in $facets) {
 #			Write-Host "FACET: $($facet.Name):"
 #			Write-Host "	CurrentKey: $($facet.CurrentKey)"
@@ -314,7 +366,7 @@ function Process-Surface {
 #			Write-Host "	CurrentSqlInstance: $($facet.CurrentSqlInstanceName)"
 #			Write-Host "		Expect: $($facet.Expect) ";
 #		}
-#		return;
+		#return;
 		
 		# --------------------------------------------------------------------------------------
 		# Validations

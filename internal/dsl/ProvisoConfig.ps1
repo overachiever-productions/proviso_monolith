@@ -1,24 +1,32 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
-
+	
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+
+	Write-Host "-----------------------"
+
+	# need this to be: ExtendedEvents.MSSQLSERVER.{~ANY~}.Enabled... 
+	$key = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key "ExtendedEvents.MSSQLSERVER.Enabled";
+	
+Write-Host $key;
+
 
 #>
 
-
 [PSCustomObject]$global:PVConfig = $null;
 
-# 'Constants':
-Set-Variable -Name Node_3_ExpectedDirectories_Keys -Option ReadOnly -Value @("VirtualSqlServerServiceAccessibleDirectories", "RawDirectories");
-Set-Variable -Name Node_3_ExpectedShares_Keys -Option ReadOnly -Value @("ShareName", "SourceDirectory", "ReadOnlyAccess", "ReadWriteAccess");
-Set-Variable -Name Node_3_SqlServerInstallation_Keys -Option ReadOnly -Value @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
-Set-Variable -Name Node_3_AdminDb_Keys -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
-Set-Variable -Name FINAL_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("Enabled", "SessionName", "StartWithSystem", "EnabledAtCreation");
+#region 'Constants'
+Set-Variable -Name FINAL_NODE_EXPECTED_DIRECTORIES_KEYS -Option ReadOnly -Value @("VirtualSqlServerServiceAccessibleDirectories", "RawDirectories");
+Set-Variable -Name FINAL_NODE_EXPECTED_SHARES_KEYS -Option ReadOnly -Value @("ShareName", "SourceDirectory", "ReadOnlyAccess", "ReadWriteAccess");
+Set-Variable -Name FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS -Option ReadOnly -Value @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
+Set-Variable -Name FINAL_NODE_ADMINDB_KEYS -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
+Set-Variable -Name FINAL_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("SessionName", "Enabled", "DefinitionFile", "StartWithSystem", "XelFileSizeMb", "XelFileCount", "XelFilePath");
+
+Set-Variable -Name BRANCH_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("DisableTelemetry", "DefaultXelDirectory", "BlockedProcessThreshold");
 
 Set-Variable -Name ROOT_SQLINSTANCE_KEYS -Opt ReadOnly -Value @("ExpectedDirectories", "SqlServerInstallation", "SqlServerConfiguration", "SqlServerPatches", "AdminDb", "ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts");
+#endregion
 
 filter Get-ProvisoConfigValueByKey {
 	param (
@@ -160,8 +168,51 @@ filter Ensure-ProvisoConfigKeyIsNotImplicit {
 	
 	if ($parts[0] -in $ROOT_SQLINSTANCE_KEYS) {
 		if ((Is-NonValidChildKey -ParentKey $parts[0] -TestKey $parts[1]) -or ($null -eq $parts[1])) {
-			$explicitKey = $Key -replace $parts[0], "$($parts[0]).{~SQLINSTANCE~}";
+			$explicitKey = $Key -replace $parts[0], "$($parts[0]).MSSQLSERVER";
 			return $explicitKey;
+		}
+		
+		switch ($parts[0]) {
+			"ExtendedEvents" {
+				switch ($parts.Count) {
+					1 {
+						throw "Invalid Configuration Key. ExtendedEvents keys must contain more than just the root element.";
+					}
+					2 {
+						if ($parts[1] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
+							return "ExtendedEvents.MSSQLSERVER.($parts[1])";
+						}
+						else {
+							if ($parts[1] -in $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
+								throw "Invalid Configuration Key. ExtendedEvents keys must specify a SQL Server instance as target.";
+							}
+							else {
+								return $Key; # the key is a SQL Instance - i.e., "ExtendedEvents.X3" or "ExtendedEvents.Sales2014", etc
+							}
+						}
+					}
+					3 {
+						if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
+							return $Key; # legit - part[0] is ExtendedEvents, part[1] is an instance name, and part[2] is the terminator... e.g., "ExtendedEvents.MSSQLSERVER.DisableTelemetry"
+						}
+						else {
+							if ($parts[2] -in $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
+								throw "Invalid Configuration Key. ExtendedEvents keys require a SQL Server Instance Name AND Extended Events Session name.";
+							}
+							else {
+								return $Key; # legit - assuming that $part[2] is the name of an XE Session - e.g., "ExtendedEvents.MSSQLSERVER.BlockedProcesses";
+							}
+						}
+					}
+					4 {
+						if ($parts[3] -notin $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
+							throw "Invalid Configuration Key. The final part of [$Key] is not a recognized ExtendedEvents Session Value.";
+						}
+						
+						return $Key; # presumed legit ... but, more importantly: NOT implicit.
+					}
+				}
+			}
 		}
 	}
 	
@@ -189,7 +240,18 @@ filter Ensure-ProvisoConfigKeyIsFormattedForObjects {
 		}
 	}
 	
-	if ($parts[0] -in @("ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts")) {
+	if ($parts[0] -eq "ExtendedEvents") {
+		if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
+			return $Key;
+		}
+		elseif ("{~ANY~}" -notin $parts) {
+			return ($Key -replace $parts[1], "$($parts[1]).{~ANY~}");
+		}
+		
+		throw "Not Implemented: (Ensure-ProvisoConfigKeyIsFormattedForObjects for ExtendedEvents-objects).";
+	}
+	
+	if ($parts[0] -in @("ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts")) {
 		if ("{~ANY~}" -notin $parts) {
 			return ($Key -replace $parts[2], "{~ANY~}");
 		}
@@ -217,14 +279,14 @@ filter Is-NonValidChildKey {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("ProvisioningPriority", "VolumeName", "VolumeLabel", "PhysicalDiskIdentifiers");
 		}
 		"ExpectedShares" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_ExpectedShares_Keys;
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXPECTED_SHARES_KEYS;
 		}
 		"DataCollectorSets" {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("Enabled", "EnableStartWithOS", "DaysWorthOfLogsToKeep");
 		}
 		# Sql Instance Keys:
 		"ExpectedDirectories" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_ExpectedDirectories_Keys;
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS;
 		}
 		"SqlServerInstallation" {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
@@ -239,11 +301,12 @@ filter Is-NonValidChildKey {
 		"AdminDb" {
 			# add common 'typos' or keys used as child keys that can't/shouldn't be SQL Server instance names: 
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += "Enabled";
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $Node_3_AdminDb_Keys;
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_ADMINDB_KEYS;
 		}
 		# Complex Keys: 
 		"ExtendedEvents" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("DisableTelemetry", "Enabled", "SessionName", "StartWithSystem", "EnabledAtCreation");
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $BRANCH_NODE_EXTENDED_EVENTS_KEYS;
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXTENDED_EVENTS_KEYS;
 		}
 		"ExtendedEvents.{~SQLINSTANCE~}" {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXTENDED_EVENTS_KEYS;
@@ -262,6 +325,29 @@ filter Is-NonValidChildKey {
 	return $stringsThatAreChildKeysNotSqlServerInstanceNames -contains $TestKey;
 }
 
+filter Is-InstanceGlobalComplexKey {
+	# for Compound/Complex objects is this a 'global' key like, say, ExtendedEvents.MSSQLSERVER.DisableTelemetry
+	# 	 or is it an objectKey - like, say: ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	$parts = $Key -split '\.';
+	switch ($parts[0]) {
+		"ExtendedEvents"		 {
+			if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
+				return $true;
+			}
+		}
+		default {
+			throw "Not Implemented: Is-InstanceGlobalComplexKey for type: [$($parts[0])].";
+		}
+	}
+	
+	return $false;
+}
+
 filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
 	param (
 		[Parameter(Mandatory)]
@@ -269,6 +355,7 @@ filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
 	);
 	
 	$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $Key;
+	
 	if ($null -eq $value) {
 		$keyType = Get-KeyType -Key $Key;
 		
@@ -298,10 +385,9 @@ filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
 				switch ($parts[0]) {
 					
 					"ExtendedEvents" {
-						# look for instance-level 'globals' - i.e., 'simple' SqlObject keys/details... (vs SqlObject + Object values (compound)).
-						if ("DisableTelemetry" -eq $parts[$parts.Count - 1]) {
-							if ($parts.Count -eq 2) { # implicit... so, make it explicit:
-								$complexKey = "ExtendedEvents.{~SQLINSTANCE~}.DisableTelemetry";
+						if ($parts[$parts.Count - 1] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
+							if ($parts.Count -eq 2) { 
+								return $null; # this is an IMPLICIT key - which is illegal at this point, so return NULL/empty (just as would be the case with Is-NonValidChildKey - and, arguably, should PROBABLY handle this logic there?)
 							}
 							elseif ($parts.Count -eq 3) {
 								$complexKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
@@ -394,7 +480,6 @@ filter Get-ProvisoConfigDefaultValue {
 	}
 	
 	$value = Get-TokenizableDefaultValueFromDefaultConfigSettings -Key $Key;
-	
 	if ($value -is [hashtable]) {
 		$reloadValues = $false;
 		if ($Key -like "*PhysicalDiskIdentifiers") {
@@ -513,6 +598,22 @@ filter Get-ProvisoConfigDefaultValue {
 					throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$Key]."
 				}
 			}
+			{ $_ -like "ExtendedEvents*DefinitionFile" } {
+				# MKC: This DYNAMIC functionality might end up being really Stupid(TM). 
+				#  		Convention is that <XeSession>.DefinitionFile defaults to "(<XeSession>.SessionName).sql". 
+				# 		ONLY: 
+				# 		1. Complexity: <XeSession>.SessionName can be EMPTY and, by definition, defaults to <XeSession> - i.e., we're at potentially 2x redirects for defaults at this point.
+				#		2. We're currently in the 'GetDefaultValue' func - meaning it's POSSIBLE that a config hasn't even been loaded yet. 				
+				try {
+					$sessionNameKey = $Key -replace "DefinitionFile", "SessionName";
+					$sessionName = $this[$sessionNameKey]; # Do NOT recurse using $this.GetValue() - i.e., attempt to use $this as a collection instead. 
+					return "$($sessionName).sql";
+				}
+				catch {
+					# if we fail, return the parent/node name instead. MIGHT be a bad idea (see comments above).
+					return "$($parts[2]).sql";
+				}
+			}
 			default {
 				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
 			}
@@ -624,9 +725,10 @@ filter Get-ConfigObjects {
 	$parts = $Key -split '\.';
 	$target = 1;
 	$leadingKey = "$($parts[0])*";
-	if ("Host" -eq $parts[0]) {
+	
+	if ($parts[0] -in @("Host", "ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts")) {
 		$target = 2;
-		$leadingKey = "Host.$($parts[1])*";
+		$leadingKey = "$($parts[0]).$($parts[1])*";
 	}
 	
 	$objects = @();
@@ -638,6 +740,10 @@ filter Get-ConfigObjects {
 				$objects += $objectName;
 			}
 		}
+	}
+	
+	if ("ExtendedEvents" -eq $parts[0]) {
+		$objects = @($objects | Where-Object { $_ -notlike "*isableTelemetry" });
 	}
 	
 	return $objects;
@@ -690,22 +796,22 @@ filter Set-ConfigTarget {
 			
 			switch ($key) {
 				{ $_ -like "SqlServerInstallation*"	} {
-					if ($parts[1] -notin $Node_3_SqlServerInstallation_Keys) {
+					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS) {
 						throw "Fatal Error. Invalid SqlServerInstallation Configuration Key: [$key].";
 					}
 				}
 				{ $_ -like "AdminDb*" } {
-					if ($parts[1] -notin $Node_3_AdminDb_Keys) {
+					if ($parts[1] -notin $FINAL_NODE_ADMINDB_KEYS) {
 						throw "Fatal Error. Invalid AdminDb Configuration Key: [$key].";
 					}
 				}
 				{ $_ -like "ExpectedDirectories*" } {
-					if ($parts[1] -notin $Node_3_ExpectedDirectories_Keys) {
+					if ($parts[1] -notin $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS) {
 						throw "Fatal Error. Invalid ExpectedDirectories Configuration Key: [$key].";
 					}
 				}
 				{ $_ -like "ExpectedShares*" } {
-					if ($parts[1] -notin $Node_3_ExpectedShares_Keys) {
+					if ($parts[1] -notin $FINAL_NODE_EXPECTED_SHARES_KEYS) {
 						throw "Fatal Error. Invalid ExpectedShares Configuration Key: [$key].";
 					}
 				}
@@ -730,17 +836,11 @@ filter Set-ConfigTarget {
 	$configObject | Add-Member -MemberType NoteProperty -Name Strict -Value $Strict -Force;
 	$configObject | Add-Member -MemberType NoteProperty -Name AllowDefaults -Value $AllowDefaults -Force;
 	
-	[ScriptBlock]$getValue = (Get-Item "Function:\Get-KeyValue").ScriptBlock;
-	[ScriptBlock]$setValue = (Get-Item "Function:\Set-KeyValue").ScriptBlock;
-	#[ScriptBlock]$groupNames = (Get-Item "Function:\Get-ProvisoConfigGroupNames").ScriptBlock;
-	[ScriptBlock]$sqlNames = (Get-Item "Function:\Get-ConfigSqlInstanceNames").ScriptBlock;
-	[ScriptBlock]$objectNames = (Get-Item "Function:\Get-ConfigObjects").ScriptBlock;
-	
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetValue -Value $getValue -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name SetValue -Value $setValue -Force;
-	#$configObject | Add-Member -MemberType ScriptMethod -Name GetGroupNames -Value $groupNames -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetSqlInstanceNames -Value $sqlNames -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetObjects -Value $objectNames -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetValue -Value ((Get-Item "Function:\Get-KeyValue").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name SetValue -Value ((Get-Item "Function:\Set-KeyValue").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetDefault -Value ((Get-Item "Function:\Get-ProvisoConfigDefaultValue").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetSqlInstanceNames -Value ((Get-Item "Function:\Get-ConfigSqlInstanceNames").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetObjects -Value ((Get-Item "Function:\Get-ConfigObjects").ScriptBlock) -Force;
 	
 	# assign as global/intrinsic: 
 	$global:PVConfig = $configObject;

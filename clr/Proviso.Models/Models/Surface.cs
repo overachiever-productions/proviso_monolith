@@ -90,7 +90,9 @@ namespace Proviso.Models
             this.ConfigKey = key;
         }
 
-        #region Re-Address
+        #region Refactor
+        // REFACTOR: this code sucks. Create a single func that takes in an enum or something like an enum/flags 
+        //      vs having a lame, hard-coded, version for each need... 
         public List<Facet> GetSimpleFacets()
         {
             return this.Facets.Where(f => (f.FacetType == FacetType.Simple) | (f.FacetType == FacetType.NonKey)).ToList();
@@ -111,15 +113,10 @@ namespace Proviso.Models
             return this.Facets.Where(f => (f.FacetType == FacetType.SqlObject) | (f.FacetType == FacetType.SqlObjectArray)).ToList();
         }
 
-        //public List<Facet> GetBaseValueFacets()
-        //{
-        //    return this.Facets.Where(d => d.FacetType == FacetType.Value).ToList();
-        //}
-
-        //public List<Facet> GetBaseGroupFacets()
-        //{
-        //    return this.Facets.Where(d => d.FacetType == FacetType.Group).ToList();
-        //}
+        public List<Facet> GetCompoundFacets()
+        {
+            return this.Facets.Where(f => (f.FacetType == FacetType.Compound) | (f.FacetType == FacetType.CompoundArray)).ToList();
+        }
         #endregion
 
         public List<Facet> GetBaseCompoundFacets()

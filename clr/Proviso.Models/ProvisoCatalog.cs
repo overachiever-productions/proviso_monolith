@@ -9,6 +9,7 @@ namespace Proviso
     {
         private Dictionary<string, Surface> _surfaces = new Dictionary<string, Surface>();
         private Dictionary<string, string> _surfacesByFileName = new Dictionary<string, string>();
+        private Dictionary<string, string> _hostNameDefinitions = new Dictionary<string, string>();
         public int SurfaceCount => this._surfaces.Count;
 
         private List<Runbook> _runbooks = new List<Runbook>();
@@ -62,6 +63,26 @@ namespace Proviso
         public Runbook GetRunbook(string runbookName)
         {
             return this._runbooks.Single(r => r.Name == runbookName);
+        }
+
+        public void AddHostDefinition(string name, string path)
+        {
+            this._hostNameDefinitions.Add(name, path);
+        }
+
+        public void ResetHostDefnitions()
+        {
+            this._hostNameDefinitions = new Dictionary<string, string>();
+        }
+
+        public List<string> GetDefinedHostNames()
+        {
+            return new List<string>(this._hostNameDefinitions.Keys);
+        }
+
+        public string GetHostConfigFileByHostName(string hostName)
+        {
+            return this._hostNameDefinitions[hostName];
         }
     }
 }

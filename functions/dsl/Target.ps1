@@ -11,6 +11,8 @@ function Target {
 		[string]$ConfigFile,
 		[Parameter(Position = 0, ParameterSetName = "CurrentHost")]
 		[switch]$CurrentHost = $false,
+		[Parameter(Position = 0, ParameterSetName = "HostHame")]
+		[string]$HostName,
 		[switch]$Strict = $true,
 		[switch]$AllowGlobalDefaults = $true
 	);
@@ -34,6 +36,23 @@ function Target {
 			catch {
 				throw "Exception Loading Proviso Config File at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
 			}
+		}
+		
+		if ($HostName) {
+			if ($PVCatalog.GetEnumeratedHosts() -notcontains $HostName) {
+				throw "The -HostName argument can ONLY be used for definitions located in the ProvisoRoot\Definitions directory. Try using -ConfigFile to an explict path, or verify that the expected/targetted host config file is properly formatted.";
+			}
+			
+			try {
+				$hostConfigFile = $PVCatalog.GetHostConfigFileByHostName($HostName);
+				$data = Import-PowerShellDataFile $hostConfigFile;
+				
+				Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
+			}
+			catch {
+				throw "Exception Loading Proviso Config File via -HostName at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
+			}
+			
 		}
 		
 		if ($CurrentHost) {

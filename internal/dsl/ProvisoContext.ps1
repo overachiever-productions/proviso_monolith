@@ -2,7 +2,7 @@
 
 $global:PVContext = [Proviso.ProcessingContext]::Instance;
 
-Filter Write-ProvisoLog {
+filter Write-ProvisoLog {
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory)]

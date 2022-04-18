@@ -40,9 +40,13 @@ function Assign {
 	};
 	
 	process {
-		
 		if ($ProvisoRoot) {
 			$PVResources.SetRoot($ProvisoRoot);
+			
+			$definitionsPath = Join-Path -Path $ProvisoRoot -ChildPath "definitions";
+			$PVCatalog.EnumerateHosts($definitionsPath);
+			
+			Register-ArgumentCompleter -CommandName "Target" -ParameterName "HostName" -ScriptBlock { $PVCatalog.GetEnumeratedHosts(); };
 		}
 	};
 	

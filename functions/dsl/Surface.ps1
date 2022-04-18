@@ -459,7 +459,8 @@ function Assert-ProvisoResourcesRootDefined {
 
 function Assert-SqlServerIsInstalled {
 	param (
-		[string]$FailureMessage = "SQL Server Configuration Surfaces cannot be run until all defined SQL Server instances are installed.",
+		[string]$SurfaceTarget = $null,
+		[string]$FailureMessage = "SQL Server Configuration Surfaces cannot be run until SQL Server instances are installed.",
 		[Alias("ConfigureOnly")]
 		[switch]$AssertOnConfigureOnly = $false,
 		[Alias("Skip", "DoNotRun")]
@@ -475,39 +476,47 @@ function Assert-SqlServerIsInstalled {
 			return;
 		}
 		
-#		try {
-#			[ScriptBlock]$codeBlock = {
-				
-				# WOW. What the hell was I thinking. 
-				# I shouldn't be pulling info from the CONFIG. 
-				# 	i need to be checking the equivalent of $PVEnvironment.NamedSqlInstances or whatever... 
-				# 		i.e., the code to check is currently in: internal\SqlServerHelpers.ps1\Get-ExistingSqlServerInstanceNames ... 
-				
-#				$instanceNames = $PVConfig.GetGroupNames("SQLServerInstallation");
-#				if ($instanceNames.Count -lt 1) {
-#					throw "Expected 1 or more instances - but none were defined at [SQLServerInstallation.*].";
-#				}
-#				
-#				$installedInstances = Get-ExistingSqlServerInstanceNames;
-#				
-#				foreach ($instance in $instanceNames) {
-#					if ($installedInstances -notcontains $instance) {
-#						throw "Expected SQL Server Instance [$instance] is not installed.";
-#					}
-#				}
-#			}
-#			
-#			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
-#		}
-#		catch {
-#			#throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
-#		}
+		try {
+			
+			[ScriptBlock]$codeBlock = $null;
+			
+			if ($SurfaceTarget) {
+				[ScriptBlock]$codeBlock = {
+					$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
+					
+					$targetInstancenames = $PVConfig.GetSqlInstanceNames($SurfaceTarget);
+					if (($null -eq $targetInstancenames) -or ($targetInstancenames.Count -lt 1)) {
+						throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [$SurfaceTarget] - but none were defined.";
+					}
+					
+					foreach ($targetInstance in $targetInstancenames) {
+						if ($installedInstanceNames -notcontains $targetInstance) {
+							throw "Expected SQL Server Instance [$targetInstance] is NOT installed.";
+						}
+					}
+				}
+			}
+			else {
+				[ScriptBlock]$codeBlock = {
+					$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
+					
+					if (($null -eq $installedInstanceNames) -or ($installedInstanceNames.Count -lt 1)) {
+						throw "No Installed SQL Server Instances were Detected.";
+					}
+				}
+			}
+			
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
+		}
+		catch {
+			throw "Proviso Error - Exception creating Assert-SqlServerIsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+		}
 	}
 	
 	end {
-#		if (-not ($Ignored)) {
-#			$surface.AddAssertion($assertion);
-#		}
+		if (-not ($Ignored)) {
+			$surface.AddAssertion($assertion);
+		}
 	}
 }
 
@@ -520,46 +529,47 @@ function Assert-AdminDbInstalled {
 		[Switch]$Ignored = $false
 	);
 	
-#	begin {
-#		Validate-SurfaceBlockUsage -BlockName "Assert";
-#	}
-#	
-#	process {
-#		if ($Ignored) {
-#			return;
-#		}
-#		
-#		try {
-#			[ScriptBlock]$codeBlock = {
-#				$instanceNames = $PVConfig.GetGroupNames("AdminDb");
-#				if ($instanceNames.Count -lt 1) {
-#					throw "Expected 1 or more instances - but none were defined at [AdminDb.*].";
-#				}
-#				
-#				foreach ($instance in $instanceNames) {
-#					if ($PVConfig.GetValue("AdminDb.$instance.Deploy")) {
-#						$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instance) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
-#						if (-not ($exists)) {
-#							return $false;
-#						}
-#					}
-#				}
-#				
-#				return $true;
-#			}
-#			
-#			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
-#		}
-#		catch {
-#			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
-#		}
-#	}
-#	
-#	end {
-#		if (-not ($Ignored)) {
-#			$surface.AddAssertion($assertion);
-#		}
-#	}
+	begin {
+		Validate-SurfaceBlockUsage -BlockName "Assert";
+	}
+	
+	process {
+		if ($Ignored) {
+			return;
+		}
+		
+		try {
+			[ScriptBlock]$codeBlock = {
+				$configDefinedSqlInstances = $PVConfig.GetSqlInstanceNames("AdminDb");
+				
+				if (($null -eq $configDefinedSqlInstances) -or ($configDefinedSqlInstances.Count -lt 1)) {
+					throw "Expected one or more SQL Server Instances to be defined for AdminDb surface configuration/targets - but NONE were found.";
+				}
+				
+				foreach ($targetInstance in $configDefinedSqlInstances) {
+					$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $targetInstance) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
+					if (-not ($exists)) {
+						return $false;
+					}
+					
+					# TODO / vNEXT: can provide an -RequiredVersion or something similar ... which'll zip in to $targetInstance.admindb.dbo.version_history and get the current/latest version. 
+				}
+				
+				return $true;
+			};
+			
+			$assertion = New-Object Proviso.Models.Assertion("Assert-SqlServerIsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
+		}
+		catch {
+			throw "Proviso Error - Exception creating Assert-AdminDbInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+		}
+	}
+	
+	end {
+		if (-not ($Ignored)) {
+			$surface.AddAssertion($assertion);
+		}
+	}
 }
 
 function Rebase {

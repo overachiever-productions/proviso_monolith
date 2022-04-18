@@ -3,8 +3,8 @@
 Surface SqlConfiguration -Target "SqlServerConfiguration" {
 	
 	Assertions  {
-		Assert-UserIsAdministrator; 	# can't set user rights otherwise... 
-		Assert-SqlServerIsInstalled -AssertOnConfigureOnly;
+		Assert-UserIsAdministrator; # can't set user rights otherwise... 
+		Assert-SqlServerIsInstalled -SurfaceTarget "SqlServerConfiguration" -AssertOnConfigureOnly;
 	}
 	
 	Aspect {

@@ -25,7 +25,23 @@ namespace Proviso.Models
         public bool RequiresReboot { get; set; }
 
         // dynamic/run-time values: 
-        public string CurrentSqlInstanceName { get; set; }
+        private string _currentInstanceName;
+
+        public string CurrentSqlInstanceName
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this._currentInstanceName))
+                    return "MSSQLSERVER";
+
+                return this._currentInstanceName;
+            }
+            set
+            {
+                this._currentInstanceName = value;
+            }
+        }
+
         public string CurrentObjectName { get; set; }
         public string CurrentKey { get; set; }
         public object CurrentKeyValue { get; set; }

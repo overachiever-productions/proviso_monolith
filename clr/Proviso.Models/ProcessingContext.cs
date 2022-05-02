@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.PowerShell.Commands;
 using Proviso.Enums;
 using Proviso.Models;
 using Proviso.Processing;
@@ -30,7 +31,21 @@ namespace Proviso
         public Facet CurrentFacet { get; private set; }
         public string CurrentFacetName { get; private set; }
 
-        public string CurrentSqlInstance { get; private set; }
+        private string _currentSqlInstance;
+        public string CurrentSqlInstance 
+        {
+            get
+            {
+               if(string.IsNullOrWhiteSpace(this._currentSqlInstance))
+                    return "MSSQLSERVER";
+
+               return this._currentSqlInstance;
+            }
+            set
+            {
+                this._currentSqlInstance = value;
+            }
+        }
         public object CurrentObjectName { get; private set; }
         public string CurrentConfigKey { get; private set; }
         public object CurrentConfigKeyValue { get; private set; }

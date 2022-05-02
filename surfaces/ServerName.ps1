@@ -1,6 +1,12 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
+
+	vNEXT:
+		- Address the stuff below (Notes on configuration) by using Setup/Deploy. That's going to be way better. 
+		- Not sure if I add it here OR to NetworkAdapters Surface... but...need to have an option to set a network suffix - i.e., for WSFC on/against a workgroup environment. 
+			I THINK this is probably the most logical place to put that. It's networky... but so is DOMAIN membership as well... i.e., DNS suffix/domain-stuff are about on par. 
+
 	Notes on OUTCOMEs and CONFIGURATION
 	Sadly, optional machine-rename + optional domain-join lead to an ugly number of permutations in terms of outcomes that can happen when configuring machine/domian names: 
 		A. No change to Server-Name or Domain-Name. 
@@ -21,7 +27,7 @@ Surface "ServerName" -Target "Host" {
 		
 		Assert-HostIsWindows -FailureMessage "Surface [ServerName] is currently only configured to execute against Windows Server instances";
 		
-		Assert-HasDomainCreds -ForDomainJoin;
+		Assert-HasDomainCreds -ForDomainJoin -ConfigureOnly;
 		
 		Assert "TargetServerNameIsNetBiosCompliant" -FailureMessage "TargetServer value specified in config exceeds 15 chars in legth." {
 			$targetMachineName = $PVConfig.GetValue("Host.TargetServer");

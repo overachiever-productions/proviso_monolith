@@ -13,3 +13,5 @@ $global:PVDomainCreds = [Proviso.DomainCredential]::Instance;
 	
 	$PVDomainCreds.AddCredential($savedCreds);
 }
+
+$global:PVDomainCreds | Add-Member -MemberType NoteProperty -Name RebootCredentials -Value $null -Force;

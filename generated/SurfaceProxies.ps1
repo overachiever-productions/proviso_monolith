@@ -211,6 +211,27 @@ function Run-AdminDbRestoreTests {
 }
 
 #-------------------------------------------------------------------------------------
+# ClusterConfiguration
+#-------------------------------------------------------------------------------------
+function Validate-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation "Validate";
+}
+
+function Configure-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation "Configure";
+}
+
+function Run-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
 # DataCollectorSets
 #-------------------------------------------------------------------------------------
 function Validate-DataCollectorSets {
@@ -481,6 +502,27 @@ function Run-SqlInstallation {
 	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
 	
 	Process-Surface -SurfaceName "SqlInstallation" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
+# SqlVersion
+#-------------------------------------------------------------------------------------
+function Validate-SqlVersion {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "SqlVersion" -Operation "Validate";
+}
+
+function Configure-SqlVersion {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "SqlVersion" -Operation "Configure";
+}
+
+function Run-SqlVersion {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "SqlVersion" -Operation $operationType;
 }
 
 #-------------------------------------------------------------------------------------

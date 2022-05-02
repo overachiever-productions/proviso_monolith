@@ -14,7 +14,6 @@ Surface -Name "LocalAdministrators" -Target "Host" {
 	}
 	
 	Aspect -Scope "LocalAdministrators" {
-		#Facet "AccountExists" -ExpectCurrentKeyValue {
 		Facet "AccountExists" -NoKey -ExpectIteratorValue {
 			Test {
 				$expectedAccount = $PVContext.CurrentConfigKeyValue;

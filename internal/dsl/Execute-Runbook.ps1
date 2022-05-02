@@ -3,15 +3,12 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Map -ProvisoRoot "\\storage\Lab\proviso\";
+	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-	Validate-WindowsPreferences;
+	#Validate-WindowsPreferences;
 
 	Evaluate-Tests;
-
-
-
 
 #>
 
@@ -61,7 +58,8 @@ function Execute-Runbook {
 			$PVContext.EndRunbookProcessing();
 		}
 		
-		if (-not ($runbook.SkipSummary)){
+		if (-not ($runbook.SkipSummary)) {
+			# vNEXT: add this option/functionality:
 			#Summarize -LastRunbook -ProblemsOnly:$($runbook.SummarizeProblemsOnly);
 			Summarize -LatestRunbook;
 		}

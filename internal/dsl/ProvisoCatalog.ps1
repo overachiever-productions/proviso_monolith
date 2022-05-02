@@ -4,10 +4,10 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-
-	#Write-Host "Count: $($PVCatalog.HostCount())";
-
 	$PVCatalog.GetEnumeratedHosts();
+	
+	Target -HostName "PRO-197" -Force;
+
 
 #>
 
@@ -36,6 +36,8 @@ $global:PVCatalog = [Proviso.ProvisoCatalog]::Instance;
 			
 			$configTargetHostName = $config.Host.TargetServer;
 			if ($fileName -eq $configTargetHostName) {
+				# vNEXT: MAYBE??? Account for duplicate Host-Names in different folders. 
+				#  PRO-276: https://overachieverllc.atlassian.net/browse/PRO-276
 				$this.AddHostDefinition($configTargetHostName, $fullPath);
 			}
 		}

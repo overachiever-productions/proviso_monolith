@@ -24,7 +24,6 @@ Surface "RequiredPackages" -Target "Host" {
 			}
 			Configure {
 				
-				#if ($PVConfig.GetValue("Host.RequiredPackages.WsfcComponents")) {
 				if($PVContext.CurrentConfigKeyValue) {
 					
 					$rebootRequired = Install-WsfcComponents;

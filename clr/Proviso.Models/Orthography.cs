@@ -98,7 +98,7 @@ namespace Proviso
             {
                 if (this._methodsStack.Count < 1)
                 {
-                    return "Validate can't be called by itself. It needs to follow With... ";
+                    return "Validate can't be until a Target has been specified... ";
                 }
                 this._methodsStack.Push(method);
             }

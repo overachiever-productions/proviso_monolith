@@ -27,11 +27,10 @@ Surface -Name "LocalAdministrators" -Target "Host" {
 			}
 			Configure {
 				$expectedAccount = $PVContext.CurrentConfigKeyValue;
-				throw "Unable to CREATE AD or LOCAL user [$expectedAccount]. Proviso can't/won't know the password or other critical detaiils. Make sure this user EXISTS before continuing.";
+				throw "Unable to user [$expectedAccount]. Proviso can't know the password or other critical details. Make sure this user EXISTS before continuing.";
 			}
 		}
 		
-		#Facet "IsLocalAdmin" -Expect $true { 
 		Facet "IsLocalAdmin" -Expect $true -NoKey {
 			Test {
 				$expectedAccount = $PVContext.CurrentConfigKeyValue;
@@ -45,6 +44,11 @@ Surface -Name "LocalAdministrators" -Target "Host" {
 			}
 			Configure {
 				$expectedAccount = $PVContext.CurrentConfigKeyValue;
+				
+				$exists = ConvertTo-WindowsSecurityIdentifier -Name $expectedAccount;
+				if ($null -eq $exists) {
+					throw "User $expectedAccount was not found - and cannot be added.";
+				}
 				
 				Add-LocalGroupMember -Group Administrators -Member $expectedAccount;
 				$PVContext.WriteLog("Added [$expectedAccount] to Local Administrators Group...", "Verbose");

@@ -12,6 +12,9 @@ Describe "Unit Tests for Get-KeyType" -Tags "UnitTests" {
 	Context "Static Key Tests" {
 		It "Should return Static as Type for Static Host Surface Entry" {
 			Get-KeyType -Key "Host.TargetServer" | Should -Be "Static";
+			
+			Get-KeyType -Key "ClusterConfiguration.ClusterType" | Should -Be "Static";
+			Get-KeyType -Key "ClusterConfiguration.Witness" | Should -Be "Static";
 		}
 	}
 	
@@ -36,10 +39,12 @@ Describe "Unit Tests for Get-KeyType" -Tags "UnitTests" {
 		
 		It "Should return SqlInstance for Explicit SqlInstallation Key" {
 			Get-KeyType -Key "SqlServerInstallation.XMKC12.Features" | Should -Be "SqlInstance";
+			Get-KeyType -Key "SqlServerPatches.MSSQLSERVER.TargetSP" | Should -Be "SqlInstance";
 		}
 		
 		It "Should return SqlInstance for Implicit SqlInstallation Key" {
 			Get-KeyType -Key "SqlServerInstallation.Features" | Should -Be "SqlInstance";
+			Get-KeyType -Key "SqlServerPatches.TargetCu" | Should -Be "SqlInstance";
 		}
 		
 		It "Should return SqlInstance for SqlServerConfiguration Key"{
@@ -86,6 +91,9 @@ Describe "Proviso-Key Validation Tests" {
 			Is-ValidProvisoKey -Key "SqlServerManagementStuidioiooio.InstallPath" | Should -Be $false;
 			Is-ValidProvisoKey -Key "Host.ServerPreferences.SetPowerConfigHigh" | Should -Be $false; # windowsPrefs not ServerPrefs
 			Is-ValidProvisoKey -Key "Host.LimitHostTls" | Should -Be $false;
+			
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterAddresses" | Should -Be $false;
+
 		}
 				
 		It "Returns true for valid Static Keys" {
@@ -94,6 +102,16 @@ Describe "Proviso-Key Validation Tests" {
 			Is-ValidProvisoKey -Key "SqlServerManagementStudio.InstallPath" | Should -Be $true;
 			Is-ValidProvisoKey -Key "Host.WindowsPreferences.SetPowerConfigHigh" | Should -Be $true;
 			Is-ValidProvisoKey -Key "Host.LimitHostTls1dot2Only" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "ClusterConfiguration.EvictionBehavior" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterType" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterName" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterNodes" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterIPs" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.ClusterDisks" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "ClusterConfiguration.Witness" | Should -Be $true;
+			Is-ValidProvisoKey -Key "ClusterConfiguration.GenerateClusterSpns" | Should -Be $true;
 		}
 		
 		It "Doesn't care about Key Case" {
@@ -155,6 +173,10 @@ Describe "Proviso-Key Validation Tests" {
 			
 			Is-ValidProvisoKey -Key "AdminDb.Enabled" | Should -Be $false;
 			Is-ValidProvisoKey -Key "AdminDb.Deploy" | Should -Be $false;
+			
+			Is-ValidProvisoKey -Key "SqlServerPatches.TargetSP" | Should -Be $false;
+			
+			Is-ValidProvisoKey -Key "SqlServerConfiguration.DisableSaLogin" | Should -Be $false;
 		}
 	}
 	
@@ -168,6 +190,8 @@ Describe "Proviso-Key Validation Tests" {
 			
 			Is-ValidProvisoKey -Key "SqlServerInstallation.MSSQLSERVER.SqlExePath" | Should -Be $true;
 			Is-ValidProvisoKey -Key "SqlServerInstallation.X3.SqlServerDefaultDirectories.SqlDataPath" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "SqlServerPatches.MSSQLSERVER.TargetSP" | Should -Be $true;
 		}
 		
 		It "Doesn't care about case for SQL Instance Keys" {
@@ -191,6 +215,7 @@ Describe "Proviso-Key Validation Tests" {
 			Is-ValidProvisoKey -Key "ExtendedEvents.DisableTelemetry" | Should -Be $false;
 			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.XelFileSizeMb" | Should -Be $false;
 			Is-ValidProvisoKey -Key "ExtendedEvents.BlockedProcesses.SessionName" | Should -Be $false;
+			Is-ValidProvisoKey -Key "SqlServerPatches.TargetCU" | Should -Be $false;
 		}
 		
 		It "Returns true for Explicit Keys" {
@@ -203,6 +228,8 @@ Describe "Proviso-Key Validation Tests" {
 			Is-ValidProvisoKey -Key "ExtendedEvents.MSSQLSERVER.BlockedProcesses.SessionName" | Should -Be $true;
 			
 			Is-ValidProvisoKey -Key "ExtendedEvents.SQL18.BlockedProcesses.Enabled" | Should -Be $true;
+			
+			Is-ValidProvisoKey -Key "SqlServerPatches.MSSQLSERVER.TargetCU" | Should -Be $true;
 		}
 		
 		It "Ignores Case for Proper Keys" {
@@ -287,8 +314,8 @@ Describe "Explicit vs Implicit Key Tests" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.TEST2016.EnabledUserRights" | Should -Be "SqlServerConfiguration.TEST2016.EnabledUserRights";
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.TEST2016.EnabledUserRights.LockPagesInMemory" | Should -Be "SqlServerConfiguration.TEST2016.EnabledUserRights.LockPagesInMemory";
 			
-			# TODO: Enable
-			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches.MSSQLSERVER" | Should -Be "SqlServerPatches.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches.MSSQLSERVER" | Should -Be "SqlServerPatches.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches.MSSQLSERVER.TargetCU" | Should -Be "SqlServerPatches.MSSQLSERVER.TargetCU";
 		}
 		
 		It "Does Not Modify Explicit AdminDb Key" {
@@ -319,7 +346,7 @@ Describe "Explicit vs Implicit Key Tests" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "ExpectedDirectories.RawDirectories" | Should -Be "ExpectedDirectories.MSSQLSERVER.RawDirectories";
 		}
 		
-		It "Transforms Implicit SqlInstall and Config Keys to Explicit Keys" {
+		It "Transforms Implicit SqlInstall, Config, and Patch Keys to Explicit Keys" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation" | Should -Be "SqlServerInstallation.MSSQLSERVER";
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.SqlExePath" | Should -Be "SqlServerInstallation.MSSQLSERVER.SqlExePath";
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerInstallation.Setup" | Should -Be "SqlServerInstallation.MSSQLSERVER.Setup";
@@ -331,8 +358,8 @@ Describe "Explicit vs Implicit Key Tests" {
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.EnabledUserRights.LockPagesInMemory" | Should -Be "SqlServerConfiguration.MSSQLSERVER.EnabledUserRights.LockPagesInMemory";
 			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerConfiguration.TraceFlags" | Should -Be "SqlServerConfiguration.MSSQLSERVER.TraceFlags";
 			
-			# TODO: Enable
-			#Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches" | Should -Be "SqlServerPatches.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches" | Should -Be "SqlServerPatches.MSSQLSERVER";
+			Ensure-ProvisoConfigKeyIsNotImplicit -Key "SqlServerPatches.TargetSP" | Should -Be "SqlServerPatches.MSSQLSERVER.TargetSP";
 		}
 		
 		It "Transforms Implicit AdminDb Keys to Explicit Keys" {
@@ -365,6 +392,7 @@ Describe "Facet-Type Key Tests" {
 			Get-FacetTypeByKey -Key "Host.WindowsPreferences.OptimizeExplorer" | Should -Be "Simple";
 			Get-FacetTypeByKey -Key "Host.FirewallRules.EnableICMP" | Should -Be "Simple";
 			Get-FacetTypeByKey -Key "Host.AllowGlobalDefaults" | Should -Be "Simple";
+			Get-FacetTypeByKey -Key "ClusterConfiguration.PrimaryNode" | Should -Be "Simple";
 		}
 		
 		It "Identifies Array Host Keys as SimpleArray" {

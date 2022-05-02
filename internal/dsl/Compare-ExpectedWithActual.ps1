@@ -38,7 +38,12 @@ function Compare-ExpectedWithActual {
 					if ($Expected) {
 						# sigh. have to flip this around, cuz if(<somethingThatEvaluatesToTrue> -etc) is evaluated, we'll 100% short circuit if the data types are the exact same/etc. 
 						$comparedValuesMatch = ($actualResult -eq $Expected);
-					}				
+					}
+					else {
+						if ((-not ($Expected)) -and (-not ($actualResult))) {
+							$comparedValuesMatch = $true; # Honestly, this is super lame... 
+						}
+					}
 				}
 				else {
 					$comparedValuesMatch = ($Expected -eq $actualResult);

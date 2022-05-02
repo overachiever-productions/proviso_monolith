@@ -67,6 +67,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 		
 		# TODO: 
 		#  HMMMM. Look at how I'm tackling this with SqlInstallation.InstanceExists - i.e., ExpectIteratorKey... (That might be a better option - though I don't want to expect a 'raw' value... )
+		# 		yeah... should TOTALLY be -ExpectIteratorKey here... 
 		# 		OTHERWISE (original comments below):
 		# 	Using -Key "Enabled" _here_ is a HACK. I'm not ACTUALLY even using the key - just 'forcing' it to be a placeholder. 
 		# 		Instead, I need to add an option for -NoChildKey or -SkipChildKey (or whatever) that allows for these kinds of 'Exists' checks. 
@@ -121,15 +122,14 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 					$isEnabled = "ON";
 				}
 				
-				$xeBody = $template -replace "{sessionName}", $sessionName;
-				$xeBody = $template -replace "{storagePath}", $xelFilePath;
-				$xeBody = $template -replace "{maxFileSize}", $fileSize;
-				$xeBody = $template -replace "{maxFiles}", $fileCount;
-				$xeBody = $template -replace "{startupState}", $startupState;
-				$xeBody = $template -replace "{isEnabled}", $isEnabled;
+				[string]$xeBody = $template -replace "{sessionName}", $sessionName;
+				$xeBody = $xeBody -replace "{storagePath}", $xelFilePath;
+				$xeBody = $xeBody -replace "{maxFileSize}", $fileSize;
+				$xeBody = $xeBody -replace "{maxFiles}", $fileCount;
+				$xeBody = $xeBody -replace "{startupState}", $startupState;
+				$xeBody = $xeBody -replace "{isEnabled}", $isEnabled;
 				
-				Write-Host $xeBody;
-				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query $xeBody;
 			}
 		}
 		
@@ -150,6 +150,8 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 			Configure {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				$sessionKey = $PVContext.CurrentObjectName;
+				
+				
 			}
 		}
 		
@@ -160,8 +162,12 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				
 				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
 				
-				# run a query to see if $sessionName starts with system or not... and return as needed. 
+				$startState = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT startup_state FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName';").startup_state;
+				if ($startState) {
+					return $true;
+				}
 				
+				return $false;
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -169,7 +175,16 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				
 				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
 				
-				# run an ALTER to set $sessionName to start with system OR NOT... 
+				$desiredState = $PVContext.CurrentConfigKeyValue;
+				$desiredStateString = "ON";
+				if (-not($desiredState)) {
+					$desiredStateString = "OFF";
+					
+					# TODO: need to see what the CURRENT value is - it MIGHT be OFF/disabled. (though, in which case, why is this... trying to make a change? )
+					$PVContext.WriteLog("WARNING: Extended Events Session [$sessionName] has been DISABLED.", "Important");
+				}
+				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER EVENT SESSION [$sessionName] ON SERVER WITH (STARTUP_STATE = $desiredStateString); ";
 			}
 		}
 		

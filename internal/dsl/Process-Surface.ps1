@@ -3,10 +3,12 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+	Map -ProvisoRoot "\\storage\Lab\proviso\";
+	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-	#Validate-ServerName;	
+	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
+	Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
+
 	#Validate-NetworkAdapters;
 	#Validate-WindowsPreferences;
 	#Validate-RequiredPackages;
@@ -14,7 +16,7 @@
 	#Validate-FirewallRules; 
 	#Validate-ExpectedDisks;
 	#Validate-SqlInstallation;
-	#Validate-SqlConfiguration;
+	Validate-SqlConfiguration;
 	#Validate-ExpectedDirectories;
 	#Validate-ExpectedShares;
 	#Validate-SsmsInstallation;
@@ -22,7 +24,10 @@
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
 
-	Validate-ExtendedEvents;
+	#Validate-ExtendedEvents;
+	#Validate-SqlVersion;	
+	
+	Validate-ClusterConfiguration;
 
 	Summarize;
 
@@ -357,16 +362,18 @@ function Process-Surface {
 		
 #		Write-Host "-------------------------------------------------------------------------------------------------------------------------";
 #		Write-Host "";
+#		
 #		Write-Host "Count of Facets: $($facets.Count)";
 #		foreach ($facet in $facets) {
 #			Write-Host "FACET: $($facet.Name):"
+#			Write-Host "	FacetType: $($facet.FacetType)"
 #			Write-Host "	CurrentKey: $($facet.CurrentKey)"
 #			Write-Host "	CurrentKeyValue: $($facet.CurrentKeyValue)"
 #			Write-Host "	CurrentObject: $($facet.CurrentObjectName)"
 #			Write-Host "	CurrentSqlInstance: $($facet.CurrentSqlInstanceName)"
 #			Write-Host "		Expect: $($facet.Expect) ";
 #		}
-		#return;
+#		return;
 		
 		# --------------------------------------------------------------------------------------
 		# Validations

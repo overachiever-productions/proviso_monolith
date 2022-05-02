@@ -166,11 +166,8 @@
 	
 	SqlServerPatches = @{
 		"{~SQLINSTANCE~}" = @{
-			# TODO: add any keys here to ProvisoConfig.ps1 -> Is-KeyValid and other implementations... 
-			
-			# these either use convention of file-name (added to \binaries\xxxx\whatever) or, they provide full-blown, hard-coded paths "e.g., C:\blah\patch_name.exe"
-			TargetSP = "{~DEFAULT_PROHIBITED~}"  
-			TargetCU = "{~DEFAULT_PROHIBITED~}"
+			TargetSP = "{~EMPTY~}"
+			TargetCU = "{~EMPTY~}"
 		}
 	}
 	
@@ -371,21 +368,49 @@
 		InstallPath	       	= "C:\Program Files (x86)\Microsoft SQL Server Management Studio 18"
 	}
 	
-	ResourceGovernor = @{
-		"{~SQLINSTANCE~}" = @{
-			Enabled = $false # default to off by default. 
-			
-			# actually, might need ... thingies AND pools? i.e., might need 2x different collections of thingies - which could have ~ANY~ names... 
-			
-			"{~ANY~}" = @{
-				
-				PoolNameOrWhatever = "{~PARENT~}"
-			}
-		}
-	}
-	
 	ClusterConfiguration = @{
-		ClusterType = "NONE"
+		ClusterType = "NONE" # Options: AG, AGx (scale-out/workgroup/etc.), FCI, NONE
+		
+		PrimaryNode = "{~DEFAULT_PROHIBITED~}"
+		EvictionBehavior = "WARN"    # if part of cluster and name <> ClusterName or ClusterType = "NONE"... then warn (by default)
+		
+		ClusterName 		= "{~DEFAULT_PROHIBITED~}"
+		ClusterNodes		= @("{~EMPTY~}")
+		ClusterIPs			= @("{~EMPTY~}")
+		
+		ClusterDisks	 	= @("{~EMPTY~}")  # not implemented yet... 
+		
+		Witness   = @{
+			FileShareWitness = "{~DEFAULT_PROHIBITED~}"
+		}
+		
+		GenerateClusterSpns = $false
+		
+# 		SomethingSomethingPreferedConfigurationHost = "PRO197"  # i.e., an OPTION to determine WHICH instance should do the cluster creation, etc. 
+# 	couldbe: ClusterPrimaryNode = "PRO197"
+#
+#		EvictionBehavior = "NONE | WARN | ABORT | FORCE-EVICTION"; # what to do if current machine is PART of a cluster, but ClusterType = "NONE"
+#		
+#		ClusterName	     = "AWS2-CLUSTER-SQLX"
+#		ClusterNodes	 = @(
+#			"AWS-SQL-1A"
+#			"AWS-SQL-1B" # will attempt to JOIN/ADD other nodes ... unless they're not present... then it will just add what's possible/available/present
+#		)
+#		
+#		ClusterIPs	     = @(
+#			"10.10.31.120"
+#			"10.20.31.120"
+#		)
+#		
+#		ClusterDisks = @{
+#			???? 
+#		}
+#		
+#		Witness		     = @{
+#			FileShareWitness = "\\aws2-dc\clusters\"
+#			DiskWitness
+#			AzureWhatzItWitness		
+#		}
 	}
 	
 	AvailabilityGroups = @{
@@ -396,7 +421,7 @@
 				Enabled						    = $false
 				PortNumber					    = 5022
 				Name						    = ""
-				AllowedOwnersConnectingAccounts = @("{~EMPTY~}")
+				AllowedOwnersConnectingAccounts = @("{~EMPTY~}")  # e.g., xyZAdmin, sa, etc... 
 			}
 			
 			SynchronizationChecks  = @{
@@ -404,7 +429,7 @@
 					AddPartners		       = ""
 					SyncCheckJobs		   = ""
 					AddFailoverProcessing  = ""
-					AddDisabledJobCategory = ""
+					CreateDisabledJobCategory = ""
 				}
 			}
 			
@@ -434,8 +459,21 @@
 		}
 	}
 	
+	ResourceGovernor = @{
+		"{~SQLINSTANCE~}" = @{
+			Enabled   = $false # default to off by default. 
+			
+			# actually, might need ... thingies AND pools? i.e., might need 2x different collections of thingies - which could have ~ANY~ names... 
+			
+			"{~ANY~}" = @{
+				
+				PoolNameOrWhatever = "{~PARENT~}"
+			}
+		}
+	}
+	
 #	CustomScripts {
-#		
+#		# Custom powershell scripts... in various groups. 
 #	}
 	
 	CustomSqlScripts = @{   # or, call this just 'SqlScripts'?

@@ -181,6 +181,16 @@ filter Get-SqlServerInstanceMajorVersion {
 	$parts[0].Replace("MSSQL", "");
 }
 
+filter Get-SqlServerInstanceCurrentVersion {
+	param (
+		[string]$InstanceName
+	);
+	
+	$version = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $InstanceName) -Query "SELECT CAST(SERVERPROPERTY('ProductVersion') AS sysname) [version]; ").version;
+	
+	return $version;
+}
+
 function Get-SqlServerInstanceDetailsFromRegistry {
 	
 	param (
@@ -455,6 +465,9 @@ function Install-SqlServer {
 		}
 		
 		$outcome = Invoke-Expression $installCommand;
+		
+		$PVContext.WriteLog("Raw SQL Installation Outcome: $outcome", "Debug");
+		
 		switch ($Version) {
 			"2019" {
 				$2019 = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
@@ -479,4 +492,36 @@ function Install-SqlServer {
 	end {
 		
 	};
+}
+
+function Install-SqlServerPatch {
+	param (
+		[switch]$StrictInstallOnly = $false, # hmm... do I even need this? 
+		[string]$InstanceName = "MSSQLSERVER",
+		[string]$SpOrCuPath
+	);
+	
+	if (-not (Test-Path -Path $SpOrCuPath -ErrorAction SilentlyContinue)) {
+		throw "Invalid SQL Server SP or CU Path Specified: [$SpOrCuPath].";
+	}
+	
+	$arguments = @();
+	
+	$arguments += "/action=Patch";
+	$arguments += "/instancename=$InstanceName";
+	$arguments += "/quiet";
+	$arguments += "/hideconsole";
+	$arguments += "/IAcceptSQLServerLicenseTerms";
+	
+	$PVContext.WriteLog("Starting (quiet) installation of [$SpOrCuPath].", "Important");
+	try {
+		$PVContext.WriteLog("SP or CU installation binaries and args: $SpOrCuPath $arguments", "Debug");
+		
+		& "$SpOrCuPath" $arguments | Out-Null;
+		
+		$PVContext.WriteLog("SP or CU [$SpOrCuPath] Installed.", "Verbose");
+	}
+	catch {
+		throw "Exception during installation of SP or CU [$SpOrCuPath]: $_ ";
+	}
 }

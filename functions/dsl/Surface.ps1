@@ -481,20 +481,24 @@ function Assert-SqlServerIsInstalled {
 			[ScriptBlock]$codeBlock = $null;
 			
 			if ($SurfaceTarget) {
-				[ScriptBlock]$codeBlock = {
-					$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
-					
-					$targetInstancenames = $PVConfig.GetSqlInstanceNames($SurfaceTarget);
-					if (($null -eq $targetInstancenames) -or ($targetInstancenames.Count -lt 1)) {
-						throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [$SurfaceTarget] - but none were defined.";
-					}
-					
-					foreach ($targetInstance in $targetInstancenames) {
-						if ($installedInstanceNames -notcontains $targetInstance) {
-							throw "Expected SQL Server Instance [$targetInstance] is NOT installed.";
-						}
-					}
-				}
+				
+				
+				# This 'has' to be dynamically created - to get around the need to pass $SurfaceTarget around inside as a 'string'... 
+				# TODO: verify that this is working as expected ... i.e., what's it doing for other variable names? i.e., is the string output what I expect it to be? 
+				$codeBlockAsString = '$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
+
+$targetInstancenames = $PVConfig.GetSqlInstanceNames("$SurfaceTarget");
+if (($null -eq $targetInstancenames) -or ($targetInstancenames.Count -lt 1)) {{
+	throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [$SurfaceTarget] - but none were defined.";
+}}
+
+foreach ($targetInstance in $targetInstancenames) {{
+	if ($installedInstanceNames -notcontains $targetInstance) {{
+		throw "Expected SQL Server Instance [$targetInstance] is NOT installed.";
+	}}
+}}
+';
+				[ScriptBlock]$codeBlock = [ScriptBlock]::Create($codeBlockAsString);
 			}
 			else {
 				[ScriptBlock]$codeBlock = {
@@ -572,6 +576,45 @@ function Assert-AdminDbInstalled {
 	}
 }
 
+function Assert-WsfcComponentsInstalled {
+	param (
+		[string]$FailureMessage = "WSFC Components must be installed to validate and/or configure Cluster Components.",
+		[Alias("Skip", "DoNotRun")]
+		[Switch]$Ignored = $false
+	);
+	
+	begin {
+		Validate-SurfaceBlockUsage -BlockName "Assert";
+	}
+	
+	process {
+		if ($Ignored) {
+			return;
+		}
+		
+		try {
+			[ScriptBlock]$codeBlock = {
+				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
+				
+				if ($installed -ne "Installed") {
+					return $false;
+				}
+			};
+			
+			$assertion = New-Object Proviso.Models.Assertion("Assert-WsfcComponentsInstalled", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $false);
+		}
+		catch {
+			throw "Proviso Error - Exception creating Assert-WsfcComponentsInstalled: `rException: $_ `r`t$($_.ScriptStackTrace)";
+		}
+	}
+	
+	end {
+		if (-not ($Ignored)) {
+			$surface.AddAssertion($assertion);
+		}
+	}
+}
+
 function Rebase {
 	param (
 		[scriptblock]$RebaseBlock
@@ -617,8 +660,11 @@ function Facet {
 		[string]$Key = "",
 		[string]$FullKey = "",
 		[switch]$NoKey = $false,
-		[switch]$ExpectKeyValue = $false,					
-		[switch]$ExpectIteratorValue = $false,				
+		[switch]$ExpectKeyValue = $false,
+		[switch]$ExpectIteratorValue = $false,
+		[string]$Proctor = "",
+		[string]$ElideWhenExpectIs = "",
+		[string]$ElideWhenProctorIs = "",
 		[switch]$RequiresReboot = $false
 	)
 	
@@ -637,7 +683,7 @@ function Facet {
 			}
 			
 			$facetKey = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key $facetKey;
-			
+				
 			if (-not (Is-ValidProvisoKey -Key $facetKey)) {
 				throw "Invalid Configuration Key [$facetKey] found in Surface [$($surface.Name)] and Facet of [$Name].";
 			}

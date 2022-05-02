@@ -49,3 +49,38 @@ Describe "Extended Events Defaults" {
 		}
 	}
 }
+
+Describe "ClusterConfiguration Defaults" {
+	Context "Scalar ClusterConfiguration Defaults" {
+		It "Defines NONE as the ClusterType Default" {
+			Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.ClusterType" | Should -Be "NONE";
+		}
+		
+		It "Defines WARN as EvictionBehavior Default" {
+			Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.EvictionBehavior" | Should -Be "WARN";
+		}
+		
+		It "Prevents Default Value for PrimaryNode Definition" {
+			{ Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.PrimaryNode" } | Should -Throw;
+		}
+		
+		It "Prevents Default Value for ClusterName Definition" {
+			{ Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.ClusterName" } | Should -Throw;
+		}
+	}
+	
+	Context "Array ClusterConfiguration Defaults" {
+		It "Specified Empty as ClusterNodes Default" {
+			Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.ClusterNodes" | Should -Be @();
+		}
+		
+		It "Specified Empty as ClusterIPs Default" {
+			Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.ClusterIPs" | Should -Be @();
+		}
+		
+		It "Specified Empty as ClusterDisks Default" {
+			Get-ProvisoConfigDefaultValue -Key "ClusterConfiguration.ClusterDisks" | Should -Be @();
+		}
+		
+	}
+}

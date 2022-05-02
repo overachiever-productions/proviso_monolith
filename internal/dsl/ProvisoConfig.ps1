@@ -3,14 +3,13 @@
 <#
 	
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Map -ProvisoRoot "\\storage\Lab\proviso\";
+	Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
 
-	Write-Host "-----------------------"
+	Is-ValidProvisoKey -Key "SqlServerConfiguration.DisableSaLogin";
+	Is-ValidProvisoKey -Key "SqlServerConfiguration.DeployContingencySpace";
 
-	# need this to be: ExtendedEvents.MSSQLSERVER.{~ANY~}.Enabled... 
-	$key = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key "ExtendedEvents.MSSQLSERVER.Enabled";
-	
-Write-Host $key;
-
+	$PVConfig.GetSqlInstanceNames("SqlServerConfiguration");
 
 #>
 
@@ -20,8 +19,13 @@ Write-Host $key;
 Set-Variable -Name FINAL_NODE_EXPECTED_DIRECTORIES_KEYS -Option ReadOnly -Value @("VirtualSqlServerServiceAccessibleDirectories", "RawDirectories");
 Set-Variable -Name FINAL_NODE_EXPECTED_SHARES_KEYS -Option ReadOnly -Value @("ShareName", "SourceDirectory", "ReadOnlyAccess", "ReadWriteAccess");
 Set-Variable -Name FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS -Option ReadOnly -Value @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
+Set-Variable -Name FINAL_NODE_SQL_SERVER_CONFIGURATION_KEYS -Option ReadOnly -Value @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisableSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
 Set-Variable -Name FINAL_NODE_ADMINDB_KEYS -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
 Set-Variable -Name FINAL_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("SessionName", "Enabled", "DefinitionFile", "StartWithSystem", "XelFileSizeMb", "XelFileCount", "XelFilePath");
+Set-Variable -Name FINAL_NODE_SQL_SERVER_PATCH_KEYS -Option ReadOnly -Value @("TargetSP", "TargetCU");
+
+#TODO: ClusterWitness AND FileShareWitness can NOT _BOTH_ be 'terminal/final' keys... 
+Set-Variable -Name FINAL_NODE_CLUSTER_CONFIGURATION_KEYS -Option ReadOnly -Value @("ClusterType", "PrimaryNode", "EvictionBehavior", "ClusterName", "ClusterNodes", "ClusterIPs", "ClusterDisks", "ClusterWitness", "FileShareWitness", "GenerateClusterSpns");
 
 Set-Variable -Name BRANCH_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("DisableTelemetry", "DefaultXelDirectory", "BlockedProcessThreshold");
 
@@ -128,6 +132,10 @@ filter Get-FacetTypeByKey {
 		}
 		"ClusterConfiguration" {
 			$output = "Simple";
+			
+			if ($parts[1] -in @("ClusterNodes", "ClusterIPs", "ClusterDisks")) {
+				$output = "SimpleArray"
+			}
 		}
 		{ $_ -in @("ExpectedShares", "DataCollectorSets") } {  # NOTE: Host.ExpectedDisks and Host.NetworkDefinitions have already been handled in the "Host" case... 
 			$output = "Object";
@@ -292,11 +300,10 @@ filter Is-NonValidChildKey {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
 		}
 		"SqlServerConfiguration"{
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisablSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisableSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
 		}	
 		"SqlServerPatches" {
-			#$stringsThatAreChildKeysNotSqlServerInstanceNames += @("
-			throw 'Proviso Framework Error. Determination of non-valid child keys for SQL Server Patches has not been completed yet.';
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("TargetSP", "TargetCU");
 		}
 		"AdminDb" {
 			# add common 'typos' or keys used as child keys that can't/shouldn't be SQL Server instance names: 
@@ -367,6 +374,7 @@ filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
 				}
 				$sqlInstanceDefaultedKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
 				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $sqlInstanceDefaultedKey;
+				
 			}
 			"Dynamic" {
 				$targetPart = 1;
@@ -786,46 +794,103 @@ filter Set-ConfigTarget {
 			continue;
 		}
 		
+		#region OLD Comments on how confusing this next bit of code is... (i.e., IGNORE-ish)
+		# MKC: the ELSE clause below needs to be removed/reworked. 
+		# 	I THINK it's some bit of 'extra protection/validation' added in 'after the fact' that tries to do a couple of things: 
+		# 		1. watch for invalid 'terminator' keys... 
+		# 			Only, it does NOT do that correctly - it's checking parts[1] all the time/etc... 
+		# 			i.e., it's NOT strong enough for LEGIT evaluations... so, all it does is CAUSE PROBLEMS with things that should, otherwise, be FINE. 
+		# 		2. shift IMPLICIT keys that are NOT yet valid (ExtendedEvents.DisableTelemetry) to explicit keys (ExtendedEvents.MSSQLSERVER.DisableTelemetry)
+		# 			which is great... 
+		# 			but... i think the fix there should be: 
+		# 				a. get rid of all of the termination/final-node checking. 
+		# 				b. do the replace that's defined AFTER the switch (i.e., make things explicit)
+		# 				c. ... run an ADDITIONAL check to see if the key is NOW valid. 
+		#   and... yeah... looks like that totally worked. 
+		#endregion
+		
+		# MKC: 
+		# 	This code/logic is confusing. 
+		#   Effectively: 
+		# 		loop through ALL keys in the .psd1 file (or source). 
+		# 		if the file is a LEGIT key ... then just add it in (unless it's a hashtable... (then just ignore it, its CHILDREN will get added as needed.)
+		# 		if it's NOT valid... then, it SHOULD just be an IMPLICIT key that needs to be made into an EXPLICIT key (e.g., parts[0] + .MSSQLSERVER)
+		# 			arguably, there could, also be a scenario where the key - after being made explicit, MIGHT? need place-holders for {~ANY~}... 
+		# 			but I don't THINK so???? 
+		
+		
 		if (Is-ValidProvisoKey -Key $key) {
+			
 			if ($value -isnot [hashtable]) {
 				$hashtableForPVConfigContents.Add($key, $value);
 			}
 		}
 		else {
-			$parts = $key -split '\.';
 			
-			switch ($key) {
-				{ $_ -like "SqlServerInstallation*"	} {
-					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS) {
-						throw "Fatal Error. Invalid SqlServerInstallation Configuration Key: [$key].";
-					}
-				}
-				{ $_ -like "AdminDb*" } {
-					if ($parts[1] -notin $FINAL_NODE_ADMINDB_KEYS) {
-						throw "Fatal Error. Invalid AdminDb Configuration Key: [$key].";
-					}
-				}
-				{ $_ -like "ExpectedDirectories*" } {
-					if ($parts[1] -notin $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS) {
-						throw "Fatal Error. Invalid ExpectedDirectories Configuration Key: [$key].";
-					}
-				}
-				{ $_ -like "ExpectedShares*" } {
-					if ($parts[1] -notin $FINAL_NODE_EXPECTED_SHARES_KEYS) {
-						throw "Fatal Error. Invalid ExpectedShares Configuration Key: [$key].";
-					}
-				}
-				{ $_ -like "ExtendedEvents*" } {
-					if ($parts[1] -notin $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-						throw "Fatal Error. Invalid Extended Events Configuration Key: [$key].";
-					}
-				}
-				default {
-					throw "Fatal Error. Invalid Configuration Key: [$key].";
-				}
-			}
-	
+			$parts = $key -split '\.';
+#Write-Host "Invalid Key: $key"			
+#			switch ($key) {
+#				{ $_ -like "SqlServerInstallation*"	} {
+#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS) {
+#						throw "Fatal Error. Invalid SqlServerInstallation Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "SqlServerConfiguration*" } {
+#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_CONFIGURATION_KEYS) {
+#						throw "Fatal Error. Invalid SQLServerConfiguration Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "AdminDb*" } {
+#					if ($parts[1] -notin $FINAL_NODE_ADMINDB_KEYS) {
+#						throw "Fatal Error. Invalid AdminDb Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "ExpectedDirectories*" } {
+#					if ($parts[1] -notin $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS) {
+#						throw "Fatal Error. Invalid ExpectedDirectories Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "ExpectedShares*" } {
+#					if ($parts[1] -notin $FINAL_NODE_EXPECTED_SHARES_KEYS) {
+#						throw "Fatal Error. Invalid ExpectedShares Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "ExtendedEvents*" } {
+#		#Write-Host "parts: $parts"
+##					if ($parts[1] -notin $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
+##						throw "Fatal Error. Invalid Extended Events Configuration Key: [$key].";
+##					}
+#				}
+#				{ $_ -like "SqlServerPatches*"} {
+#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_PATCH_KEYS) {
+#						throw "Fatal Error. Invalid SQL Server Patches Configuration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "ResourceGovernor*"} {
+#					throw "ResourceGovernor are NOT implemented YET.";
+#				}
+#				{ $_ -like "ClusterConfiguration*" } {
+#					if ($parts[1] -notin $FINAL_NODE_CLUSTER_CONFIGURATION_KEYS) {
+#						throw "Fatal Error. Invalid ClusterConfiguration Key: [$key].";
+#					}
+#				}
+#				{ $_ -like "AvailabilityGroups*" } {
+#					throw "AvailabilityGroups are NOT implemented YET.";
+#				}
+#				{ $_ -like "CustomSqlScripts*" } {
+#					throw "CustomSqlScripts are NOT implemented YET.";
+#				}				
+#				default {
+#					throw "Fatal Error. Invalid/Unknown Configuration Key: [$key].";
+#				}
+#			}
+			
 			$explicitKey = $key -replace "$($parts[0])", "$($parts[0]).MSSQLSERVER";
+			
+			if (-not (Is-ValidProvisoKey -Key $explicitKey)) {
+				throw "Fatal Error. Invalid Configuration Key Encountered while Executing Import from config file. Key: [$key].";
+			}
+			
 			$hashtableForPVConfigContents.Add($explicitKey, $value);
 		}
 	}

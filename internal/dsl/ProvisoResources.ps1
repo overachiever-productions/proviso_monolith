@@ -2,6 +2,13 @@
 
 <#
 
+	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+
+	$PVResources.GetSqlSpOrCu("SQLServer2019-KB4552255-x64-cu5.exe");
+
+
+
 	-- Methods: 
 		.RootSet  defaults to false... (though... maybe check and see if C:\Scripts\proviso would work - via SetRoot() functionality?
 		.GetRoot() 
@@ -146,7 +153,7 @@ filter PVResources-GetSqlSetupExe {
 	$provisoRoot = $PVResources.ProvisoRoot;
 	
 	# Allow for hard-coded paths as the 'key' - i.e., overrides of convention can be specified... (e.g., Z:\setup.exe, etc.)
-	if (Test-Path -Path $SetupKey) {
+	if (Test-Path -Path $SetupKey -ErrorAction SilentlyContinue) {
 		return $SetupKey;
 	}
 	
@@ -197,20 +204,40 @@ filter PVResources-GetSsmsBinaries {
 }
 
 filter PVResources-GetSqlSpOrCu {
+	# By convention, CUs and SPs will be stored in ..\binaries\CUs and ..\binaries\SPs. 
+	# 	BUT, they can technically be stored anywhere within ..\binaries - and this func 
+	# 		will look for them within the entire directory (though it WILL skip checking in the .NET 3.5 sxs binaries folders)
+	param (
+		[string]$TargetResource
+	);
+	
 	$PVResources.ValidateRootSet();
-	$provisoRoot = $PVResources.ProvisoRoot;
 	
-	throw "Not Implemented.";
-	# need to figure out what kind of folder structure to use here... i.e., it COULD be any of the following: 
-	#  ..\binaries\patches
-	#  ..\binaries\patches\cus
-	#  ..\binaries\patches\sps
-	#  ..\binaries\sqlserver\patches
-	#  ..\binaries\sqlserver\cus
-	#  ..\binaries\sqlserver\sps
+	# allow for hard-coded paths: 
+	if (Test-Path -Path $TargetResource -ErrorAction SilentlyContinue) {
+		return $TargetResource;
+	}
 	
-	# i.e., i need to figure out the best OPTION(s) from above and then implement as needed. 
+	# otherwise, recursively look through the binaries directory: 
+	$targetPath = Join-Path -Path ($PVResources.ProvisoRoot) -ChildPath "binaries";
+	$filter = "*$TargetResource*";
 	
+	# check for SP/CU in the root folder, then recurse child folders (except for .Net 3.5 binaries folders. 
+	$results = @(Get-ChildItem -Path $targetPath -Filter $filter);
+	if (($null -eq $results) -or ($results.Count -lt 1)) {
+		$results = @(Get-ChildItem -Path $targetPath -Exclude "net3*" | ForEach-Object {
+				Get-ChildItem -Path $_ -Filter $filter
+			}
+		);
+	}
+	
+	if ($results) {
+		if ($results.Count > 1) {
+			throw "Invalid -TargetResource specifier for GetSqlSpOrCu(); specifier [$TargetResource] returned more than one match.";
+		}
+		
+		return ($results[0]).FullName;
+	}
 }
 
 filter PVResources-GetServerDefinition {

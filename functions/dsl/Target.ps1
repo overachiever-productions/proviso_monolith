@@ -14,11 +14,16 @@ function Target {
 		[Parameter(Position = 0, ParameterSetName = "HostHame")]
 		[string]$HostName,
 		[switch]$Strict = $true,
+		[switch]$Force = $false, 		# inverse of Strict... 
 		[switch]$AllowGlobalDefaults = $true
 	);
 	
 	begin {
 		Validate-MethodUsage -MethodName "Target";
+				
+		if ($Force) {
+			$Strict = $false;
+		}
 		
 		if ($null -ne $ConfigData) {
 			Set-ConfigTarget -ConfigData ([PSCustomObject]$ConfigData) -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;

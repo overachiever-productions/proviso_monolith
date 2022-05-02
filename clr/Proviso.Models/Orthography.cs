@@ -13,12 +13,12 @@ namespace Proviso
         private Orthography()
         {
             this._allowedMethods.Add("Assign");                        // 0
-            this._allowedMethods.Add("Target");                        //  1
+            this._allowedMethods.Add("Map");                            //  1
+            this._allowedMethods.Add("Target");                         //  1
 
             this._allowedMethods.Add("Evaluate");                   //   3
             this._allowedMethods.Add("Provision");                  //   3
             this._allowedMethods.Add("Execute-Runbook");            //     4
-
 
             this._allowedMethods.Add("Validate");                   //    2
             this._allowedMethods.Add("Configure");                  //    2

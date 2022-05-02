@@ -4,10 +4,10 @@
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
-	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
-	Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
+	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
 
 	#Validate-NetworkAdapters;
 	#Validate-WindowsPreferences;
@@ -16,7 +16,7 @@
 	#Validate-FirewallRules; 
 	#Validate-ExpectedDisks;
 	#Validate-SqlInstallation;
-	Validate-SqlConfiguration;
+	#Validate-SqlConfiguration;
 	#Validate-ExpectedDirectories;
 	#Validate-ExpectedShares;
 	#Validate-SsmsInstallation;
@@ -24,7 +24,7 @@
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
 
-	#Validate-ExtendedEvents;
+	Validate-ExtendedEvents;
 	#Validate-SqlVersion;	
 	
 	Validate-ClusterConfiguration;
@@ -64,14 +64,12 @@ filter New-DynamicFacet {
 	}
 	
 	$key = $BaseFacet.Key;
-#Write-Host "base key: $key  -> Object: $ObjectName"
 	if (-not ([string]::IsNullOrEmpty($SqlInstanceName))) {
 		$key = $key -replace "{~SQLINSTANCE~}", $SqlInstanceName;
 	}
 	if (-not ([string]::IsNullOrEmpty($ObjectName))) {
 		$key = $key -replace "{~ANY~}", $ObjectName;
 	}
-#Write-Host "	keyNow: $key"	
 	$newFacet = New-Object Proviso.Models.Facet(($BaseFacet.Parent), $facetName, $BaseFacet.FacetType, $key);
 	
 	if ($null -eq $BaseFacet.Expect) {
@@ -265,7 +263,6 @@ function Process-Surface {
 		
 		$objectFacets = $surface.GetObjectFacets();
 		if ($objectFacets) {
-
 			foreach ($objectFacet in $objectFacets) {
 				$objects = @($PVConfig.GetObjects($objectFacet.Key));
 				

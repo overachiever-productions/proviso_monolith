@@ -6,7 +6,6 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 	}
 	
 	Aspect {
-		#Facet "IsEnabled" -ExpectCurrentKeyValue {
 		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
 			Test {
 				$collectorSetName = $PVContext.CurrentObjectName;
@@ -17,7 +16,6 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 				}
 				
 				if ($status -eq "Running") {
-					#return $true;
 					return $collectorSetName;
 				}
 				
@@ -48,7 +46,6 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 			}
 		}
 		
-		#Facet "EnableStartWithOS" -ExpectChildKeyValue "EnableStartWithOS" {
 		Facet "EnableStartWithOS" -Key "EnableStartWithOS" -ExpectKeyValue {
 			Test {
 				$collectorSetName = $PVContext.CurrentObjectName;
@@ -83,7 +80,6 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 			}
 		}
 		
-		#Facet "RetentionDays" -ExpectChildKeyValue "DaysWorthOfLogsToKeep" {
 		Facet "RetentionDays" -Key "DaysWorthOfLogsToKeep" -ExpectKeyValue {
 			Test {
 				$collectorSetName = $PVContext.CurrentObjectName;

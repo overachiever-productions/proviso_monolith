@@ -15,7 +15,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 	}
 		
 	Aspect {
-		#Facet "InstanceExists" -ExpectCurrentKeyValue -UsesBuild {
 		Facet "InstanceExists" -NoKey -ExpectIteratorValue -UsesBuild {
 			Test {
 				$instanceKey = $PVContext.CurrentSqlInstance;
@@ -32,7 +31,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		#Facet "Version" -ExpectChildKeyValue "Setup.Version" -UsesBuild  {
 		Facet "Version" -Key "Setup.Version" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -45,7 +43,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		#Facet "Edition" -ExpectChildKeyValue "Setup.Edition" -UsesBuild {
 		Facet "Edition" -Key "Setup.Edition" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -69,7 +66,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 #			}
 #		}
 		
-		#Facet "Collation" -ExpectChildKeyValue "Setup.Collation" -UsesBuild {
 		Facet "Collation" -Key "Setup.Collation" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -81,7 +77,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 			}
 		}
 		
-		#Facet "SqlServiceAccount" -ExpectChildKeyValue "ServiceAccounts.SqlServiceAccountName" -UsesBuild {
 		Facet "SqlServiceAccount" -Key "ServiceAccounts.SqlServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -98,7 +93,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 			}
 		}
 		
-		#Facet "SqlAgentAccount" -ExpectChildKeyValue "ServiceAccounts.AgentServiceAccountName" -UsesBuild {
 		Facet "SqlAgentAccount" -Key "ServiceAccounts.AgentServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -115,7 +109,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 			}
 		}
 		
-		#Facet "AllowSqlAuth" -ExpectChildKeyValue "SecuritySetup.EnableSqlAuth" -UsesBuild {
 		Facet "AllowSqlAuth" -Key "SecuritySetup.EnableSqlAuth" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -129,7 +122,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 		
 		# members of sys-admin... 
 		
-		#Facet "DataPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlDataPath" -UsesBuild {
 		Facet "DataPath" -Key "SQLServerDefaultDirectories.SqlDataPath" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -141,7 +133,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 			}
 		}
 		
-		#Facet "LogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlLogsPath" -UsesBuild {
 		Facet "LogsPath" -Key "SQLServerDefaultDirectories.SqlLogsPath" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
@@ -153,7 +144,6 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 			}
 		}
 		
-		#Facet "BackupsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlBackupsPath" -UsesBuild {
 		Facet "BackupsPath" -Key "SQLServerDefaultDirectories.SqlBackupsPath" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;

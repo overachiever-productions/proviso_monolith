@@ -8,12 +8,7 @@ Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 	Aspect {
 		Facet "SSMS Installed" -Key "InstallSsms" -ExpectKeyValue {
 			Test {
-				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\Folders
-				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server Management Studio
-				# hmm
-				# Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SQL Server Management Studio\18
-				
-				# for now, just check in the default location:
+				# for now, just check in the default location => https://overachieverllc.atlassian.net/browse/PRO-289
 				
 				$targetPath = $PVConfig.GetValue("SqlServerManagementStudio.InstallPath");
 				$exePath = Join-Path -Path $targetPath -ChildPath "Common7\IDE\Ssms.exe";

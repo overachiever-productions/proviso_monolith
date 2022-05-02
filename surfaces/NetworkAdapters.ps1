@@ -10,10 +10,9 @@ Surface "NetworkAdapters" -Target "Host" {
 	
 	Aspect -Scope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
 		Facet "Interface.Exists" -Expect $true -NoKey {
+		# TODO: this facet should work with the definition below... 
+		#Facet "Interface.Exists" -ExpectIteratorValue {
 			Test {
-				# Note: IfNames in the config are a bit weird... need to always look for EXPLICIT implmenations of Host.NetworkDefinitions.<AdapterName>.InterfaceAlias
-				#  		that value will ALWAYS default to the name of the <AdapterName> IF it's not specified. BUT, if it IS specified it allows a shorthand <AdapterName> of
-				# 			say HeartBeat to be translated to "Heartbeat Network" or whatever. 
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				

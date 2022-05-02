@@ -19,7 +19,7 @@
             <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>32</Width>
+            <Width>30</Width>
             <Label>Surface</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -27,7 +27,7 @@
             <Label>Operation</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>10</Width>
+            <Width>8</Width>
             <Label>Seconds</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -39,7 +39,7 @@
             <Label>Configure</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>60</Width>
+            <Width>44</Width>
             <Label>Outcome</Label>
           </TableColumnHeader>
         </TableHeaders>
@@ -50,7 +50,7 @@
                 <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.Surface.Name, 31)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.Surface.Name, 29)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>if ($_.ExecuteConfiguration) { "CONFIGURE" } else { "VALIDATE" }</ScriptBlock>
@@ -89,11 +89,11 @@
             <Label>Assertion</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>10</Width>
+            <Width>18</Width>
             <Label>Outcome</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>70</Width>
+            <Width>64</Width>
             <Label>Detail</Label>
           </TableColumnHeader>
         </TableHeaders>
@@ -107,7 +107,7 @@
                 <ScriptBlock>$Formatter.Abridge($_.GetAssertionName(), 33)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetOutcomeState(), 10)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetOutcomeState(), 17)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$_.GetErrorMessage()</ScriptBlock>
@@ -130,7 +130,7 @@
             <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>52</Width>
+            <Width>50</Width>
             <Label>Validation</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -149,7 +149,7 @@
                 <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 51)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetValidationName(), 49)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.Expected, 17)</ScriptBlock>
@@ -171,17 +171,24 @@
       <TableControl>
           <TableHeaders>
             <TableColumnHeader>
+              <Width>4</Width>
+              <Label>SID</Label>
+            </TableColumnHeader>
+            <TableColumnHeader>
               <Width>22</Width>
               <Label>Surface</Label>
             </TableColumnHeader>
             <TableColumnHeader>
-              <Width>90</Width>
+              <Width>94</Width>
               <Label>Outcome</Label>
             </TableColumnHeader>
           </TableHeaders>
           <TableRowEntries>
             <TableRowEntry>
               <TableColumnItems>
+                <TableColumnItem>
+                  <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
+                </TableColumnItem>
                 <TableColumnItem>
                   <ScriptBlock>$Formatter.Abridge($_.GetSurfaceName(), 21)</ScriptBlock>
                 </TableColumnItem>
@@ -206,7 +213,7 @@
             <Label>SID</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>52</Width>
+            <Width>44</Width>
             <Label>Configuration</Label>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -218,7 +225,7 @@
             <Label>Actual</Label>
           </TableColumnHeader>
           <TableColumnHeader>
-            <Width>40</Width>
+            <Width>36</Width>
             <Label>Outcome</Label>
           </TableColumnHeader>
         </TableHeaders>
@@ -229,7 +236,7 @@
                 <ScriptBlock>$Formatter.GetSurfaceId($_.ProcessingId)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 51)</ScriptBlock>
+                <ScriptBlock>$Formatter.Abridge($_.GetConfigurationName(), 43)</ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>$Formatter.Abridge($_.Validation.Expected, 17)</ScriptBlock>

@@ -77,12 +77,22 @@ filter Set-UserRightForSqlServer {
 	}
 	
 	if ($modified) {
+		# turd cleanup: 
+		$invocationPath = $MyInvocation.MyCommand.Path;
+		[System.DateTime]$start = [DateTime]::Now;
+		
 		[string]$secpolFile = "C:\Scripts\secpol.inf";
 		
 		$policy | Out-File $secpolFile -Force -Confirm:$false;
 		SecEdit /configure /db secedit.sdb /cfg $secpolFile /areas USER_RIGHTS /overwrite /quiet | Out-Null;
 		
 		Remove-Item -Path $secpolFile;
+		
+		
+		# Remove turds: 
+		$targets = @("secedit.jfm", "secedit.sdb");
+		# NOTE: effing short-circuits by PowerShell mean that I have to pipe targets ... on into ANOTHER WHERE operation ... i.e., CAN'T do -and or i get MORE than what I'm searching for.
+		Get-ChildItem -Path $invocationPath | Where-Object { $_.Name -in $targets } | Where-Object { $_.CreationTime -ge $start } | Remove-Item;
 	}
 }
 

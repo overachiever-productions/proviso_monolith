@@ -515,9 +515,16 @@ function Install-SqlServerPatch {
 	
 	$PVContext.WriteLog("Starting (quiet) installation of [$SpOrCuPath].", "Important");
 	try {
+		# Turd-File Cleanup: 
+		$invocationPath = $MyInvocation.MyCommand.Path;
+		[System.DateTime]$start = [DateTime]::Now;
+		
 		$PVContext.WriteLog("SP or CU installation binaries and args: $SpOrCuPath $arguments", "Debug");
 		
 		& "$SpOrCuPath" $arguments | Out-Null;
+		
+		# remove the goofy/odd '1' file if/as needed (when it exits and was created during installation.):
+		Get-ChildItem -Path $invocationPath -Filter "1" | Where-Object { $_.CreationTime -ge $start } | Remove-Item;
 		
 		$PVContext.WriteLog("SP or CU [$SpOrCuPath] Installed.", "Verbose");
 	}

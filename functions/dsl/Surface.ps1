@@ -313,7 +313,6 @@ function Assert-HasDomainCreds {
 		[switch]$ForClusterCreation = $false,
 		[Alias("ConfigureOnly")]
 		[switch]$AssertOnConfigureOnly = $false,
-		#[switch]$ForAdditionOfLocalAdmins = $false, # see notes below about this PROBABLY NOT even being needed...
 		[Alias("Skip", "DoNotRun")]
 		[switch]$Ignored = $false
 	)
@@ -321,7 +320,6 @@ function Assert-HasDomainCreds {
 	begin {
 		Validate-SurfaceBlockUsage -BlockName "Assert";
 		
-		#$sum = @($ForDomainJoin, $ForClusterCreation, $ForAdditionOfLocalAdmins) | ForEach-Object -begin { $out = 0; } -Process { if ($_) {	$out += 1 }; } -end { return $out; };
 		$sum = @($ForDomainJoin, $ForClusterCreation) | ForEach-Object -begin {
 			$out = 0;
 		} -Process {
@@ -371,36 +369,6 @@ function Assert-HasDomainCreds {
 					$FailureMessage = "Domain Credentials are Required for Cluster Creation and/or CNO object creation permissions.";
 				}
 			}
-			
-			# TODO: Not sure this even NEEDs its own $codeBlock because I'm NOT 100% sure I even need Domain-Admin perms to either a) verify a domain account or b) add them to the local box
-			#   so, disabling this for now... can re-add if/as needed. 
-			#			if ($ForAdditionOfLocalAdmins) {
-			#				if ($null -eq $FailureMessage) {
-			#					$FailureMessage = "Domain Credentials are Required for Addition of domain users as members of the Local Administrators Group.";
-			#				}
-			#				
-			#				[ScriptBlock]$codeBlock = {
-			#					[string[]]$targetAdmins = $PVConfig.GetValue("Host.LocalAdministrators");
-			#					
-			#					$hostName = [System.Net.Dns]::GetHostName();
-			#					
-			#					$domainsUsersFound = $false;
-			#					foreach ($admin in $targetAdmins) {
-			#						[string[]]$parts = $admin -split "\";
-			#						if ($parts.Count -gt 1) {
-			#							if ($parts[0] -ne $hostName) {
-			#								$domainsUsersFound = $true;
-			#							}
-			#						}
-			#					}
-			#					
-			#					if ($domainsUsersFound) {
-			#						if (-not ($PVDomainCreds.CredentialsSet)) {
-			#							throw "Domain Credentials not set/present.";
-			#						}
-			#					}
-			#				};
-			#			}
 			
 			$assertion = New-Object Proviso.Models.Assertion("Assert-HasDomainCreds", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
 		}

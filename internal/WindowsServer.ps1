@@ -96,7 +96,7 @@ try {{
 		Map -ProvisoRoot "{1}";
 		Target -CurrentHost;
 
-		$results = ({2} -AllowReboot -AllowSqlRestart) | Out-File -FilePath "C:\Scripts\results_{0}.txt";
+		$results = ({2} -AllowSqlRestart) | Out-File -FilePath "C:\Scripts\results_{0}.txt";
 
 	$PVContext.WriteLog("Operations for Resume-Once Script [{0}] are complete.", "Debug");
 }}

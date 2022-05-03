@@ -16,6 +16,11 @@
 
 	In this surface, the "Target Server" Description will handle outcome B and D. Outcome D will be handled by "Target Domain". (And outcome A obviously doesn't need to be handled).
 
+	PowerShell 7 notes for Add-Computer:
+		- https://docs.microsoft.com/en-us/answers/questions/382685/powershell-7-unjoin-computer-from-domain.html
+		- https://docs.microsoft.com/en-us/powershell/module/Microsoft.PowerShell.Core/About/about_windows_powershell_compatibility?view=powershell-7.1
+
+
 #>
 
 
@@ -73,6 +78,9 @@ Surface "ServerName" -Target "Host" {
 					
 					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName] and joining the [$targetDomainName] Domain.", "Important");
 					try {
+						$credentials = $PVDomainCreds.GetCredential();
+						
+						Import-Module Microsoft.PowerShell.Management -UseWindowsPowerShell -WarningAction SilentlyContinue | Out-Null;
 						Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false | Out-Null;
 					}
 					catch {
@@ -126,10 +134,12 @@ Surface "ServerName" -Target "Host" {
 					# Outcome C - domain-name change only - handled here: 
 					
 					$targetDomainName = $PVConfig.GetValue("Host.TargetDomain");
+					$credentials = $PVDomainCreds.GetCredential();
 					
 					$PVContext.WriteLog("Adding Host [$currentHostName] to Domain [$targetDomainName].", "Important");
 					
 					try {
+						Import-Module Microsoft.PowerShell.Management -UseWindowsPowerShell -WarningAction SilentlyContinue | Out-Null;
 						Add-Computer -DomainName $targetDomainName -Credential $credentials -Restart:$false | Out-Null;
 					}
 					catch {

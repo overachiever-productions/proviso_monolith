@@ -232,7 +232,7 @@ filter PVResources-GetSqlSpOrCu {
 	}
 	
 	if ($results) {
-		if ($results.Count > 1) {
+		if ($results.Count -gt 1) {
 			throw "Invalid -TargetResource specifier for GetSqlSpOrCu(); specifier [$TargetResource] returned more than one match.";
 		}
 		

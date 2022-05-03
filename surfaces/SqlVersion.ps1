@@ -21,7 +21,6 @@ Surface SqlVersion -Target "SqlServerPatches" {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				
-				$targetVersion = $null;
 				$sp = $PVConfig.GetValue("SqlServerPatches.$instanceName.TargetSP");
 				
 				try {

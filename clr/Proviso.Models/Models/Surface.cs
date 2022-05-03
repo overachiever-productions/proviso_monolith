@@ -90,20 +90,34 @@ namespace Proviso.Models
             this.ConfigKey = key;
         }
 
+        #region Refactor
+        // REFACTOR: this code sucks. Create a single func that takes in an enum or something like an enum/flags 
+        //      vs having a lame, hard-coded, version for each need... 
         public List<Facet> GetSimpleFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Simple).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.Simple) | (f.FacetType == FacetType.NonKey)).ToList();
         }
 
-        public List<Facet> GetBaseValueFacets()
+        public List<Facet> GetSimpleArrayFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Value).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.SimpleArray)).ToList();
         }
 
-        public List<Facet> GetBaseGroupFacets()
+        public List<Facet> GetObjectFacets()
         {
-            return this.Facets.Where(d => d.FacetType == FacetType.Group).ToList();
+            return this.Facets.Where(f => (f.FacetType == FacetType.Object) | (f.FacetType == FacetType.ObjectArray)).ToList();
         }
+
+        public List<Facet> GetSqlInstanceFacets()
+        {
+            return this.Facets.Where(f => (f.FacetType == FacetType.SqlObject) | (f.FacetType == FacetType.SqlObjectArray)).ToList();
+        }
+
+        public List<Facet> GetCompoundFacets()
+        {
+            return this.Facets.Where(f => (f.FacetType == FacetType.Compound) | (f.FacetType == FacetType.CompoundArray)).ToList();
+        }
+        #endregion
 
         public List<Facet> GetBaseCompoundFacets()
         {
@@ -125,8 +139,11 @@ namespace Proviso.Models
             // TODO: need to ensure that each facet's NAME is distinct (i.e., can't have the same facet (name) 2x). 
             // further... can't have the same facet with duplicate .ConfigKey properties either.
 
-            if(!facet.ExpectIsSet)
-                throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Except switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
+            // TODO: Revisit... i.e., I disabled the following lines cuz... they were causing problems. 
+            // AND... i should be rewriting ALL of this but... need to make sure I'm validating ... so I put an explicit TODO into play... 
+
+            //if(!facet.ExpectIsSet)
+            //    throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain either an [Expect] block, the -Expect switch, or one of the following switches: -ExpectKeyValue, -ExpectValueForCurrentKey, or -ExpectValueForChildKey.");
 
             if(facet.Test == null)
                 throw new Exception($"Facet [{facet.Name}] for Surface [{this.Name}] is invalid. It MUST contain a Test-Block");

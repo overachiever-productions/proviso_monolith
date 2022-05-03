@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
+Surface "WindowsPreferences" -Target "Host" {
 	
 	Assertions {
 		Assert-UserIsAdministrator;
@@ -8,8 +8,8 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 		Assert-HostIsWindows;
 	}
 	
-	Aspect {
-		Facet "DvdDriveToZ"  {
+	Aspect -Scope "WindowsPreferences" {
+		Facet "DvdDriveToZ" -Key "DvdDriveToZ" {
 			Expect {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
 				if ($dvdDrive) {
@@ -28,9 +28,9 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 					return $driveLetter;
 				}
 			}
-			
 			Configure {
-				$moveToZ = $PVConfig.GetValue("Host.WindowsPreferences.DvdDriveToZ");
+				#$moveToZ = $PVConfig.GetValue("Host.WindowsPreferences.DvdDriveToZ");
+				$moveToZ = $PVContext.CurrentConfigKeyValue;
 				if ($moveToZ) {
 					$dvdDrive = $PVContext.GetSurfaceState("DvdDrive");
 					if ($dvdDrive) {
@@ -55,7 +55,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Facet "OptimizeWindowsExplorer" -ExpectKeyValue "Host.WindowsPreferences.OptimizeExplorer" {
+		Facet "OptimizeWindowsExplorer" -Key "OptimizeExplorer" -ExpectKeyValue {
 			Test {
 				$key = Get-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\";
 				$launchTo = $null;
@@ -73,7 +73,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 				return $true;
 			}
 			Configure {
-				$optimize = $PVConfig.GetValue("Host.WindowsPreferences.OptimizeExplorer");
+				$optimize = $PVContext.CurrentConfigKeyValue;
 				
 				if ($optimize) {
 					Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\" -Name "LaunchTo" -Value 1; # 2 is "quick access"
@@ -96,7 +96,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Facet "DisableServerManager" -ExpectKeyValue "Host.WindowsPreferences.DisableServerManagerOnLaunch" {
+		Facet "DisableServerManager" -Key "DisableServerManagerOnLaunch" -ExpectKeyValue {
 			Test {
 				$enabled = Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon" -ErrorAction SilentlyContinue;
 				
@@ -109,9 +109,9 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 				
 				return $false;
 			}
-			
 			Configure {
-				$disable = $PVContext.GetValue("Host.WindowsPreferences.DisableServerManagerOnLaunch");
+				#$disable = $PVContext.GetValue("Host.WindowsPreferences.DisableServerManagerOnLaunch");
+				$disable = $PVContext.CurrentConfigKeyValue;
 				
 				if ($disable) {
 					Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\ServerManager\" -Name "DoNotOpenServerManagerAtLogon" -Value 0; # yeah, no idea why 0 vs 1... but... whatever.
@@ -123,7 +123,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Facet "HighPerfPowerConfig" -ExpectKeyValue "Host.WindowsPreferences.SetPowerConfigHigh" {
+		Facet "HighPerfPowerConfig" -Key "SetPowerConfigHigh" -ExpectKeyValue {
 			Test {
 				$current = powercfg -GETACTIVESCHEME;
 				if (!($current -contains "(High performance)")) {
@@ -131,9 +131,10 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 				}
 				return $false;
 			}
-			
 			Configure {
-				$config = $PVConfig.GetValue("Host.WindowsPreferences.SetPowerConfigHigh");
+				#$config = $PVConfig.GetValue("Host.WindowsPreferences.SetPowerConfigHigh");
+				$config = $PVContext.CurrentConfigKeyValue;
+				
 				if ($config) {
 					Invoke-Expression "powercfg -SETACTIVE SCHEME_MIN;" | Out-Null;
 					$PVContext.WriteLog("Power Configuration set to High-Perf...", "Verbose");
@@ -144,7 +145,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Facet "DisableMonitorTimeout" -ExpectKeyValue "Host.WindowsPreferences.DisableMonitorTimeout" {
+		Facet "DisableMonitorTimeout" -Key "DisableMonitorTimeout" -ExpectKeyValue {
 			Test {
 				$output = powercfg /Query;
 				$block = [regex]::split($output, 'VIDEOIDLE')[1];
@@ -160,9 +161,10 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 				
 				return $false;
 			}
-			
 			Configure {
-				$disable = $PVConfig.GetValue("Host.WindowsPreferences.DisableMonitorTimeout");
+				#$disable = $PVConfig.GetValue("Host.WindowsPreferences.DisableMonitorTimeout");
+				$disable = $PVContext.CurrentConfigKeyValue;
+				
 				if ($disable) {
 					Invoke-Expression "powercfg -CHANGE -MONITOR-TIMEOUT-AC 0;" | Out-Null;
 					$PVContext.WriteLog("Monitor Timeout Disabled on AC Power...", "Verbose");
@@ -174,7 +176,7 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 			}
 		}
 		
-		Facet "EnableDiskPerfCounters" -ExpectKeyValue "Host.WindowsPreferences.EnableDiskPerfCounters" {
+		Facet "EnableDiskPerfCounters" -Key "EnableDiskPerfCounters" -ExpectKeyValue {
 			Test {
 				$state = diskperf;
 				if ($state -match "[(Both)(are automatically enabled)]{2}") {
@@ -182,9 +184,9 @@ Surface "WindowsPreferences" -For -Key "Host.WindowsPreferences" {
 				}
 				return $false;
 			}
-			
 			Configure {
-				$enable = $PVConfig.GetValue("Host.WindowsPreferences.EnableDiskPerfCounters");
+				#$enable = $PVConfig.GetValue("Host.WindowsPreferences.EnableDiskPerfCounters");
+				$enable = $PVContext.CurrentConfigKeyValue;
 				
 				if ($enable) {
 					Invoke-Expression "diskperf -Y" | Out-Null;

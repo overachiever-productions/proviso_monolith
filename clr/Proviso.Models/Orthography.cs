@@ -12,13 +12,13 @@ namespace Proviso
 
         private Orthography()
         {
-            this._allowedMethods.Add("Map");                        // 0
-            this._allowedMethods.Add("Add");                        //  1
+            this._allowedMethods.Add("Assign");                        // 0
+            this._allowedMethods.Add("Map");                            //  1
+            this._allowedMethods.Add("Target");                         //  1
 
             this._allowedMethods.Add("Evaluate");                   //   3
             this._allowedMethods.Add("Provision");                  //   3
             this._allowedMethods.Add("Execute-Runbook");            //     4
-
 
             this._allowedMethods.Add("Validate");                   //    2
             this._allowedMethods.Add("Configure");                  //    2
@@ -98,7 +98,7 @@ namespace Proviso
             {
                 if (this._methodsStack.Count < 1)
                 {
-                    return "Validate can't be called by itself. It needs to follow With... ";
+                    return "Validate can't be until a Target has been specified... ";
                 }
                 this._methodsStack.Push(method);
             }

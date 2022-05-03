@@ -1,27 +1,15 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-Assign -ProvisoRoot "\\storage\Lab\proviso";
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
-
-Summarize -Latest;
-
-#>
-
-
-Surface AdminDb -Key "AdminDb" {
+Surface AdminDb -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
+		Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
 	}
 	
-	Aspect -Scope "AdminDb.*" {
-		Facet "Deployed" -ExpectChildKeyValue "Deploy" {
+	Aspect {
+		Facet "Deployed" -Key "Deploy" -ExpectKeyValue {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {
@@ -31,8 +19,8 @@ Surface AdminDb -Key "AdminDb" {
 				return $false;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				if ($expectedSetting) {
 					$adminDbOverridePath = $PVConfig.GetValue("AdminDb.$instanceName.OverrideSource");
@@ -51,9 +39,9 @@ Surface AdminDb -Key "AdminDb" {
 			}
 		}
 		
-		Facet "AdminDbVersion" {
+		Facet "AdminDbVersion" -NoKey {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# check for hard-override path first, then from URI, then ... as asset: 
 				$adminDbOverridePath = $PVConfig.GetValue("AdminDb.$instanceName.OverrideSource");
@@ -93,7 +81,7 @@ Surface AdminDb -Key "AdminDb" {
 				}
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {
@@ -103,7 +91,7 @@ Surface AdminDb -Key "AdminDb" {
 				}
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# if we're here... it's ONLY because expected version and actual didn't match. So, try to re-install... 
 				#  	that SHOULD fix it unless there's a hard-coded copy of an older version somewhere... but that's a config issue not a framework problem.

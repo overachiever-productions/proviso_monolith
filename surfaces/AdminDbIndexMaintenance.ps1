@@ -1,16 +1,16 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbIndexMaintenance {
+Surface AdminDbIndexMaintenance -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	# TODO: currently using hard-coded job-names... 
-	Aspect -Scope "AdminDb.*" {
-		Facet "IndexMaintenanceEnabled" -UsesBuild {
+	Aspect -Scope "IndexMaintenance" {
+		Facet "IndexMaintenanceEnabled" -Key "Enabled" -UsesBuild {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# this one's a bit odd/goofy, we're either expecting true/false OR <WEEKDAY> OR <WEEKEND>
 				$weekDayJobs, $weekendJobs = $false;
@@ -36,8 +36,7 @@ Surface AdminDbIndexMaintenance {
 				return $false;
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$weekDayStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
 				$weekendStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
@@ -70,9 +69,9 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." {
+		Facet "IXMaintCodeDeployed" -For "Confirming that Ola Hallengren's Scripts are available if/as needed." -NoKey {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$ixMaintExpected = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.Enabled");
 				if ($ixMaintExpected) {
@@ -80,7 +79,7 @@ Surface AdminDbIndexMaintenance {
 				}
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT COUNT(*) [count] FROM master.sys.[objects] WHERE [name] IN (N'CommandLog', N'CommandExecute', N'IndexOptimize'); ").count;
 				if ($count -eq 3) {
@@ -94,7 +93,7 @@ Surface AdminDbIndexMaintenance {
 				return $false;
 			}
 			Configure {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$scriptPath = $PVResources.GetAsset("hallengren_ix_optimize_only", "sql");
 				if (-not (Test-Path $scriptPath)) {
@@ -105,36 +104,34 @@ Surface AdminDbIndexMaintenance {
 			}
 		}
 		
-		Facet "DailyJobEnabled" -UsesBuild{
+		Facet "DailyJobEnabled" -Key "DailyJobRunsOnDays" -UsesBuild {
 			Expect {
 				# TODO: create/define a switch called something like -RemoveAllWhiteSpace for the Facet class/object - which'll strip white-space from the expected key value.
 				# 		then, i won't need this expect block. The RUB is ... the name of the switch will need to indicate that we're stripping ExpectedKeySpaces ... 
 				#  	so, maybe: -StripExpectedKeyCharacters " " or something? 
 				
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.DailyJobRunsOnDays");
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedDays = $PVContext.CurrentConfigKeyValue;
 				
 				return $expectedDays -replace " ", "";
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$jobName = "Index Maintenance - WeekDay";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
-		Facet "WeekendJobEnabled" -UsesBuild{
+		Facet "WeekendJobEnabled" -Key "WeekendJobRunsOnDays" -UsesBuild {
 			Expect {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
-				$expectedDays = $PVConfig.GetValue("AdminDb.$instanceName.IndexMaintenance.WeekendJobRunsOnDays");
-				
-				return $expectedDays -replace " ", "";
+				return $expectedSetting -replace " ", "";
 			}
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$jobName = "Index Maintenance - Weekend";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
@@ -144,7 +141,7 @@ Surface AdminDbIndexMaintenance {
 		# TODO: Implement -Detailed Facets here... 
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$matched = $PVContext.Matched;
 			
 			if (-not ($matched)) {

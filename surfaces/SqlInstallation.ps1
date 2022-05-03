@@ -2,15 +2,6 @@
 
 <#
 
-Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-
-Assign -ProvisoRoot "\\storage\Lab\proviso";
-
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Validate-SqlInstallation;
-With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-SqlInstallation;
-#With "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1" | Configure-TestingSurface;
-
-Summarize -Latest;
 
 # TODO:
    figure out which directives to NUKE/REMOVE based up on VERSION of SQL Server being installed. 
@@ -18,15 +9,15 @@ Summarize -Latest;
 
 #>
 
-Surface SqlInstallation {
+Surface SqlInstallation -Target "SqlServerInstallation" {
 	Assertions {
 		
 	}
 		
-	Aspect -Scope "SQLServerInstallation.*" {
-		Facet "InstanceExists" -ExpectCurrentKeyValue -UsesBuild {
+	Aspect {
+		Facet "InstanceExists" -NoKey -ExpectIteratorValue -UsesBuild {
 			Test {
-				$instanceKey = $PVContext.CurrentKeyValue;
+				$instanceKey = $PVContext.CurrentSqlInstance;
 				$installedInstances = Get-ExistingSqlServerInstanceNames;
 				
 				if ($instanceKey -in $installedInstances) {
@@ -40,9 +31,9 @@ Surface SqlInstallation {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		Facet "Version" -ExpectChildKeyValue "Setup.Version" -UsesBuild  {
+		Facet "Version" -Key "Setup.Version" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -52,9 +43,9 @@ Surface SqlInstallation {
 		}
 		
 		# TODO: re-implement equivalent of -IgnoreOnEmptyConfig
-		Facet "Edition" -ExpectChildKeyValue "Setup.Edition" -UsesBuild {
+		Facet "Edition" -Key "Setup.Edition" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -75,9 +66,9 @@ Surface SqlInstallation {
 #			}
 #		}
 		
-		Facet "Collation" -ExpectChildKeyValue "Setup.Collation" -UsesBuild {
+		Facet "Collation" -Key "Setup.Collation" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -86,9 +77,9 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "SqlServiceAccount" -ExpectChildKeyValue "ServiceAccounts.SqlServiceAccountName" -UsesBuild {
+		Facet "SqlServiceAccount" -Key "ServiceAccounts.SqlServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -102,9 +93,9 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "SqlAgentAccount" -ExpectChildKeyValue "ServiceAccounts.AgentServiceAccountName" -UsesBuild {
+		Facet "SqlAgentAccount" -Key "ServiceAccounts.AgentServiceAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -118,9 +109,9 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "AllowSqlAuth" -ExpectChildKeyValue "SecuritySetup.EnableSqlAuth" -UsesBuild {
+		Facet "AllowSqlAuth" -Key "SecuritySetup.EnableSqlAuth" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -131,9 +122,9 @@ Surface SqlInstallation {
 		
 		# members of sys-admin... 
 		
-		Facet "DataPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlDataPath" -UsesBuild {
+		Facet "DataPath" -Key "SQLServerDefaultDirectories.SqlDataPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -142,9 +133,9 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "LogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlLogsPath" -UsesBuild {
+		Facet "LogsPath" -Key "SQLServerDefaultDirectories.SqlLogsPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -153,9 +144,9 @@ Surface SqlInstallation {
 			}
 		}
 		
-		Facet "BackupsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.SqlBackupsPath" -UsesBuild {
+		Facet "BackupsPath" -Key "SQLServerDefaultDirectories.SqlBackupsPath" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
 					return "";
 				}
@@ -164,8 +155,37 @@ Surface SqlInstallation {
 			}
 		}
 		
+		# https://overachieverllc.atlassian.net/browse/PRO-180
+		#		Facet "TempDbPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.TempDbPath" -UsesBuild {
+		#			Test {
+		#				$instanceName = $PVContext.CurrentKeyValue;
+		#				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
+		#					return "";
+		#				}
+		#				
+		#				# TODO: account for non-default instance-names... 		
+		#				
+		#				#$query = "SELECT RTRIM(LEFT([physical_name], LEN([physical_name]) - CHARINDEX(N'\', REVERSE([physical_name])))) [path] FROM sys.[database_files] WHERE [file_id] = 1;";
+		#				#$command = "sqlcmd -S. -Q `"$query`"";
+		#				#$output = Invoke-Expression $command;
+		#				
+		#				return "<TODO...>";
+		#			}
+		#		}
+		#		
+		#		Facet "TempDbLogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.TempDbLogsPath" -UsesBuild {
+		#			Test {
+		#				$instanceName = $PVContext.CurrentKeyValue;
+		#				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
+		#					return "";
+		#				}
+		#				
+		#				return "<TODO...>";
+		#			}
+		#		}		
+		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$matched = $PVContext.Matched;
 			
 			if (-not ($matched)) {
@@ -186,7 +206,6 @@ Surface SqlInstallation {
 			$currentInstances = $PVContext.GetSurfaceState("InstallationInstances");
 			
 			foreach ($instanceKey in $currentInstances) {
-				
 				$version = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Version");
 				$sqlExePathKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlExePath");
 				$mediaLocation = $PVResources.GetSqlSetupExe($sqlExePathKey);
@@ -200,8 +219,7 @@ Surface SqlInstallation {
 				
 				$strictInstallOnly = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.StrictInstallOnly");
 				
-				$settings = @{
-				};
+				$settings = @{};
 				$settings["Collation"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Collation");
 				$settings["FileStreamLevel"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.FileStreamLevel");
 				$settings["InstantFileInit"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstantFileInit");
@@ -219,14 +237,12 @@ Surface SqlInstallation {
 					}
 				}
 				
-				$installDirs = @{
-				};
+				$installDirs = @{};
 				$installDirs["InstallDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallDirectory");
 				$installDirs["InstallSharedDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedDirectory");
 				$installDirs["InstallSharedWowDirectory"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.InstallSharedWowDirectory");
 				
-				$serviceAccounts = @{
-				};
+				$serviceAccounts = @{};
 				$serviceAccounts["SqlServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountName");
 				$serviceAccounts["SqlServiceAccountPassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.SqlServiceAccountPassword");
 				$serviceAccounts["AgentServiceAccountName"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.AgentServiceAccountName");
@@ -234,8 +250,7 @@ Surface SqlInstallation {
 				$serviceAccounts["FullTextServiceAccount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServiceAccount");
 				$serviceAccounts["FullTextServicePassword"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.ServiceAccounts.FullTextServicePassword");
 				
-				$sqlDirectories = @{
-				};
+				$sqlDirectories = @{};
 				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.InstallSqlDataDir");
 				$sqlDirectories["SqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlDataPath");
 				$sqlDirectories["SqlLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.SqlLogsPath");
@@ -243,8 +258,7 @@ Surface SqlInstallation {
 				$sqlDirectories["TempDbPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbPath");
 				$sqlDirectories["TempDbLogsPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlServerDefaultDirectories.TempDbLogsPath");
 				
-				$tempDbDetails = @{
-				};
+				$tempDbDetails = @{};
 				$tempDbDetails["SqlTempDbFileCount"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileCount");
 				$tempDbDetails["SqlTempDbFileSize"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileSize");
 				$tempDbDetails["SqlTempDbFileGrowth"] = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.SqlTempDbFileGrowth");
@@ -257,18 +271,18 @@ Surface SqlInstallation {
 					
 					$PVContext.WriteLog("Starting Installation of SQL Server.", "Important");
 					Install-SqlServer `
-									  -Version $version `
-									  -StrictInstallOnly:$strictInstallOnly `
-									  -InstanceName $instanceKey `
-									  -MediaLocation $mediaLocation `
-									  -Features $features `
-									  -Settings $settings `
-									  -SysAdminMembers $membersOfSysAdmin `
-									  -InstallationDirectories $installDirs `
-									  -ServiceAccounts $serviceAccounts `
-									  -SqlDirectories $sqlDirectories `
-									  -SqlTempDbDirectives $tempDbDetails `
-									  -LicenseKey $licenseKey;
+						  -Version $version `
+						  -StrictInstallOnly:$strictInstallOnly `
+						  -InstanceName $instanceKey `
+						  -MediaLocation $mediaLocation `
+						  -Features $features `
+						  -Settings $settings `
+						  -SysAdminMembers $membersOfSysAdmin `
+						  -InstallationDirectories $installDirs `
+						  -ServiceAccounts $serviceAccounts `
+						  -SqlDirectories $sqlDirectories `
+						  -SqlTempDbDirectives $tempDbDetails `
+						  -LicenseKey $licenseKey;
 					
 					$PVContext.WriteLog("SQL Server Installation Complete.", "Important");
 				}
@@ -277,35 +291,5 @@ Surface SqlInstallation {
 				}
 			}
 		}
-		
-		
-		# https://overachieverllc.atlassian.net/browse/PRO-180
-#		Facet "TempDbPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.TempDbPath" -UsesBuild {
-#			Test {
-#				$instanceName = $PVContext.CurrentKeyValue;
-#				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
-#					return "";
-#				}
-#				
-#				# TODO: account for non-default instance-names... 		
-#				
-#				#$query = "SELECT RTRIM(LEFT([physical_name], LEN([physical_name]) - CHARINDEX(N'\', REVERSE([physical_name])))) [path] FROM sys.[database_files] WHERE [file_id] = 1;";
-#				#$command = "sqlcmd -S. -Q `"$query`"";
-#				#$output = Invoke-Expression $command;
-#				
-#				return "<TODO...>";
-#			}
-#		}
-#		
-#		Facet "TempDbLogsPath" -ExpectChildKeyValue "SQLServerDefaultDirectories.TempDbLogsPath" -UsesBuild {
-#			Test {
-#				$instanceName = $PVContext.CurrentKeyValue;
-#				if (-not ($PVContext.GetSurfaceState("$instanceName.Installed"))) {
-#					return "";
-#				}
-#				
-#				return "<TODO...>";
-#			}
-#		}
 	}
 }

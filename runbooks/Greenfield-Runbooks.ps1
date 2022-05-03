@@ -1,6 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
-runbook ServerInitialization -RequiresDomainCredentials -SummarizeProblemsOnly -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 60Seconds {
+runbook ServerInitialization -RequiresDomainCredentials -SummarizeProblemsOnly -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 30Seconds {
+	Run-RequiredPackages;  
 	Run-NetworkAdapters;
 	Run-ServerName;
 }

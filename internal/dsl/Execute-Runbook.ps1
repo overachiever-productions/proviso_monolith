@@ -32,6 +32,12 @@ function Execute-Runbook {
 		if ($null -eq $runbook) {
 			throw "Invalid Runbook Name. Runbook [$RunbookName] does not exist or has not been loaded. If this is a custom Runbook, verify that [Import-Runbook] has been correctly executed.";
 		}
+		
+		if ($AllowReboot) {
+			if (-not($PVDomainCreds.RebootCredentials)) {
+				throw "Invalid Operation. In order to -AllowReboot, you must use Assign to either supply -PasswordForReboot or specify a -RebootCredential.";
+			}
+		}
 	};
 	
 	process {

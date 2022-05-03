@@ -287,7 +287,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				[string[]]$dnsServers = $targetIpConfig.DNSServer.ServerAddresses;
 				$currentRealTimeSecondaryDns = $dnsServers[1];
 				
-				$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
+				$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");
 				
 				if ($currentRealTimeSecondaryDns -ne $configSpecifiedSecondaryDns) {
 					

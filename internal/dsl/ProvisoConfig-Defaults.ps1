@@ -22,7 +22,7 @@
 				IpAddress		     = "{~DEFAULT_PROHIBITED~}"
 				Gateway			     = "{~DEFAULT_PROHIBITED~}"
 				PrimaryDns		     = "{~DEFAULT_PROHIBITED~}"
-				SecondaryDns		 = "{~DEFAULT_PROHIBITED~}"
+				SecondaryDns		 = "{~EMPTY~}"
 			}
 		}
 		

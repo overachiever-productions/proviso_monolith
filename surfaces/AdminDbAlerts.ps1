@@ -1,16 +1,15 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbAlerts {
+Surface AdminDbAlerts -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
-	Aspect -Scope "AdminDb.*" {
-		Facet "IOAlertsEnabled" -ExpectChildKeyValue "Alerts.IOAlertsEnabled" -UsesBuild {
+	Aspect -Scope "Alerts" {
+		Facet "IOAlertsEnabled" -Key "IOAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				[int[]]$expected = 605, 823, 824, 825;
 				$alerts = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [message_id] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1; ").message_id;
@@ -32,10 +31,9 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsEnabled" -ExpectChildKeyValue "Alerts.SeverityAlertsEnabled" -UsesBuild {
+		Facet "SeverityAlertsEnabled" -Key "SeverityAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				[int[]]$expected = 17 .. 25;
 				$severities = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [severity] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1; ").severity;
@@ -57,10 +55,9 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "IOAlertsFiltered" -ExpectChildKeyValue "Alerts.IOAlertsFiltered" -UsesBuild {
+		Facet "IOAlertsFiltered" -Key "IOAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT([job_id]) [count] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000'; ").count;
 				if ($count -eq 0){
@@ -75,10 +72,9 @@ Surface AdminDbAlerts {
 			}
 		}
 		
-		Facet "SeverityAlertsFiltered" -ExpectChildKeyValue "Alerts.SeverityAlertsFiltered" -UsesBuild {
+		Facet "SeverityAlertsFiltered" -Key "SeverityAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT(job_id) [count] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000' ").count;
 				if ($count -eq 0) {
@@ -94,7 +90,8 @@ Surface AdminDbAlerts {
 		}
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
+			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;
 			

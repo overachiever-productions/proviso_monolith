@@ -1,9 +1,10 @@
 ﻿Set-StrictMode -Version 3.0;
 
 [string]$script:ProvisoScriptRoot = $PSScriptRoot;
-[PSCustomObject]$global:PVConfig = $null;
 $global:PVExecuteActive = $false;
 $global:PVRunBookActive = $false;
+
+$script:be8c742fDefaultConfigData = $null;
 
 # 1. Import (.NET) classes (ordered to address dependency chains)
 $classFiles = @(
@@ -41,7 +42,7 @@ $classFiles = @(
 Add-Type -Path $classFiles;
 
 # 2. Internal Functions 
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'functions/internal/*.ps1') -ErrorAction Stop))) {
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'internal/*.ps1') -Recurse -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
 	}
@@ -50,9 +51,11 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
+
+
 # 3. Public Functions 
 [string[]]$provisoPublicModuleMembers = @();
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'functions/*.ps1') -ErrorAction Stop))) {
+foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'functions/*.ps1') -Recurse -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
 		
@@ -63,27 +66,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
-# 4. Internal and Public DSL:
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'dsl/internal/*.ps1') -ErrorAction Stop))) {
-	try {
-		. $file.FullName;
-	}
-	catch {
-		throw "Unable to dot source Internal DSL Method: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
-	}
-}
-foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'dsl/*.ps1') -ErrorAction Stop))) {
-	try {
-		. $file.FullName;
-		
-		$provisoPublicModuleMembers += $file.Basename;
-	}
-	catch {
-		throw "Unable to dot source Public DSL Method: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
-	}
-}
-
-# 5. Import/Build Surfaces and dynamically create Validate|Configure|Document-<SurfaceName> funcs. 
+# 4. Import/Build Surfaces and dynamically create Validate|Configure|Document-<SurfaceName> funcs. 
 Clear-ProvisoProxies -RootDirectory $ProvisoScriptRoot;
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'surfaces/*.ps1') -ErrorAction Stop))) {
 	try {
@@ -104,7 +87,7 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
-# 6. Runbook Proxies
+# 5. Runbook Proxies
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'runbooks/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
@@ -124,7 +107,7 @@ foreach ($runbook in $PVCatalog.GetRunbooks()) {
 	}
 }
 
-# 7. Import Generated Proxies (syntactic sugar):
+# 6. Import Generated Proxies (syntactic sugar):
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'generated/*.ps1') -ErrorAction Stop))) {
 	try {
 		. $file.FullName;
@@ -134,6 +117,6 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 	}
 }
 
-# 8. Export
+# 7. Export
 Export-ModuleMember -Function $provisoPublicModuleMembers;
 Export-ModuleMember -Alias * -Function *;

@@ -20,9 +20,10 @@
 
 #>
 
-Surface "HostTls" -For -Key "Host.LimitHostTls1dot2Only" {
+Surface "HostTls" -Target "Host" {
 	Aspect {
-		Facet "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
+		#Facet "Restrict Host to TLS 1.2 Only" -ExpectKeyValue "Host.LimitHostTls1dot2Only" {
+		Facet "Restrict Host to TLS 1.2 Only" -Key "LimitHostTls1dot2Only" -ExpectKeyValue {
 			
 			Test {
 				try {
@@ -77,7 +78,9 @@ Surface "HostTls" -For -Key "Host.LimitHostTls1dot2Only" {
 			}
 			
 			Configure {
-				$limit = $PVConfig.GetValue("Host.LimitHostTls1dot2Only");
+				#$limit = $PVConfig.GetValue("Host.LimitHostTls1dot2Only");
+				$limit = $PVContext.CurrentConfigKeyValue;
+				
 				if ($limit) {
 					
 					if ((Test-Path -LiteralPath "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols") -ne $true) {

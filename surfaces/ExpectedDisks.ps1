@@ -1,25 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
-<#
-
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
-
-	Validate-ExpectedDisks;
-
-	Summarize;
-
-
-#>
-
-Surface "ExpectedDisks" {
+Surface "ExpectedDisks" -Target "Host" {
 	
 	Setup {	
 		$physicalDisks = Get-ExistingPhysicalDisks;
 		$volumes = Get-ExistingVolumeLetters;
-		
-		#$physicalDisks | Format-List;
 		
 		$PVContext.SetSurfaceState("CurrentPhysicalDisks", $physicalDisks);
 		$PVContext.SetSurfaceState("CurrentVolumes", $volumes);
@@ -32,20 +17,25 @@ Surface "ExpectedDisks" {
 		
 		Assert-ConfigIsStrict -FailureMessage "Proviso will NOT [Validate] or [Configure] Disks on systems where Host and TargetServer names do NOT match.";
 		
-		Assert "C Drive Is NOT Specified" {
-			
-			Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
-				if (($_.VolumeName -eq "C:\") -or ($_.VolumeName -eq "C")) {
-					throw "Invalid Expected Disk Specification. Proviso can NOT define an expected disk for System (i.e., C:\). Use [Host.Compute.SystemVolumeSize] to define size of C:\ drive instead.";
-				}
-			}
-		}
+		#region TODO
+		# TODO: https://overachieverllc.atlassian.net/browse/PRO-256
+		# this is/was using OLDER provisoConfig objects that returned an ENTIRE object... not just key-names (as the new approach does.)
+		#   meaning: old code could look at Disk.VolumeNames ... new approach can't. So ... need to fix this. 
+#		Assert "C Drive Is NOT Specified" {
+#			#Get-ProvisoConfigGroupNames -Config $PVConfig -GroupKey "Host.ExpectedDisks" | ForEach-Object {
+#			$PVConfig.GetGroupNames("Host.ExpectedDisks") | ForEach-Object {
+#				if (($_.VolumeName -eq "C:\") -or ($_.VolumeName -eq "C")) {
+#					throw "Invalid Expected Disk Specification. Proviso can NOT define an expected disk for System (i.e., C:\). Use [Host.Compute.SystemVolumeSize] to define size of C:\ drive instead.";
+#				}
+#			}
+#		}
+		#endregion
 	}
 	
-	Aspect -Scope "Host.ExpectedDisks.*" -OrderByChildKey "ProvisioningPriority"	{
-		Facet "PhysicalDiskExists" -Expect $true {
+	Aspect -Scope "ExpectedDisks" -OrderByChildKey "ProvisioningPriority"	{
+		Facet "PhysicalDiskExists" -Expect $true -NoKey {
 			Test {
-				$expectedDiskKey = $PVContext.CurrentKeyValue;
+				$expectedDiskKey = $PVContext.CurrentObjectName;
 				$expectedDiskLetter = ($PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeName") -split "\:")[0];
 				$expectedVolumeName = $PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.VolumeLabel");
 				
@@ -72,7 +62,7 @@ Surface "ExpectedDisks" {
 			}
 			Configure {
 				# NOTE: Either the expected disk exists ... or it doesn't - there's no logic/path/option for trying to tear-down a disk that already exists... (can't/won't happen). 
-				$expectedDiskKey = $PVContext.CurrentKeyValue;
+				$expectedDiskKey = $PVContext.CurrentObjectName;
 				[PSCustomObject]$targetDiskPhysicalIdentifiers = [PSCustomObject]$PVConfig.GetValue("Host.ExpectedDisks.$expectedDiskKey.PhysicalDiskIdentifiers");
 				
 				# don't use cached disks for determination of which disks are available: 

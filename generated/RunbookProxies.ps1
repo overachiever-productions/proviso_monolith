@@ -1,25 +1,6 @@
 Set-StrictMode -Version 1.0; 
 
 #-------------------------------------------------------------------------------------
-# Tests
-#-------------------------------------------------------------------------------------
-function Evaluate-Tests {
-	Validate-MethodUsage -MethodName "Evaluate";
-	Execute-Runbook -RunbookName "Tests" -Operation Evaluate;
-}
-
-function Provision-Tests {
-	param(
-		[switch]$AllowReboot = $false, 
-		[switch]$AllowSqlRestart = $false, 
-		[string]$NextRunbookOperation = $null
-	);
-
-	Validate-MethodUsage -MethodName "Provision";
-	Execute-Runbook -RunbookName "Tests" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
-}															 
-
-#-------------------------------------------------------------------------------------
 # ServerInitialization
 #-------------------------------------------------------------------------------------
 function Evaluate-ServerInitialization {
@@ -55,4 +36,61 @@ function Provision-ServerConfiguration {
 
 	Validate-MethodUsage -MethodName "Provision";
 	Execute-Runbook -RunbookName "ServerConfiguration" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
+
+#-------------------------------------------------------------------------------------
+# AdminDb
+#-------------------------------------------------------------------------------------
+function Evaluate-AdminDb {
+	Validate-MethodUsage -MethodName "Evaluate";
+	Execute-Runbook -RunbookName "AdminDb" -Operation Evaluate;
+}
+
+function Provision-AdminDb {
+	param(
+		[switch]$AllowReboot = $false, 
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
+	);
+
+	Validate-MethodUsage -MethodName "Provision";
+	Execute-Runbook -RunbookName "AdminDb" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
+
+#-------------------------------------------------------------------------------------
+# ServerMonitoring
+#-------------------------------------------------------------------------------------
+function Evaluate-ServerMonitoring {
+	Validate-MethodUsage -MethodName "Evaluate";
+	Execute-Runbook -RunbookName "ServerMonitoring" -Operation Evaluate;
+}
+
+function Provision-ServerMonitoring {
+	param(
+		[switch]$AllowReboot = $false, 
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
+	);
+
+	Validate-MethodUsage -MethodName "Provision";
+	Execute-Runbook -RunbookName "ServerMonitoring" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
+
+#-------------------------------------------------------------------------------------
+# Tests
+#-------------------------------------------------------------------------------------
+function Evaluate-Tests {
+	Validate-MethodUsage -MethodName "Evaluate";
+	Execute-Runbook -RunbookName "Tests" -Operation Evaluate;
+}
+
+function Provision-Tests {
+	param(
+		[switch]$AllowReboot = $false, 
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
+	);
+
+	Validate-MethodUsage -MethodName "Provision";
+	Execute-Runbook -RunbookName "Tests" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
 }															 

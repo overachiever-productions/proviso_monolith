@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.PowerShell.Commands;
 using Proviso.Enums;
 using Proviso.Models;
 using Proviso.Processing;
@@ -30,10 +31,24 @@ namespace Proviso
         public Facet CurrentFacet { get; private set; }
         public string CurrentFacetName { get; private set; }
 
-        public string CurrentKey { get; private set; }
-        public object CurrentKeyValue { get; private set; }
-        public string CurrentChildKey { get; private set; }
-        public object CurrentChildKeyValue { get; private set; }
+        private string _currentSqlInstance;
+        public string CurrentSqlInstance 
+        {
+            get
+            {
+               if(string.IsNullOrWhiteSpace(this._currentSqlInstance))
+                    return "MSSQLSERVER";
+
+               return this._currentSqlInstance;
+            }
+            set
+            {
+                this._currentSqlInstance = value;
+            }
+        }
+        public object CurrentObjectName { get; private set; }
+        public string CurrentConfigKey { get; private set; }
+        public object CurrentConfigKeyValue { get; private set; }
 
         public object Expected { get; private set; }
         public object Actual { get; private set; }
@@ -122,15 +137,31 @@ namespace Proviso
             this.Matched = currentValidation.Matched;
         }
 
+        private void SetContextStateFromFacet(Facet current)
+        {
+            this.CurrentFacet = current;
+            this.CurrentFacetName = current.Name;
+
+            if (current.FacetType == FacetType.NonKey)
+                this.ClearSurfaceState();  // there's nothing to set - so... make sure everything is clear/cleaned-out.
+            else
+            {
+                this.CurrentSqlInstance = current.CurrentSqlInstanceName;
+                this.CurrentObjectName = current.CurrentObjectName;
+                this.CurrentConfigKey = current.CurrentKey;
+                this.CurrentConfigKeyValue = current.CurrentKeyValue;
+            }
+        }
+
         public void ClearSurfaceState()
         {
             this.CurrentFacet = null;
             this.CurrentFacetName = null;
 
-            this.CurrentKey = null;
-            this.CurrentKeyValue = null;
-            this.CurrentChildKey = null;
-            this.CurrentChildKeyValue = null;
+            this.CurrentSqlInstance = null;
+            this.CurrentObjectName = null;
+            this.CurrentConfigKey = null;
+            this.CurrentConfigKeyValue = null;
 
             this.Expected = null;
             this.Actual = null;
@@ -194,7 +225,6 @@ namespace Proviso
             this._temporarySurfaceState = new Dictionary<string, object>();
         }
 
-        #region Surface State
         public void SetSurfaceState(string key, object value)
         {
             if (this._temporarySurfaceState.ContainsKey(key))
@@ -210,36 +240,5 @@ namespace Proviso
 
             return null;
         }
-        #endregion
-
-        #region private / helper methods
-        private void SetContextStateFromFacet(Facet current)
-        {
-            this.CurrentFacet = current;
-            this.CurrentFacetName = current.Name;
-
-            switch (current.FacetType)
-            {
-                case FacetType.Simple:
-                    this.CurrentKey = current.Key;
-                    this.CurrentKeyValue = current.KeyValue;
-                    break;
-                case FacetType.Value:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-                    break;
-                case FacetType.Group:
-                case FacetType.Compound:
-                    this.CurrentKey = current.CurrentIteratorKey;
-                    this.CurrentKeyValue = current.CurrentIteratorKeyValue;
-
-                    this.CurrentChildKey = current.CurrentIteratorChildKey;
-                    this.CurrentChildKeyValue = current.CurrentIteratorChildKeyValue;
-                    break;
-                default:
-                    throw new Exception("Proviso Exception. Invalid FacetType in CLR ProcessingContext for SetContextStateFromFacet().");
-            }
-        }
-        #endregion
     }
 }

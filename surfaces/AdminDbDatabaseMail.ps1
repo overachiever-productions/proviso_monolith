@@ -1,17 +1,16 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbDatabaseMail {
+Surface AdminDbDatabaseMail -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
-	
-	Aspect -Scope "AdminDb.*" {
-		Facet "DatabaseMail Enabled" -ExpectChildKeyValue "DatabaseMail.Enabled" -UsesBuild {
+	Aspect -Scope "DatabaseMail" {
+		Facet "DatabaseMail Enabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				$mailXps = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'Database Mail XPs'; ").current;
 				if ($mailXps -eq 0) {
@@ -28,10 +27,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpAccountName" -ExpectChildKeyValue "DatabaseMail.SmtpAccountName" -UsesBuild {
+		Facet "SmtpAccountName" -Key "SmtpAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM msdb.dbo.[sysmail_account] WHERE [name] = N'$expectedSetting'; ").name;
 				
@@ -39,10 +38,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "OperatorEmail" -ExpectChildKeyValue "DatabaseMail.OperatorEmail" -UsesBuild {
+		Facet "OperatorEmail" -Key "OperatorEmail" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				# NOTE: this is hard-coded to check the email_address for the ALERTS operator.
 				$emailAddress = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [email_address] FROM msdb.dbo.[sysoperators] WHERE [name] = 'Alerts' AND [email_address] = N'$expectedSetting'; ").email_address;
@@ -51,10 +50,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpServerName" -ExpectChildKeyValue "DatabaseMail.SmtpServerName" -UsesBuild {
+		Facet "SmtpServerName" -Key "SmtpServerName" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$serverName = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [servername] [server] FROM msdb.dbo.[sysmail_server] WHERE [servername] = N'$expectedSetting'; ").server;
 				
@@ -62,10 +61,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "OutgoingSmtpAddress" -ExpectChildKeyValue "DatabaseMail.SmtpOutgoingEmailAddress" -UsesBuild {
+		Facet "OutgoingSmtpAddress" -Key "SmtpOutgoingEmailAddress" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$outgoingAddress = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [email_address] FROM msdb.dbo.[sysmail_account] WHERE [name] = N'$accountName' AND [email_address] = N'$expectedSetting'; ").email_address;
@@ -74,10 +73,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpPortNumber" -ExpectChildKeyValue "DatabaseMail.SmtpPortNumber" -UsesBuild {
+		Facet "SmtpPortNumber" -Key "SmtpPortNumber" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$port = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[port] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName' AND s.[port] = $expectedSetting; ").port;
@@ -86,10 +85,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "RequireSSL" -ExpectChildKeyValue "DatabaseMail.SmtpRequiresSSL" -UsesBuild {
+		Facet "RequireSSL" -Key "SmtpRequiresSSL" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$ssl = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[enable_ssl] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName'; ").enable_ssl;
@@ -102,10 +101,10 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		Facet "SmtpAuthType" -ExpectChildKeyValue "DatabaseMail.SmtpAuthType" -UsesBuild {
+		Facet "SmtpAuthType" -Key "SmtpAuthType" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$authType = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT CASE WHEN s.[use_default_credentials] = 1 THEN N'WINDOWS' WHEN s.[use_default_credentials] = 0 AND s.[credential_id] IS NOT NULL THEN N'BASIC' ELSE N'ANONYMOUS'	END [auth_type] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName'; ").auth_type;
@@ -114,8 +113,7 @@ Surface AdminDbDatabaseMail {
 			}
 		}
 		
-		
-		Facet "SmptUserName" -ExpectChildKeyValue "DatabaseMail.SmptUserName" -UsesBuild {
+		Facet "SmptUserName" -Key "SmptUserName" -ExpectKeyValue -UsesBuild {
 			# TODO: account for scenarios where ... SmtpAuthType is WindowsAuth or Anonymous... 
 			#   probably makes the most sense to implement an explicit Expect {} block to handle this... 
 			#   as in: what 'username' we expect should depend upon the AUTH type - i.e., :
@@ -123,8 +121,8 @@ Surface AdminDbDatabaseMail {
 			# 		auth-type = windows then ... <WINDOWS> ... 
 			#       else, if auth-type = basic ... then "username"(from the config)			
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedSetting = $PVContext.CurrentChildKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$username = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[username] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName' AND s.[username] = N'$expectedSetting'; ").username;
@@ -136,7 +134,7 @@ Surface AdminDbDatabaseMail {
 		# TODO: add options that map to server.display_name, server.replyto_address, account.display_name, account.replyto_address
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;

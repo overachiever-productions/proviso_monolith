@@ -1,17 +1,18 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbRestoreTests {
+Surface AdminDbRestoreTests -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
-	Aspect -Scope "AdminDb.*" {
-		Facet "RestoreTestsEnabled" -ExpectChildKeyValue "RestoreTestJobs.Enabled" -UsesBuild {
+	# TODO: job name is hard-coded... (in facets, but not in Build... odd)
+	Aspect -Scope "RestoreTestJobs" {
+		Facet "RestoreTestsEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				$start = Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
 				
@@ -23,20 +24,19 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
-		Facet "StartTime" -ExpectChildKeyValue "RestoreTestJobs.JobStartTime" -UsesBuild {
+		Facet "StartTime" -Key "JobStartTime" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				return Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
 			}
 		}
 		
-		Facet "DatabasesToRestore" -ExpectChildKeyValue "RestoreTestJobs.DatabasesToRestore"  -UsesBuild {
+		Facet "DatabasesToRestore" -Key "DatabasesToRestore" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
-				$expectedJobName = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobName");
-				
+				$instanceName = $PVContext.CurrentSqlInstance;
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $expectedJobName -JobStepName "Restore Tests" -SqlServerInstanceName $instanceName;
 				
@@ -54,8 +54,10 @@ Surface AdminDbRestoreTests {
 			}
 		}
 		
+		# TODO: Implement -Detailed facets... 
+		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;
@@ -103,8 +105,8 @@ Surface AdminDbRestoreTests {
 				$restorePattern = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RestoredDbNamePattern");
 				$allowReplace = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.AllowReplace");
 				$rpoThreshold = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.RpoThreshold");
-				$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDbsAfterRestore");
-				$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxFailedDrops");
+				$dropAfterRestore = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.DropDatabasesAfterRestore");
+				$maxFailedDrops = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.MaxNumberOfFailedDrops");
 				$restoreOperator = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Operator");
 				$restoreProfile = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.Profile");
 				$emailPrefix = $PVConfig.GetValue("AdminDb.$instanceName.RestoreTestJobs.JobEmailPrefix");
@@ -142,7 +144,5 @@ Surface AdminDbRestoreTests {
 						@OverWriteExistingJob = 1; ";
 			}
 		}
-		
-		# TODO: Implement -Detailed facets... 
 	}
 }

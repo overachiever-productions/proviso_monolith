@@ -1,6 +1,12 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
+
+	vNEXT:
+		- Address the stuff below (Notes on configuration) by using Setup/Deploy. That's going to be way better. 
+		- Not sure if I add it here OR to NetworkAdapters Surface... but...need to have an option to set a network suffix - i.e., for WSFC on/against a workgroup environment. 
+			I THINK this is probably the most logical place to put that. It's networky... but so is DOMAIN membership as well... i.e., DNS suffix/domain-stuff are about on par. 
+
 	Notes on OUTCOMEs and CONFIGURATION
 	Sadly, optional machine-rename + optional domain-join lead to an ugly number of permutations in terms of outcomes that can happen when configuring machine/domian names: 
 		A. No change to Server-Name or Domain-Name. 
@@ -10,10 +16,15 @@
 
 	In this surface, the "Target Server" Description will handle outcome B and D. Outcome D will be handled by "Target Domain". (And outcome A obviously doesn't need to be handled).
 
+	PowerShell 7 notes for Add-Computer:
+		- https://docs.microsoft.com/en-us/answers/questions/382685/powershell-7-unjoin-computer-from-domain.html
+		- https://docs.microsoft.com/en-us/powershell/module/Microsoft.PowerShell.Core/About/about_windows_powershell_compatibility?view=powershell-7.1
+
+
 #>
 
 
-Surface "ServerName" {
+Surface "ServerName" -Target "Host" {
 	
 	Assertions {
 		
@@ -21,7 +32,7 @@ Surface "ServerName" {
 		
 		Assert-HostIsWindows -FailureMessage "Surface [ServerName] is currently only configured to execute against Windows Server instances";
 		
-		Assert-HasDomainCreds -ForDomainJoin;
+		Assert-HasDomainCreds -ForDomainJoin -ConfigureOnly;
 		
 		Assert "TargetServerNameIsNetBiosCompliant" -FailureMessage "TargetServer value specified in config exceeds 15 chars in legth." {
 			$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
@@ -48,12 +59,12 @@ Surface "ServerName" {
 	}
 	
 	Aspect {
-		Facet "Target Server" -ExpectKeyValue "Host.TargetServer" -RequiresReboot {
+		Facet "Target Server" -Key "TargetServer" -ExpectKeyValue -RequiresReboot {
 			Test {
 				return [System.Net.Dns]::GetHostName();
 			}
 			Configure {
-				$targetMachineName = $PVConfig.GetValue("Host.TargetServer");
+				$targetMachineName = $PVContext.CurrentConfigKeyValue;
 				
 				# see notes on Outcomes/configuration in comments at the top of this surface:
 				# since we're in here, we already KNOW that the current HostName doesn't match the Desired (Target) host-name. 
@@ -67,6 +78,9 @@ Surface "ServerName" {
 					
 					$PVContext.WriteLog("Renaming Host [$([System.Net.Dns]::GetHostName())] to [$targetMachineName] and joining the [$targetDomainName] Domain.", "Important");
 					try {
+						$credentials = $PVDomainCreds.GetCredential();
+						
+						Import-Module Microsoft.PowerShell.Management -UseWindowsPowerShell -WarningAction SilentlyContinue | Out-Null;
 						Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false | Out-Null;
 					}
 					catch {
@@ -90,7 +104,7 @@ Surface "ServerName" {
 			}
 		}
 		
-		Facet "Target Domain" -ExpectKeyValue "Host.TargetDomain" -RequiresReboot {
+		Facet "Target Domain" -Key "TargetDomain" -ExpectKeyValue -RequiresReboot {
 			Test {
 				$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 				if ($domain -eq "WORKGROUP") {
@@ -120,10 +134,12 @@ Surface "ServerName" {
 					# Outcome C - domain-name change only - handled here: 
 					
 					$targetDomainName = $PVConfig.GetValue("Host.TargetDomain");
+					$credentials = $PVDomainCreds.GetCredential();
 					
 					$PVContext.WriteLog("Adding Host [$currentHostName] to Domain [$targetDomainName].", "Important");
 					
 					try {
+						Import-Module Microsoft.PowerShell.Management -UseWindowsPowerShell -WarningAction SilentlyContinue | Out-Null;
 						Add-Computer -DomainName $targetDomainName -Credential $credentials -Restart:$false | Out-Null;
 					}
 					catch {

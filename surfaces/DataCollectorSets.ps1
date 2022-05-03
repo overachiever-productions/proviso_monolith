@@ -1,27 +1,14 @@
 ﻿Set-StrictMode -Version 1.0;
 
-
-<# 
-
-	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
-
-	Validate-DataCollectorSets;
-	Summarize -Latest;
-
-#>
-
-
-Surface "DataCollectorSets" {
+Surface "DataCollectorSets" -Target "DataCollectorSets" {
 	Assertions {
-		
+		Assert-UserIsAdministrator;
 	}
 	
-	Aspect -Scope "DataCollectorSets.*" {
-		Facet "IsEnabled" -ExpectCurrentKeyValue {
+	Aspect {
+		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
 			Test {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 				
 				$status = Get-DataCollectorSetStatus -Name $collectorSetName;
 				if ($status -like "<*") {
@@ -29,7 +16,6 @@ Surface "DataCollectorSets" {
 				}
 				
 				if ($status -eq "Running") {
-					#return $true;
 					return $collectorSetName;
 				}
 				
@@ -38,7 +24,7 @@ Surface "DataCollectorSets" {
 				}
 			}
 			Configure {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 				$expected = $PVContext.Expected;
 				
 				if ($expected) {
@@ -60,9 +46,9 @@ Surface "DataCollectorSets" {
 			}
 		}
 		
-		Facet "EnableStartWithOS" -ExpectChildKeyValue "EnableStartWithOS" {
+		Facet "EnableStartWithOS" -Key "EnableStartWithOS" -ExpectKeyValue {
 			Test {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 				
 				# Since TaskScheduler tasks SUCK so much AND since Posh sucks in terms of support, it's EASIER to simple extract the XML for tasks and 'go that route'... 
 				$path = "C:\Windows\System32\Tasks\Microsoft\Windows\PLA\$collectorSetName";
@@ -87,16 +73,16 @@ Surface "DataCollectorSets" {
 				return $false;
 			}
 			Configure {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 				[bool]$expected = $PVContext.Expected;
 				
 				Enable-DataCollectorSetForAutoStart -Name $collectorSetName -Disable:(-not ($expected));
 			}
 		}
 		
-		Facet "RetentionDays" -ExpectChildKeyValue "DaysWorthOfLogsToKeep" {
+		Facet "RetentionDays" -Key "DaysWorthOfLogsToKeep" -ExpectKeyValue {
 			Test {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 								
 				# Ditto on scheduled tasks sucking - i.e., using xml instead: 
 				$path = "C:\Windows\System32\Tasks\$collectorSetName - Cleanup Older Files";
@@ -120,7 +106,7 @@ Surface "DataCollectorSets" {
 				}
 			}
 			Configure {
-				$collectorSetName = $PVContext.CurrentKeyValue;
+				$collectorSetName = $PVContext.CurrentObjectName;
 				$daysToRetain = $PVContext.Expected;
 				
 				# Ultimately, there will ALWAYS (effectively) be a cleanup - the default (i.e., if a value isn't specified) is 180 days...  

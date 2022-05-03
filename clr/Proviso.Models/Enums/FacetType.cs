@@ -2,9 +2,14 @@
 {
     public enum FacetType
     {
+        NonKey,
         Simple, 
-        Value, 
-        Group, 
-        Compound
+        SimpleArray, 
+        Object, 
+        ObjectArray, 
+        SqlObject, 
+        SqlObjectArray, 
+        Compound, 
+        CompoundArray
     }
 }

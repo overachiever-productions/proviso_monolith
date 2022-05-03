@@ -211,6 +211,27 @@ function Run-AdminDbRestoreTests {
 }
 
 #-------------------------------------------------------------------------------------
+# ClusterConfiguration
+#-------------------------------------------------------------------------------------
+function Validate-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation "Validate";
+}
+
+function Configure-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation "Configure";
+}
+
+function Run-ClusterConfiguration {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "ClusterConfiguration" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
 # DataCollectorSets
 #-------------------------------------------------------------------------------------
 function Validate-DataCollectorSets {
@@ -484,24 +505,45 @@ function Run-SqlInstallation {
 }
 
 #-------------------------------------------------------------------------------------
-# Ssms
+# SqlVersion
 #-------------------------------------------------------------------------------------
-function Validate-Ssms {
+function Validate-SqlVersion {
 	Validate-MethodUsage -MethodName "Validate";
-	Process-Surface -SurfaceName "Ssms" -Operation "Validate";
+	Process-Surface -SurfaceName "SqlVersion" -Operation "Validate";
 }
 
-function Configure-Ssms {
+function Configure-SqlVersion {
 	Validate-MethodUsage -MethodName "Configure";
-	Process-Surface -SurfaceName "Ssms" -Operation "Configure";
+	Process-Surface -SurfaceName "SqlVersion" -Operation "Configure";
 }
 
-function Run-Ssms {
+function Run-SqlVersion {
 	Validate-MethodUsage -MethodName "Run";
 	Validate-RunbookProcessing;
 	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
 	
-	Process-Surface -SurfaceName "Ssms" -Operation $operationType;
+	Process-Surface -SurfaceName "SqlVersion" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
+# SsmsInstallation
+#-------------------------------------------------------------------------------------
+function Validate-SsmsInstallation {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation "Validate";
+}
+
+function Configure-SsmsInstallation {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation "Configure";
+}
+
+function Run-SsmsInstallation {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "SsmsInstallation" -Operation $operationType;
 }
 
 #-------------------------------------------------------------------------------------

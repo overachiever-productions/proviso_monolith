@@ -1,19 +1,19 @@
 ﻿Set-StrictMode -Version 1.0;
 
-Surface AdminDbBackups {
+Surface AdminDbBackups -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
-	Aspect -Scope "AdminDb.*" {
-		Facet "BackupsEnabled" -ExpectChildKeyValue "BackupJobs.Enabled" -UsesBuild {
+	Aspect -Scope "BackupJobs" {
+		Facet "BackupsEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				# this one's a bit complex. IF no jobs exist, then $false. 
 				# otherwise, if all jobs exist: $true. 
 				# BUT, if only some jobs exist, report on which ones... 
 				
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$systemStart = Get-AgentJobStartTime -SqlServerAgentJob "$($jobsPrefix)SYSTEM - Full" -SqlServerInstanceName $instanceName;
@@ -56,9 +56,9 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Facet "UserTargets" -ExpectChildKeyValue "BackupJobs.UserDatabasesToBackup" -UsesBuild {
+		Facet "UserTargets" -Key "UserDatabasesToBackup" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$fullBackupsJobName = "$($jobsPrefix)USER - Full";
@@ -78,9 +78,9 @@ Surface AdminDbBackups {
 			}
 		}
 		
-		Facet "TLogFrequency" -ExpectChildKeyValue "BackupJobs.LogBackupsEvery" -UsesBuild {
+		Facet "TLogFrequency" -Key "LogBackupsEvery" -ExpectKeyValue -UsesBuild {
 			Test {
-				$instanceName = $PVContext.CurrentKeyValue;
+				$instanceName = $PVContext.CurrentSqlInstance;
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$tLogJobName = "$($jobsPrefix)USER - Log";
@@ -90,7 +90,7 @@ Surface AdminDbBackups {
 		}
 		
 		Build {
-			$sqlServerInstance = $PVContext.CurrentKeyValue;
+			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$facetName = $PVContext.CurrentFacetName;
 			$matched = $PVContext.Matched;
 			$expected = $PVContext.Expected;

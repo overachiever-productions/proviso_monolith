@@ -4,12 +4,16 @@
 	
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
-	Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
+	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
+	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-	Is-ValidProvisoKey -Key "SqlServerConfiguration.DisableSaLogin";
-	Is-ValidProvisoKey -Key "SqlServerConfiguration.DeployContingencySpace";
+	$PVConfig.GetSqlInstanceNames("AdminDb");
 
-	$PVConfig.GetSqlInstanceNames("SqlServerConfiguration");
+
+#	Is-ValidProvisoKey -Key "SqlServerConfiguration.DisableSaLogin";
+#	Is-ValidProvisoKey -Key "SqlServerConfiguration.DeployContingencySpace";
+#
+#	$PVConfig.GetSqlInstanceNames("SqlServerConfiguration");
 
 #>
 
@@ -714,9 +718,15 @@ filter Get-ConfigSqlInstanceNames {
 			if ($sqlKey -like "$($target)*") {
 				$instance = ($sqlKey -split '\.')[1];
 				
-				if ($instances -notcontains $instance) {
-					$instances += $instance
+				# MKC: ... sigh. once again: super confused by how this code EVEN WORKS. 
+				#  		i.e., the -notin BELOW is a hack. (BUT, how come i don't have to set up -notin entries for, say, Deploy, DatabaseMail, and a bazillion other entries inside of Admindb.x?)
+				if ($instance -notin @("OverrideSource")) {
+					
+					if ($instances -notcontains $instance) {
+						$instances += $instance
+					}
 				}
+				
 			}
 		}
 	}

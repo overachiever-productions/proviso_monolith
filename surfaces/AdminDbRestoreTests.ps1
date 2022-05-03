@@ -3,8 +3,8 @@
 Surface AdminDbRestoreTests -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	# TODO: job name is hard-coded... (in facets, but not in Build... odd)

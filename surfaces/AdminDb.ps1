@@ -3,7 +3,7 @@
 Surface AdminDb -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb";
+		Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
 	}
 	
 	Aspect {

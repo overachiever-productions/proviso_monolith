@@ -2,8 +2,8 @@
 
 Surface AdminDbIndexMaintenance -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	# TODO: currently using hard-coded job-names... 

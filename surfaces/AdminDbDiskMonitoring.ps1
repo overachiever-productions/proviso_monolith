@@ -2,8 +2,8 @@
 
 Surface AdminDbDiskMonitoring -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	# TODO: Disk monitoring Job is currently hard-coded to 'Regular Drive Space Checks'... 

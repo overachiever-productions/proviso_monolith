@@ -3,8 +3,8 @@
 Surface AdminDbConsistencyChecks -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	Aspect -Scope "ConsistencyChecks" {

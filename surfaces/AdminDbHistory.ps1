@@ -2,8 +2,8 @@
 
 Surface AdminDbHistory -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
 	# TODO: add in the abililty to change the NAME of the JOB that handles these cleanups.

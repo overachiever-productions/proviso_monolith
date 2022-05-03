@@ -3,10 +3,9 @@
 Surface AdminDbDatabaseMail -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled;
-		Assert-AdminDbInstalled;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-AdminDbInstalled -ConfigureOnly;
 	}
-	
 	
 	Aspect -Scope "DatabaseMail" {
 		Facet "DatabaseMail Enabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {

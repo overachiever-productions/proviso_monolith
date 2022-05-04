@@ -371,7 +371,7 @@
 	ClusterConfiguration = @{
 		ClusterType = "NONE" # Options: AG, AGx (scale-out/workgroup/etc.), FCI, NONE
 		
-		PrimaryNode = "{~DEFAULT_PROHIBITED~}"
+		PrimaryNode = "{~DEFAULT_PROHIBITED~}"  # hmmmm. my thought here was that THIS would be the PREFERRED node to execute cluster creation. ONLY: a) how do you PREFER something. b) what happens if/when SQLA and SQLB are already in the cluster for weeks/months, and ... we need to ADD SQLC? i.e., i think whoever sees both boxes and can create the cluster ... should. 
 		EvictionBehavior = "WARN"    # if part of cluster and name <> ClusterName or ClusterType = "NONE"... then warn (by default)
 		
 		ClusterName 		= "{~DEFAULT_PROHIBITED~}"

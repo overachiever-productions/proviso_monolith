@@ -141,7 +141,8 @@ namespace Proviso.Processing
                 if (this.Validation.ParentFacet.RequiresReboot)
                     return "Reboot Pending...";
 
-                return "Expected != Actual after Configuration.";
+                //return "Expected != Actual after Configuration.";
+                return "Configuration FAILURE."; // other options might be "Unprovisioned", "Incomplete" and so on... 
             }
 
             return "Success.";

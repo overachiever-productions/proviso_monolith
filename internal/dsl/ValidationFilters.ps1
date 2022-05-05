@@ -30,7 +30,7 @@ filter Validate-SurfaceBlockUsage {
 filter Validate-Config {
 	
 	if ($null -eq $PVConfig) {
-		throw "Invalid Operation. `$PVConfig has not been set yet - or is `$null. Please ensure that [With] has been executed to defined a configuration block for processing needs.";
+		throw "Invalid Operation. A Target configuration has not yet been specified. Please use [Target] to specify a configuration before continuing.";
 	}
 }
 

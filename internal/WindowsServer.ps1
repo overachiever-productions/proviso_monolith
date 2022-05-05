@@ -235,12 +235,37 @@ filter Install-WsfcComponents {
 
 filter Validate-WindowsCredentials {
 	param (
-		[Parameter(Mandatory)]
-		[PSCredential]$Credentials
+		[PSCredential]$Credentials,
+		[string]$UserName,
+		[string]$Password
 	);
 	
+	if ($null -eq $Credentials) {
+		try {
+			[securestring]$secStringPassword = ConvertTo-SecureString $Password -AsPlainText -Force;
+			$Credentials = New-Object System.Management.Automation.PSCredential($UserName, $secStringPassword);
+		}
+		catch {
+			throw "huh $_ "
+			return $false;
+		}
+	}
+	
+	# if we're in a workgroup, can ONLY validate against local authority: 
 	if ("WORKGROUP" -eq ((Get-CimInstance Win32_ComputerSystem).Domain)) {
 		return Test-LocalAuthorityCredentials -LocalCreds $Credentials;
+	}
+	
+	# otherwise, ASSUME creds without an authority specified are DOMAIN, but account for explicit 'local' authority:
+	$isDomainCred = $false;
+	$credsUserName = $Credentials.UserName;
+	$indexOf = $credsUserName.IndexOf("\");
+	if ($indexOf -gt 0) {
+		$principal = $credsUserName.Substring(0, $indexOf);
+		
+		if ([System.Net.Dns]::GetHostName() -eq $principal) {
+			return Test-LocalAuthorityCredentials -LocalCreds $Credentials;
+		}
 	}
 	
 	return Test-DomainCredentials -DomainCreds $Credentials;
@@ -272,18 +297,18 @@ filter Test-DomainCredentials {
 		[PSCredential]$DomainCreds
 	);
 	
-	try {
-		$username = $DomainCreds.UserName;
-		$password = $DomainCreds.GetNetworkCredential().Password;
-		
-		$CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName;
-		$test = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain, $username, $password);
-		
-		return ($null -ne $test);
+	# nice: https://stackoverflow.com/questions/67631397/validate-credentials-for-remote-domain
+	Add-Type -AssemblyName System.DirectoryServices.AccountManagement;
+	$contextType = [System.DirectoryServices.AccountManagement.ContextType]::Domain;
+	$contextName = (Get-CimInstance Win32_ComputerSystem).Domain;
+	
+	$validation = New-Object -TypeName System.DirectoryServices.AccountManagement.PrincipalContext -ArgumentList $contextType, $contextName, $($DomainCreds.UserName), $($DomainCreds.GetNetworkCredential().Password);
+	
+	if ($validation.ConnectedServer) {
+		return $true;
 	}
-	catch {
-		return $false;
-	}
+	
+	return $false;
 }
 
 filter Grant-PermissionsToDirectory {

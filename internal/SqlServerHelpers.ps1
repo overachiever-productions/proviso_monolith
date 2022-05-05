@@ -396,6 +396,13 @@ function Install-SqlServer {
 		if ($SysAdminMembers.Count -gt 0) {
 			$serializedSysAdmins = "";
 			foreach ($admin in $SysAdminMembers) {
+				
+				# before attempting to add the accounts in question, make sure they have VALID windows SIDs:
+				$sid = ConvertTo-WindowsSecurityIdentifier -Name $admin;
+				if ($null -eq $sid) {
+					throw "Exception. Windows User/Group [$admin] does NOT have a valid SID.";
+				}
+				
 				$serializedSysAdmins += "`"$admin`" "; # e.g., SQLSYSADMINACCOUNTS="SQL-150-AG01A\Administrator" "OVERACHIEVER\Administrator" 
 			}
 			# NOTE: this ALSO requires SPECIAL formatting/output during the scriptmethod for .WriteToIniFile()
@@ -422,6 +429,12 @@ function Install-SqlServer {
 			$SqlServiceAccountPassword = $SqlServiceAccountPassword -replace '"', '\"';
 			
 			$arguments += "/SQLSVCPASSWORD='$SqlServiceAccountPassword' ";
+			
+			# Now, validate that the account is legit: 
+			if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["SqlServiceAccountName"]) -Password $SqlServiceAccountPassword)) {
+				$PVContext.WriteLog("Exception. SQL Server Service account [$($ServiceAccounts["SqlServiceAccountName"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
+				throw "Exception. Invalid Credentials for [$($ServiceAccounts["SqlServiceAccountName"])].";
+			}
 		}
 		
 		if ($ServiceAccounts["AgentServiceAccountName"] -notlike "NT SERVICE\*") {
@@ -432,6 +445,12 @@ function Install-SqlServer {
 			$AgentServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
 			
 			$arguments += "/AGTSVCPASSWORD='$AgentServiceAccountPassword' ";
+			
+			# Validate:
+			if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["AgentServiceAccountName"]) -Password $AgentServiceAccountPassword)) {
+				$PVContext.WriteLog("Fatal Exception. SQL Server AGENT Service account [$($ServiceAccounts["AgentServiceAccountName"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
+				throw "Exception. Invalid Credentials for [$($ServiceAccounts["AgentServiceAccountName"])].";
+			}
 		}
 		
 		if ($Features -like '*FullText*') {
@@ -443,6 +462,13 @@ function Install-SqlServer {
 				$FullTextServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
 				
 				$arguments += "/FTSVCPASSWORD='$FullTextServiceAccountPassword' ";
+				
+				# Validate:
+				if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["FullTextServiceAccount"]) -Password $FullTextServiceAccountPassword)) {
+					$PVContext.WriteLog("Fatal Exception. SQL Server FULL TEXT Service account [$($ServiceAccounts["FullTextServiceAccount"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
+					throw "Exception. Invalid Credentials for [$($ServiceAccounts["FullTextServiceAccount"])].";
+				}
+				
 			}
 		}
 		
@@ -470,8 +496,13 @@ function Install-SqlServer {
 		
 		switch ($Version) {
 			"2019" {
-				$2019 = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
-				$outcome = $outcome -replace $2019, ""
+				$2019telemetry = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
+				$2019entKey = "Notice: A paid SQL Server edition product key has been provided for the current action - Enterprise. Please ensure you are entitled to this SQL Server edition with proper licensing in place for the product key (edition) supplied.";
+				$2019stdKey = "Notice: A paid SQL Server edition product key has been provided for the current action - Standard. Please ensure you are entitled to this SQL Server edition with proper licensing in place for the product key (edition) supplied.";
+				
+				$outcome = $outcome -replace $2019telemetry, "";
+				$outcome = $outcome -replace $2019entKey, "";
+				$outcome = $outcome -replace $2019stdKey, "";
 			}
 			"2017" {
 				

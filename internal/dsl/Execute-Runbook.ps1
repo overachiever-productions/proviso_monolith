@@ -39,6 +39,13 @@ function Execute-Runbook {
 			}
 		}
 		
+		if ($runbook.RequiresDomainCredsConfigureOnly) {
+			if ("Provision" -eq $Operation) {
+				if (-not ($PVDomainCreds.CredentialsSet)) {
+					throw "Invalid Operation. Runbook [$($runbook.Name)] specifies that -DomainCredentialsConfigOnly are required. Please use [Assign] to provide Domain Credentials using one of the parameters provided.";
+				}
+			}
+		}
 		
 		if ($AllowReboot) {
 			if (-not($PVDomainCreds.RebootCredentials)) {

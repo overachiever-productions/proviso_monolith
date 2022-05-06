@@ -98,7 +98,7 @@ namespace Proviso
             {
                 if (this._methodsStack.Count < 1)
                 {
-                    return "Validate can't be until a Target has been specified... ";
+                    return "Validate can't be executed until a Target has been specified... ";
                 }
                 this._methodsStack.Push(method);
             }

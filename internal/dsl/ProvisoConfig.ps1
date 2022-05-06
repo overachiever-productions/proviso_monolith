@@ -635,6 +635,7 @@ filter Get-ProvisoConfigDefaultValue {
 	return $value;
 }
 
+# TODO: use private variable here instead of misdirection (i.e. Set-Variable xxx -Visibility Private)
 $script:be8c742fFlattenedConfigKeys = $null;
 filter Recurse-Keys {
 	param (
@@ -828,7 +829,6 @@ filter Set-ConfigTarget {
 		# 			arguably, there could, also be a scenario where the key - after being made explicit, MIGHT? need place-holders for {~ANY~}... 
 		# 			but I don't THINK so???? 
 		
-		
 		if (Is-ValidProvisoKey -Key $key) {
 			
 			if ($value -isnot [hashtable]) {
@@ -836,65 +836,7 @@ filter Set-ConfigTarget {
 			}
 		}
 		else {
-			
 			$parts = $key -split '\.';
-#Write-Host "Invalid Key: $key"			
-#			switch ($key) {
-#				{ $_ -like "SqlServerInstallation*"	} {
-#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS) {
-#						throw "Fatal Error. Invalid SqlServerInstallation Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "SqlServerConfiguration*" } {
-#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_CONFIGURATION_KEYS) {
-#						throw "Fatal Error. Invalid SQLServerConfiguration Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "AdminDb*" } {
-#					if ($parts[1] -notin $FINAL_NODE_ADMINDB_KEYS) {
-#						throw "Fatal Error. Invalid AdminDb Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "ExpectedDirectories*" } {
-#					if ($parts[1] -notin $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS) {
-#						throw "Fatal Error. Invalid ExpectedDirectories Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "ExpectedShares*" } {
-#					if ($parts[1] -notin $FINAL_NODE_EXPECTED_SHARES_KEYS) {
-#						throw "Fatal Error. Invalid ExpectedShares Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "ExtendedEvents*" } {
-#		#Write-Host "parts: $parts"
-##					if ($parts[1] -notin $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-##						throw "Fatal Error. Invalid Extended Events Configuration Key: [$key].";
-##					}
-#				}
-#				{ $_ -like "SqlServerPatches*"} {
-#					if ($parts[1] -notin $FINAL_NODE_SQL_SERVER_PATCH_KEYS) {
-#						throw "Fatal Error. Invalid SQL Server Patches Configuration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "ResourceGovernor*"} {
-#					throw "ResourceGovernor are NOT implemented YET.";
-#				}
-#				{ $_ -like "ClusterConfiguration*" } {
-#					if ($parts[1] -notin $FINAL_NODE_CLUSTER_CONFIGURATION_KEYS) {
-#						throw "Fatal Error. Invalid ClusterConfiguration Key: [$key].";
-#					}
-#				}
-#				{ $_ -like "AvailabilityGroups*" } {
-#					throw "AvailabilityGroups are NOT implemented YET.";
-#				}
-#				{ $_ -like "CustomSqlScripts*" } {
-#					throw "CustomSqlScripts are NOT implemented YET.";
-#				}				
-#				default {
-#					throw "Fatal Error. Invalid/Unknown Configuration Key: [$key].";
-#				}
-#			}
-			
 			$explicitKey = $key -replace "$($parts[0])", "$($parts[0]).MSSQLSERVER";
 			
 			if (-not (Is-ValidProvisoKey -Key $explicitKey)) {

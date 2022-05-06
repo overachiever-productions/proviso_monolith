@@ -28,7 +28,6 @@ filter Validate-SurfaceBlockUsage {
 }
 
 filter Validate-Config {
-	
 	if ($null -eq $PVConfig) {
 		throw "Invalid Operation. A Target configuration has not yet been specified. Please use [Target] to specify a configuration before continuing.";
 	}

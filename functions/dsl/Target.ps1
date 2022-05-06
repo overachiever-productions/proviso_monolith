@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# TODO: use a private variable instead: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/set-variable?view=powershell-7.2
+$script:be8c742fMostRecentConfigFilePath = $null;
 function Target {
 	[Alias("With")]
 	
@@ -37,6 +39,7 @@ function Target {
 			try {
 				$data = Import-PowerShellDataFile $ConfigFile;
 				Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
+				$script:be8c742fMostRecentConfigFilePath = $ConfigFile;
 			}
 			catch {
 				throw "Exception Loading Proviso Config File at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
@@ -53,11 +56,12 @@ function Target {
 				$data = Import-PowerShellDataFile $hostConfigFile;
 				
 				Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
+				
+				$script:be8c742fMostRecentConfigFilePath = $hostConfigFile;
 			}
 			catch {
 				throw "Exception Loading Proviso Config File via -HostName at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
 			}
-			
 		}
 		
 		if ($CurrentHost) {
@@ -78,6 +82,8 @@ function Target {
 					try {
 						$data = Import-PowerShellDataFile ($matches[0].Name);
 						Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
+						
+						$script:be8c742fMostRecentConfigFilePath = ($matches[0].Name);
 					}
 					catch {
 						throw "Exception Loading Proviso Config File at $($matches[0].Name) via [-CurrentHost]. $_  `r$($_.ScriptStackTrace) ";

@@ -12,6 +12,10 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 		Facet "RestoreTestsEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				$start = Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
@@ -27,6 +31,10 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 		Facet "StartTime" -Key "JobStartTime" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				$expectedJobName = "Database Backups - Regular Restore Tests";
 				
 				return Get-AgentJobStartTime -SqlServerAgentJob $expectedJobName -SqlServerInstanceName $instanceName;
@@ -36,8 +44,11 @@ Surface AdminDbRestoreTests -Target "AdminDb" {
 		Facet "DatabasesToRestore" -Key "DatabasesToRestore" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedJobName = "Database Backups - Regular Restore Tests";
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedJobName = "Database Backups - Regular Restore Tests";
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $expectedJobName -JobStepName "Restore Tests" -SqlServerInstanceName $instanceName;
 				
 				if ($jobStepBody -like "<*") {

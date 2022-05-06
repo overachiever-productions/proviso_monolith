@@ -10,6 +10,9 @@ Surface AdminDbAlerts -Target "AdminDb" {
 		Facet "IOAlertsEnabled" -Key "IOAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				[int[]]$expected = 605, 823, 824, 825;
 				$alerts = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [message_id] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1; ").message_id;
@@ -34,6 +37,9 @@ Surface AdminDbAlerts -Target "AdminDb" {
 		Facet "SeverityAlertsEnabled" -Key "SeverityAlertsEnabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				[int[]]$expected = 17 .. 25;
 				$severities = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [severity] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1; ").severity;
@@ -58,6 +64,9 @@ Surface AdminDbAlerts -Target "AdminDb" {
 		Facet "IOAlertsFiltered" -Key "IOAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT([job_id]) [count] FROM msdb.[dbo].[sysalerts] WHERE [message_id] IN (605, 823, 824, 825) AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000'; ").count;
 				if ($count -eq 0){
@@ -75,6 +84,9 @@ Surface AdminDbAlerts -Target "AdminDb" {
 		Facet "SeverityAlertsFiltered" -Key "SeverityAlertsFiltered" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT COUNT(job_id) [count] FROM [msdb].dbo.[sysalerts] WHERE [severity] >= 17 AND [enabled] = 1 AND [job_id] <> '00000000-0000-0000-0000-000000000000' ").count;
 				if ($count -eq 0) {

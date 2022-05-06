@@ -14,6 +14,10 @@ Surface AdminDbBackups -Target "AdminDb" {
 				# BUT, if only some jobs exist, report on which ones... 
 				
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$systemStart = Get-AgentJobStartTime -SqlServerAgentJob "$($jobsPrefix)SYSTEM - Full" -SqlServerInstanceName $instanceName;
@@ -59,6 +63,10 @@ Surface AdminDbBackups -Target "AdminDb" {
 		Facet "UserTargets" -Key "UserDatabasesToBackup" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$fullBackupsJobName = "$($jobsPrefix)USER - Full";
@@ -81,6 +89,10 @@ Surface AdminDbBackups -Target "AdminDb" {
 		Facet "TLogFrequency" -Key "LogBackupsEvery" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				$jobsPrefix = $PVConfig.GetValue("AdminDb.$instanceName.BackupJobs.JobsNamePrefix");
 				
 				$tLogJobName = "$($jobsPrefix)USER - Log";

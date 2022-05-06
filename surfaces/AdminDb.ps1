@@ -10,6 +10,9 @@ Surface AdminDb -Target "AdminDb" {
 		Facet "Deployed" -Key "Deploy" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {
@@ -82,6 +85,9 @@ Surface AdminDb -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {

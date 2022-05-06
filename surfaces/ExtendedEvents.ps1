@@ -39,6 +39,9 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$name = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[dm_xe_sessions] WHERE [name] = N'telemetry_xevents'; ").name;
 				if ($name) {
@@ -75,10 +78,12 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 		Facet "Exists" -Key "Enabled" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$sessionKey = $PVContext.CurrentObjectName;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
-				
+				$sessionKey = $PVContext.CurrentObjectName;				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName'; ").name;
 				if ($exists) {
 					return $true;
@@ -136,10 +141,12 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 		Facet "Enabled" -Key "Enabled" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$sessionKey = $PVContext.CurrentObjectName;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
-				
+				$sessionKey = $PVContext.CurrentObjectName;				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");				
 				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[dm_xe_sessions] WHERE [name] = N'$sessionName'; ").name;
 				if ($state) {
 					return $true;
@@ -160,8 +167,11 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 		Facet "StartWithSystem" -Key "StartWithSystem" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$sessionKey = $PVContext.CurrentObjectName;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$sessionKey = $PVContext.CurrentObjectName;				
 				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
 				
 				$startState = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT startup_state FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName';").startup_state;

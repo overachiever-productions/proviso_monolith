@@ -53,6 +53,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "DisableSa" -Key "DisableSaLogin" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "<EMPTY>";
+				}
 				
 				$result = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [is_disabled] FROM master.sys.[server_principals] WHERE [name] = 'sa';").is_disabled;
 				
@@ -78,6 +81,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "ContingencySpace" -Key "DeployContingencySpace" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				$sqlDirectories = @{};
 				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceName.SqlServerDefaultDirectories.InstallSqlDataDir");
@@ -179,6 +185,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "UserRight:LPIM" -Key "EnabledUserRights.LockPagesInMemory" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight LPIM;
 			}
@@ -205,6 +214,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "UserRight:PVMT" -Key "EnabledUserRights.PerformVolumeMaintenanceTasks" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight PVMT;
 			}
@@ -242,8 +254,11 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "TraceFlag" -Key "TraceFlags" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$traceFlag = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
+				$traceFlag = $PVContext.CurrentConfigKeyValue;
 				$enabled = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DBCC TRACESTATUS(`$(FLAG));" -Variable "FLAG=$traceFlag").Global;
 				
 				if ($enabled -eq 0) {

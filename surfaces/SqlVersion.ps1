@@ -39,6 +39,10 @@ Surface SqlVersion -Target "SqlServerPatches" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "<N/A>";
+				}
+				
 				$sp = $PVConfig.GetValue("SqlServerPatches.$instanceName.TargetSP");
 				
 				if ($sp) {
@@ -85,6 +89,10 @@ Surface SqlVersion -Target "SqlServerPatches" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "<N/A>";
+				}
+				
 				$cu = $PVConfig.GetValue("SqlServerPatches.$instanceName.TargetCU");
 				
 				if ($cu) {

@@ -4,16 +4,80 @@
 
 
 # TODO:
-   figure out which directives to NUKE/REMOVE based up on VERSION of SQL Server being installed. 
+   figure out which directives (to setup.exe) to NUKE/REMOVE based up on VERSION of SQL Server being installed. 
 	Also... pretty sure that means I need to pass the $Version in to Install-SqlServer (er... well, yeah: duh: i do)
 
 #>
 
 Surface SqlInstallation -Target "SqlServerInstallation" {
 	Assertions {
+		Assert "Service Accounts Are Valid" -ConfigureOnly -FailureMessage "One or More Service Accounts Failed Authentication" {
+			$instances = $PVConfig.GetSqlInstanceNames("SQLServerInstallation");
+			if (($null -eq $instances) -or ($instances.Count -lt 1)) {
+				throw "Invalid Configuration. "
+			}
+			
+			$multipleInstances = $false;
+			if ($instances.Count -gt 1) {
+				$multipleInstances = $true;
+			}
+			
+			foreach ($instance in $instances) {
+				
+				[string[]]$keyPrefixes = @("SqlServiceAccount", "AgentServiceAccount", "FullTextServiceAccount");
+				foreach ($key in $keyPrefixes) {
+					$accountName = $PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Name");
+					if ($accountName -notlike "NT SERVICE\*") {
+						$accountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Password"));
+						
+						if (-not (Validate-WindowsCredentials -User $accountName -Password $accountPassword)) {
+							$FailureMessage = "UserName + Password for [$accountName] Failed Authentication Test.";
+							if ($multipleInstances) {
+								$FailureMessage = "UserName + Password for [$accountName] for instance [$instance] Failed Authentication Test.";
+							}
+							
+							return $false;
+						}
+					}
+				}
+			}
+			
+			return $true;
+		}
 		
+		Assert "SysAdmin Members Exist" -ConfigureOnly -FailureMessage "One or more targets for inclusion as a Member of SysAdmin does not exist." {
+			
+			$instances = $PVConfig.GetSqlInstanceNames("SQLServerInstallation");
+			if (($null -eq $instances) -or ($instances.Count -lt 1)) {
+				throw "Invalid Configuration. "
+			}
+			
+			$multipleInstances = $false;
+			if ($instances.Count -gt 1) {
+				$multipleInstances = $true;
+			}
+			
+			foreach ($instance in $instances) {
+				$sysAdminTargets = $PVConfig.GetValue("SqlServerInstallation.$instance.SecuritySetup.MembersOfSysAdmin");
+				
+				foreach ($admin in $sysAdminTargets) {
+					
+					$sid = ConvertTo-WindowsSecurityIdentifier -Name $admin;
+					if ($null -eq $sid) {
+						$FailureMessage = "Windows User/Group [$admin] does NOT exist.";
+						if ($multipleInstances) {
+							$FailureMessage = "Windows User/Group [$admin] for instance [$instance] does NOT exist.";
+						}
+						
+						return $false;
+					}
+				}
+			}
+			
+			return $true;
+		}
 	}
-		
+	
 	Aspect {
 		Facet "InstanceExists" -NoKey -ExpectIteratorValue -UsesBuild {
 			Test {

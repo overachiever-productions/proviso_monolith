@@ -134,7 +134,7 @@ filter Get-SqlServerDefaultServiceAccount {
 			"AgentServiceAccountName" {
 				return "NT SERVICE\SQLSERVERAGENT";
 			}
-			"FullTextServiceAccount" {
+			"FullTextServiceAccountName" {
 				return "NT Service\MSSQLFDLauncher";
 			}
 			default {
@@ -150,7 +150,7 @@ filter Get-SqlServerDefaultServiceAccount {
 			"AgentServiceAccountName" {
 				return "NT SERVICE\SQLAGENT`$$($InstanceName)";
 			}
-			"FullTextServiceAccount" {
+			"FullTextServiceAccountName" {
 				return "NT Service\MSSQLFDLauncher`$$($InstanceName)";
 			}
 			default {
@@ -286,6 +286,24 @@ function Get-SqlServerInstanceDetailsFromRegistry {
 	};
 }
 
+filter Escape-PasswordCharactersForCommandLineUsage {
+	# Passwords loaded-into/specified by .config (or other means) have already been 'escaped' to make them strings. 
+	# 		specifically, they SHOULD be wrapped in 'single ticks' instead of being in "double ticks like most other strings". 
+	# 				and, if/when there is a tick in the password itself, it should be double-ticked to escape it - like so 'PasswordwithATick''InIt'.
+	# 	BUT, handling password strings within PowerShell via ticks + doubling/escaping ticks inside of the password itself is ONLY part of the equation.
+	# 		The OTHER part of the puzzle is that passwords 'written out to DOS' as command-line switches need some additional processing. 
+	# 			and this filter/func is what handles that logic. 	
+	param (
+		[Parameter(Mandatory)]
+		[string]$Password
+	);
+	
+	$escaped = $Password -replace '''', '''''';
+	$escaped = $escaped -replace '"', '\"';
+	
+	return $escaped;
+}
+
 function Install-SqlServer {
 	param (
 		[switch]$StrictInstallOnly = $false,
@@ -396,13 +414,6 @@ function Install-SqlServer {
 		if ($SysAdminMembers.Count -gt 0) {
 			$serializedSysAdmins = "";
 			foreach ($admin in $SysAdminMembers) {
-				
-				# before attempting to add the accounts in question, make sure they have VALID windows SIDs:
-				$sid = ConvertTo-WindowsSecurityIdentifier -Name $admin;
-				if ($null -eq $sid) {
-					throw "Exception. Windows User/Group [$admin] does NOT have a valid SID.";
-				}
-				
 				$serializedSysAdmins += "`"$admin`" "; # e.g., SQLSYSADMINACCOUNTS="SQL-150-AG01A\Administrator" "OVERACHIEVER\Administrator" 
 			}
 			# NOTE: this ALSO requires SPECIAL formatting/output during the scriptmethod for .WriteToIniFile()
@@ -422,53 +433,21 @@ function Install-SqlServer {
 		}
 		
 		if ($ServiceAccounts["SqlServiceAccountName"] -notlike "NT SERVICE\*") {
-			
-			# CRITICAL: escape ' with '' and escape " with \"  (otherwise complex/high-crypto passwords FAIL and/or crash the installation process):
-			$SqlServiceAccountPassword = $ServiceAccounts["SqlServiceAccountPassword"];
-			$SqlServiceAccountPassword = $SqlServiceAccountPassword -replace '''', '''''';
-			$SqlServiceAccountPassword = $SqlServiceAccountPassword -replace '"', '\"';
-			
+			$SqlServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["SqlServiceAccountPassword"]);
 			$arguments += "/SQLSVCPASSWORD='$SqlServiceAccountPassword' ";
-			
-			# Now, validate that the account is legit: 
-			if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["SqlServiceAccountName"]) -Password $SqlServiceAccountPassword)) {
-				$PVContext.WriteLog("Exception. SQL Server Service account [$($ServiceAccounts["SqlServiceAccountName"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
-				throw "Exception. Invalid Credentials for [$($ServiceAccounts["SqlServiceAccountName"])].";
-			}
 		}
 		
 		if ($ServiceAccounts["AgentServiceAccountName"] -notlike "NT SERVICE\*") {
 			
-			# as above, CRITICAL to escape/replace problematic chars:
-			$AgentServiceAccountPassword = $ServiceAccounts["AgentServiceAccountPassword"];
-			$AgentServiceAccountPassword = $AgentServiceAccountPassword -replace '''', '''''';
-			$AgentServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
-			
+			$AgentServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["AgentServiceAccountPassword"]);
 			$arguments += "/AGTSVCPASSWORD='$AgentServiceAccountPassword' ";
-			
-			# Validate:
-			if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["AgentServiceAccountName"]) -Password $AgentServiceAccountPassword)) {
-				$PVContext.WriteLog("Fatal Exception. SQL Server AGENT Service account [$($ServiceAccounts["AgentServiceAccountName"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
-				throw "Exception. Invalid Credentials for [$($ServiceAccounts["AgentServiceAccountName"])].";
-			}
 		}
 		
 		if ($Features -like '*FullText*') {
 			if ($ServiceAccounts["FullTextServiceAccount"] -notlike "NT SERVICE\*") {
-				
 				# as above, CRITICAL to escape/replace problematic chars:
-				$FullTextServiceAccountPassword = $ServiceAccounts["FullTextServicePassword"];
-				$FullTextServiceAccountPassword = $AgentServiceAccountPassword -replace '''', '''''';
-				$FullTextServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
-				
+				$FullTextServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["FullTextServicePassword"]);
 				$arguments += "/FTSVCPASSWORD='$FullTextServiceAccountPassword' ";
-				
-				# Validate:
-				if (-not (Validate-WindowsCredentials -User ($ServiceAccounts["FullTextServiceAccount"]) -Password $FullTextServiceAccountPassword)) {
-					$PVContext.WriteLog("Fatal Exception. SQL Server FULL TEXT Service account [$($ServiceAccounts["FullTextServiceAccount"])] failed validation - either the Account does not exist or the password is incorrect.", "CRITICAL");
-					throw "Exception. Invalid Credentials for [$($ServiceAccounts["FullTextServiceAccount"])].";
-				}
-				
 			}
 		}
 		

@@ -118,12 +118,12 @@
 			}
 			
 			ServiceAccounts   = @{
-				SqlServiceAccountName	    = "{~DYNAMIC~}"
-				SqlServiceAccountPassword   = "{~EMPTY~}"
-				AgentServiceAccountName	    = "{~DYNAMIC~}"
-				AgentServiceAccountPassword = "{~EMPTY~}"
-				FullTextServiceAccount	    = "{~DYNAMIC~}"
-				FullTextServicePassword	    = "{~EMPTY~}"
+				SqlServiceAccountName	    		= "{~DYNAMIC~}"
+				SqlServiceAccountPassword   		= "{~EMPTY~}"
+				AgentServiceAccountName	    		= "{~DYNAMIC~}"
+				AgentServiceAccountPassword 		= "{~EMPTY~}"
+				FullTextServiceAccountName	    	= "{~DYNAMIC~}"
+				FullTextServiceAccountPassword	    = "{~EMPTY~}"
 			}
 			
 			SqlServerDefaultDirectories = @{

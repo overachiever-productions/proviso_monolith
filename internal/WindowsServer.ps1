@@ -327,3 +327,77 @@ filter Grant-PermissionsToDirectory {
 	$acl.SetAccessRule($rule);
 	Set-Acl -Path $TargetDirectory -AclObject $acl;
 }
+
+filter Verify-SelfRemotingToNativePoshEnabled {
+	try {
+		$version = Invoke-Command -ComputerName . { $PSVersionTable.PSVersion.Major; };
+		
+		if (5 -ne $version) {
+			throw "PSRemoting for access to Native Powershell (v5) is NOT enabled.";
+		}
+	}
+	catch {
+		throw "Fatal Exception evaluating PSRemoting for access to Native PowerShell: $_ `r`t$($_.ScriptStackTrace)";
+	}
+}
+
+filter Get-ClusterIpAddresses {
+	# vNEXT: Possibly add a param for the ClusterName...
+	Verify-SelfRemotingToNativePoshEnabled;
+	
+	[ScriptBlock]$code = {
+		Get-ClusterResource | Where-Object {
+			($_.ResourceType -eq "IP Address") -and ($_.OwnerGroup -eq "Cluster Group")
+		} | Get-ClusterParameter | Where-Object {
+			$_.Name -eq "Address"
+		} | Select-Object -Property Value;
+	};
+	
+	$output = @((Invoke-Command -ComputerName . $code).Value);
+	
+	return $output;
+}
+
+filter Get-ClusterWitnessInfo {
+	# vNEXT: Possibly add a param for the ClusterName...
+	Verify-SelfRemotingToNativePoshEnabled;
+	
+	$clusterInfo = @{};
+	try {
+		$quorum = Get-ClusterQuorum;
+		switch (($quorum).QuorumResource) {
+			{ $null -or [string]::IsNullOrEmpty($_) } {
+				$clusterInfo.Add("Type", "NONE");
+			}
+			"File Share Witness" {
+				$clusterInfo.Add("Type", "FILESHARE");
+				
+				
+				[ScriptBlock]$code = {
+					(Get-ClusterResource | Where-Object {
+							$_.ResourceType -eq "File Share Witness"
+						} | Get-ClusterParameter | Where-Object {
+							$_.Name -eq "SharePath"
+						}).Value;
+				};
+				
+				$output = Invoke-Command -ComputerName . $code;
+				
+				$clusterInfo.Add("SharePath", $output);
+			}
+			{ $_ -like "Cluster Disk*" } {
+				$clusterInfo.Add("Type", "DISK");
+			}
+			# TODO: add an entry for CLOUD
+			# TODO: add an entry for QUORUM (majority)
+			default {
+				return "<UNSUPPORTED>"; # for now just return this... 
+			}
+		}
+	}
+	catch {
+		throw "Fatal Exception evaluating Cluster Witness/Quorum information: $_ `r`t$($_.ScriptStackTrace)";
+	}
+	
+	return $clusterInfo;
+}

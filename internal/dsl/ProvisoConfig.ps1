@@ -735,6 +735,72 @@ filter Get-ConfigSqlInstanceNames {
 	return $instances;
 }
 
+filter Get-ClusterWitnessTypeFromConfig {
+	# Simple 'helper' for DRY purposes... 
+	# May, EVENTUALLY, need to add a param here for the SQL Server INSTANCE... 
+	
+	$share = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+	$disk = $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
+	$cloud = $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
+	$quorum = $PVConfig.GetValue("ClusterConfiguration.Witness.Quorum");
+	
+	$witnessType = "NONE";
+	if ($share) {
+		$witnessType = "FILESHARE";
+	}
+	if ($disk) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "DISK";
+	}
+	if ($cloud) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "CLOUD";
+	}
+	if ($quorum) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "QUORUM";
+	}
+	
+	return $witnessType;
+}
+
+filter Get-ClusterWitnessDetailFromConfig {
+	param (
+		[string]$ClusterType = $null
+	);
+	
+	if ([string]::IsNullOrEmpty($ClusterType)) {
+		$ClusterType = Get-ClusterWitnessTypeFromConfig;
+	}
+
+	switch ($ClusterType) {
+		"NONE" {
+			return "";
+		}
+		"FILESHARE" {
+			return $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+		}
+		"DISK" {
+			return $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
+		}
+		"CLOUD" {
+			return $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
+		}
+		"QUORUM" {
+			return $true;
+		}
+		default {
+			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
+		}
+	}
+}
+
 filter Get-ConfigObjects {
 	param (
 		[parameter(Mandatory)]

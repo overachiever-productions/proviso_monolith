@@ -24,7 +24,7 @@
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
 
-	Validate-ExtendedEvents;
+	#Validate-ExtendedEvents;
 	#Validate-SqlVersion;	
 	
 	Validate-ClusterConfiguration;

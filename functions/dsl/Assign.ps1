@@ -64,9 +64,13 @@ function Assign {
 		# verify that -DomainCredential works:
 		if ($DomainCredential) {
 			
-			if (-not (Test-DomainCredentials -DomainCreds $DomainCredential)) {
-				throw "Invalid Domain Credentials - failed to authenticate. ";
-			}
+			# see PRO-308: https://overachieverllc.atlassian.net/browse/PRO-308
+			# TODO: re-evaluate this ... as in... I THINK that validating these makes a LOT of sense. 
+			# ONLY... if i'm on a brand new box, that is NOT domain joined and/or where the NICS haven't even been configured to POINT to the domain
+			# 		and I run "Assign -domaincreds xx "... I get a big, fat, lame error... 
+#			if (-not (Test-DomainCredentials -DomainCreds $DomainCredential)) {
+#				throw "Invalid Domain Credentials - failed to authenticate. ";
+#			}
 			
 			$internalDomainCreds = $DomainCredential;
 		}

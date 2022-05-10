@@ -369,48 +369,24 @@
 	}
 	
 	ClusterConfiguration = @{
-		ClusterType = "NONE" # Options: AG, AGx (scale-out/workgroup/etc.), FCI, NONE
-		
-		PrimaryNode = "{~DEFAULT_PROHIBITED~}"  # hmmmm. my thought here was that THIS would be the PREFERRED node to execute cluster creation. ONLY: a) how do you PREFER something. b) what happens if/when SQLA and SQLB are already in the cluster for weeks/months, and ... we need to ADD SQLC? i.e., i think whoever sees both boxes and can create the cluster ... should. 
-		EvictionBehavior = "WARN"    # if part of cluster and name <> ClusterName or ClusterType = "NONE"... then warn (by default)
+		ClusterType = "NONE" 			# OPTIONS: [ NONE | AG | FCI | WORKGROUP-AG | SCALEOUT-AG | MULTINODE-FCI ]
+		EvictionBehavior = "WARN" 		# If ALREADY part of a cluster but ClusterType = "NONE". Options: [ NONE | WARN | ABORT | FORCE-EVICTION]
 		
 		ClusterName 		= "{~DEFAULT_PROHIBITED~}"
-		ClusterNodes		= @("{~EMPTY~}")
-		ClusterIPs			= @("{~EMPTY~}")
+		ClusterNodes		= @("{~EMPTY~}")   		# each 'node' will only attempt to a) create cluster (with itself if no cluster exists) OR b) add itself to cluster if should be part of node. 
+		ClusterIPs			= @("{~EMPTY~}")		# IPs behave like nodes (i.e., same behavior as above)
 		
-		ClusterDisks	 	= @("{~EMPTY~}")  # not implemented yet... 
+		ClusterDisks	 	= @("{~EMPTY~}")  		# ONLY for FCIs - and not implemented yet... 
 		
-		Witness   = @{
-			FileShareWitness = "{~DEFAULT_PROHIBITED~}"
+		Witness		     = @{
+			# will check for whichever ONE of the following is NOT empty (or, if they're all empty, no witness).
+			FileShareWitness 	= "{~EMPTY~}"
+			DiskWitness	     	= "{~EMPTY~}"
+			AzureCloudWitness 	= "{~EMPTY~}"  # hmmm. I need an accountNAME and an accountKey here... so... just need to sort that out... 
+			Quorum				= $false
 		}
 		
 		GenerateClusterSpns = $false
-		
-# 		SomethingSomethingPreferedConfigurationHost = "PRO197"  # i.e., an OPTION to determine WHICH instance should do the cluster creation, etc. 
-# 	couldbe: ClusterPrimaryNode = "PRO197"
-#
-#		EvictionBehavior = "NONE | WARN | ABORT | FORCE-EVICTION"; # what to do if current machine is PART of a cluster, but ClusterType = "NONE"
-#		
-#		ClusterName	     = "AWS2-CLUSTER-SQLX"
-#		ClusterNodes	 = @(
-#			"AWS-SQL-1A"
-#			"AWS-SQL-1B" # will attempt to JOIN/ADD other nodes ... unless they're not present... then it will just add what's possible/available/present
-#		)
-#		
-#		ClusterIPs	     = @(
-#			"10.10.31.120"
-#			"10.20.31.120"
-#		)
-#		
-#		ClusterDisks = @{
-#			???? 
-#		}
-#		
-#		Witness		     = @{
-#			FileShareWitness = "\\aws2-dc\clusters\"
-#			DiskWitness
-#			AzureWhatzItWitness		
-#		}
 	}
 	
 	AvailabilityGroups = @{

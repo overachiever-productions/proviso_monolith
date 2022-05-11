@@ -1,5 +1,33 @@
 ﻿Set-StrictMode -Version 1.0;
 
+filter Find-MachineDefinition {
+	param (
+		[Parameter(Mandatory)]
+		[string]$RootDirectory,
+		[Parameter(Mandatory)]
+		[string]$MachineName
+	);
+	
+	$matches = @{
+	};
+	[string[]]$extensions = ".psd1", ".config", ".config.psd1";
+	
+	$i = 0;
+	foreach ($ext in $extensions) {
+		foreach ($file in (Get-ChildItem -Path $RootDirectory -Filter "$MachineName$($ext)" -Recurse -ErrorAction SilentlyContinue)) {
+			$matches[$i] = @{
+				Name = $file.FullName;
+				Size = $file.Length / 1KB
+				Modified = $file.LastWriteTime;
+			};
+			
+			$i++;
+		}
+	}
+	
+	return $matches;
+}
+
 # TODO: use a private variable instead: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/set-variable?view=powershell-7.2
 $script:be8c742fMostRecentConfigFilePath = $null;
 function Target {

@@ -117,7 +117,6 @@ filter Restart-Server {
 		[string]$RestartRunbookTarget = $null,
 		[int]$WaitSeconds = 0,
 		[switch]$PreserveDomainCreds = $false   # TODO: look at a way to serialize these... (safely) and so on... 
-		#[switch]$DoNotTemporarilyPreserveDomainCredsToFile = $true # i.e., don't allow them to be temporarily stored...  ALSO: REFACTOR...
 	);
 		
 	if ($WaitSeconds -gt 0) {
@@ -311,6 +310,14 @@ filter Test-DomainCredentials {
 	return $false;
 }
 
+#filter Get-DirectoryPermissionsSummary {
+#	param (
+#		[string]$Directory
+#	);
+#	
+#	Get-Acl $Directory | Select-Object AccessToString | Format-List;
+#}
+
 filter Grant-PermissionsToDirectory {
 	param (
 		[Parameter(Mandatory)]
@@ -328,76 +335,61 @@ filter Grant-PermissionsToDirectory {
 	Set-Acl -Path $TargetDirectory -AclObject $acl;
 }
 
-filter Verify-SelfRemotingToNativePoshEnabled {
+filter Revoke-UserPermissionsFromDirectory {
+	# NOTE: this is just a copy/paste from Proviso_OLD.. 
+	
+#	param (
+#		[string]$TargetDirectory,
+#		[string]$UserToRemove
+#	);
+#	
+#	# fodder/source: https://stackoverflow.com/questions/13513863/powershell-remove-all-permissions-on-a-folder-for-a-specific-user
+#	
+#	# TODO: validate that the sid is valid before processing... 
+#	#$sid = ConvertTo-WindowsSecurityIdentifier -DomainUser $UserToRemove;
+#	
+#	# TODO: validate that the directory exists... 
+#	
+#	$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($TargetDirectory, "Read",,, "Allow");
+#	$acl = Get-Acl $TargetDirectory;
+#	
+#	$acl.RemoveAccessRuleAll($rule);
+#	
+#	Set-Acl -Path $TargetDirectory -AclObject $acl
+}
+
+$clrCode = @"
+using System.Security.Principal;
+
+public class SecurityHelpers
+{
+    public static bool IsUserInGroup(string user, string group)
+    {
+        using (WindowsIdentity identity = new WindowsIdentity(user))
+        {
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(group);
+        }
+    }
+}
+"@;
+Add-Type -TypeDefinition $clrCode;
+filter Test-IsUserMemberOfGroup {
+	param (
+		[Parameter(Mandatory)]
+		[string]$User,
+		[Parameter(Mandatory)]
+		[string]$Group
+	);
+	
 	try {
-		$version = Invoke-Command -ComputerName . { $PSVersionTable.PSVersion.Major; };
+		if ($User.Contains('\')) {
+			$User = ($User -split '\\')[1];
+		}
 		
-		if (5 -ne $version) {
-			throw "PSRemoting for access to Native Powershell (v5) is NOT enabled.";
-		}
+		return [SecurityHelpers]::IsUserInGroup($User, $Group);
 	}
 	catch {
-		throw "Fatal Exception evaluating PSRemoting for access to Native PowerShell: $_ `r`t$($_.ScriptStackTrace)";
+		throw "Fatal exception evaluating group membership: $_ `r`t$($_.ScriptStackTrace)";
 	}
-}
-
-filter Get-ClusterIpAddresses {
-	# vNEXT: Possibly add a param for the ClusterName...
-	Verify-SelfRemotingToNativePoshEnabled;
-	
-	[ScriptBlock]$code = {
-		Get-ClusterResource | Where-Object {
-			($_.ResourceType -eq "IP Address") -and ($_.OwnerGroup -eq "Cluster Group")
-		} | Get-ClusterParameter | Where-Object {
-			$_.Name -eq "Address"
-		} | Select-Object -Property Value;
-	};
-	
-	$output = @((Invoke-Command -ComputerName . $code).Value);
-	
-	return $output;
-}
-
-filter Get-ClusterWitnessInfo {
-	# vNEXT: Possibly add a param for the ClusterName...
-	Verify-SelfRemotingToNativePoshEnabled;
-	
-	$clusterInfo = @{};
-	try {
-		$quorum = Get-ClusterQuorum;
-		switch (($quorum).QuorumResource) {
-			{ $null -or [string]::IsNullOrEmpty($_) } {
-				$clusterInfo.Add("Type", "NONE");
-			}
-			"File Share Witness" {
-				$clusterInfo.Add("Type", "FILESHARE");
-				
-				
-				[ScriptBlock]$code = {
-					(Get-ClusterResource | Where-Object {
-							$_.ResourceType -eq "File Share Witness"
-						} | Get-ClusterParameter | Where-Object {
-							$_.Name -eq "SharePath"
-						}).Value;
-				};
-				
-				$output = Invoke-Command -ComputerName . $code;
-				
-				$clusterInfo.Add("SharePath", $output);
-			}
-			{ $_ -like "Cluster Disk*" } {
-				$clusterInfo.Add("Type", "DISK");
-			}
-			# TODO: add an entry for CLOUD
-			# TODO: add an entry for QUORUM (majority)
-			default {
-				return "<UNSUPPORTED>"; # for now just return this... 
-			}
-		}
-	}
-	catch {
-		throw "Fatal Exception evaluating Cluster Witness/Quorum information: $_ `r`t$($_.ScriptStackTrace)";
-	}
-	
-	return $clusterInfo;
 }

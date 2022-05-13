@@ -391,7 +391,9 @@
 	
 	AvailabilityGroups = @{
 		"{~SQLINSTANCE~}" = @{
-			EnabledOrStrictEnabled = "probably need 2x keys/entries here... but idea is a) configure AG membership or not? and b) what if ... we find the server as PART of an AG that's NOT defined below?"
+			#EnabledOrStrictEnabled = "probably need 2x keys/entries here... but idea is a) configure AG membership or not? and b) what if ... we find the server as PART of an AG that's NOT defined below?"
+			Enabled			        = $true
+			EvictionBehavior 		= "WARN"
 			
 			MirroringEndpoint	   = @{
 				Enabled						    = $false
@@ -401,12 +403,10 @@
 			}
 			
 			SynchronizationChecks  = @{
-				AdminDbStuffHere = @{
-					AddPartners		       = ""
-					SyncCheckJobs		   = ""
-					AddFailoverProcessing  = ""
-					CreateDisabledJobCategory = ""
-				}
+				AddPartners		       = ""
+				SyncCheckJobs		   = ""
+				AddFailoverProcessing  = ""
+				CreateDisabledJobCategory = ""
 			}
 			
 			# TODO: need to create a wrapper here for ... AGs ... which is odd/problematic because that's what I already called the parent wrapper for ALL ag stuff. 

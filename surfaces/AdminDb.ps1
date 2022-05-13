@@ -30,8 +30,8 @@ Surface AdminDb -Target "AdminDb" {
 					
 					$latestAdminDbSqlFile = $PVResources.GetAdminDbPath($instanceName, $adminDbOverridePath);
 					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables;
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC [admindb].dbo.[enable_advanced_capabilities]; ";
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables | Out-Null;
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC [admindb].dbo.[enable_advanced_capabilities]; " | Out-Null;
 					
 					$PVContext.SetSurfaceState("$instanceName.AdminDb.JustInstalled", $true);
 					$PVContext.WriteLog("AdminDb installed (not found previously).", "Verbose");

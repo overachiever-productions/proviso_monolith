@@ -240,7 +240,26 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 			}
 		}
 		
-		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
+		# TODO: make sure this works... 
+		# Hmmm. This needs to execute per iterator (i.e., per each SQL Instance)... 
+#		Facet "SQLHostNameMatchesMachineName" {
+#			Expect {
+#				# TODO: account for named instances... 
+#			}
+#			Test {
+#				$instanceName = $PVContext.CurrentSqlInstance;
+#				
+#				# open a query and get the current 'server name'... 
+#			}
+#			Configure {
+#				
+#				# TODO: account for named instances.
+#				#Invoke-SqlCmd -Query "EXEC admindb.dbo.update_server_name @PrintOnly = 0;";
+#			}
+#		}
+	
+	
+	# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
 		# and... not sure if that means we HAVE to have domain creds (or not).
 		#Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
 		#	Test {

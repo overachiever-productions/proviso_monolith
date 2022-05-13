@@ -77,6 +77,25 @@ function Provision-ServerMonitoring {
 }															 
 
 #-------------------------------------------------------------------------------------
+# Cluster
+#-------------------------------------------------------------------------------------
+function Evaluate-Cluster {
+	Validate-MethodUsage -MethodName "Evaluate";
+	Execute-Runbook -RunbookName "Cluster" -Operation Evaluate;
+}
+
+function Provision-Cluster {
+	param(
+		[switch]$AllowReboot = $false, 
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
+	);
+
+	Validate-MethodUsage -MethodName "Provision";
+	Execute-Runbook -RunbookName "Cluster" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
+
+#-------------------------------------------------------------------------------------
 # Tests
 #-------------------------------------------------------------------------------------
 function Evaluate-Tests {

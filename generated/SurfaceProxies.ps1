@@ -232,6 +232,27 @@ function Run-ClusterConfiguration {
 }
 
 #-------------------------------------------------------------------------------------
+# ClusterPrerequisites
+#-------------------------------------------------------------------------------------
+function Validate-ClusterPrerequisites {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "ClusterPrerequisites" -Operation "Validate";
+}
+
+function Configure-ClusterPrerequisites {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "ClusterPrerequisites" -Operation "Configure";
+}
+
+function Run-ClusterPrerequisites {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "ClusterPrerequisites" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
 # DataCollectorSets
 #-------------------------------------------------------------------------------------
 function Validate-DataCollectorSets {

@@ -78,3 +78,32 @@ filter Set-AdapterIpAddressAndGateway {
 	
 	New-NetIPAddress -InterfaceIndex $AdapterIndex -IPAddress $ipParts[0] -PrefixLength $ipParts[1] -DefaultGateway $GatewayIpAddress | Out-Null;
 }
+
+filter Test-AreIpsInSameSubnet {
+	param (
+		[Parameter(Mandatory)]
+		[Net.IPAddress]$FirstIp,
+		[Parameter(Mandatory)]
+		[Net.IPAddress]$SecondIp,
+		[Parameter(Mandatory)]
+		[Net.IPAddress]$SubnetMask
+	);
+	
+	# genius: http://get-powershell.com/post/2010/01/29/Determining-if-IP-addresses-are-on-the-same-subnet.aspx
+	if (($FirstIp.Address -band $SubnetMask.Address) -eq ($SecondIp.Address -band $SubnetMask.Address)) {
+		return $true;
+	}
+	
+	return $false;
+}
+
+filter ConvertTo-SubnetMaskFromLength {
+	param (
+		[int]$CidrLength
+	);
+	
+	[Net.IPAddress]$placeHolder = 0;
+	$placeHolder.Address = ([UInt32]::MaxValue) -shl (32 - $CidrLength) -shr (32 - $CidrLength)
+	
+	$placeHolder.IPAddressToString;
+}

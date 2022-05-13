@@ -13,16 +13,39 @@
 
 Surface ClusterConfiguration -Target "ClusterConfiguration" {
 	Assertions {
-		#Assert-WsfcComponentsInstalled;
-		#Assert-IsDomainJoined -AssertOnConfigureOnly;   # not if/when the config-type is "WORKGROUP... "
+		Assert "WSFC Components Installed" {
+			$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
+			if ($installed -ne "Installed") {
+				return $false;
+			}
+		}
+		
+		Assert "PowerShell v5 Self-Remoting Enabled" {
+			if (-not (Get-SelfRemotingToNativePoshEnabled)) {
+				return $false;
+			}
+		}
+		
+#		Assert "Is Domain Joined" {
+#			# well... not if/when the TYPE of cluster is a workgroup cluster... 
+# 			# in those cases, probably need to verify that DNS suffixes are in play... 
+#		}
+		
+		# TODO: re-asses ... so far... i don't actually NEED these in LAB... 
 		Assert-HasDomainCreds -ForClusterCreation -AssertOnConfigureOnly;
 	}
 	
 	Aspect {
 		Facet "ClusterType" -Key "ClusterType" -ExpectKeyValue {
+			# Hmm. Happy-path coding below. Arguably, I should be checking for 2x things here: a) Get-Cluster (no name) to see if there's a cluster on this box that does NOT match the name being checked for, b) Get-Cluster $clusterName... to check for the expected cluster.
 			Test {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "NONE";
+				}
+				
 				try {
-					$cluster = Get-Cluster -ErrorAction SilentlyContinue -WarningAction SilentlyContinue;
+					$cluster = Get-Cluster -Name $clusterName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue;
 					if ($null -eq $cluster) {
 						return "NONE";
 					}
@@ -30,7 +53,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 						$clusterType = "AG";
 						$domain = (Get-CimInstance Win32_ComputerSystem).Domain;
 						
-						$disks = Get-ClusterResource | Where-Object -Property ResourceType -eq "Physical Disk";
+						$disks = Get-ClusterResource -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object -Property ResourceType -eq "Physical Disk";
 						if ($null -ne $disks) {
 							$clusterType = "FCI";
 						}
@@ -39,7 +62,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 							$clusterType = "WORKGROUP-AG";
 						}
 						
-						$nodes = Get-ClusterNode;
+						$nodes = Get-ClusterNode -ErrorAction SilentlyContinue -WarningAction SilentlyContinue;
 						if ($nodes.Count -gt 2) {
 							if ("AG" -eq $clusterType) {
 								$clusterType = "SCALEOUT-AG";
@@ -77,8 +100,14 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 		
 		Facet "ClusterName" -Key "ClusterName" -ExpectKeyValue -Proctor "ClusterType" -ElideWhenProctorIs "NONE" {
 			Test {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "";
+				}
+				
 				try {
-					$cluster = Get-Cluster -ErrorAction SilentlyContinue -WarningAction SilentlyContinue;
+					$clusterName = $PVContext.CurrentConfigKeyValue;
+					$cluster = Get-Cluster -Name $clusterName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue;
 					
 					return ($cluster).Name;
 				}
@@ -93,11 +122,18 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 		
 		Facet "NodeMember" -Key "ClusterNodes" -ExpectIteratorValue {
 			Test {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "";
+				}
+				
 				try {
 					$targetNode = $PVContext.CurrentConfigKeyValue;
-					$node = Get-ClusterNode | Where-Object -Property Name -eq $targetNode;
+					$node = Get-ClusterNode -Cluster $clusterName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object -Property Name -eq $targetNode;
 					
-					return $node;
+					if ($node) {
+						return ($node).Name; 
+					}
 				}
 				catch {
 					throw "Fatal Exception Extracting Cluster Nodes: $_ `r`t$($_.ScriptStackTrace) ";
@@ -111,20 +147,32 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 				$targetCluster = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
 				
 				if ($targetNode -eq ([System.Net.Dns]::GetHostName())) {
-					Write-Host "would now be adding $targetNode to cluster... $targetCluster "
+					
+					try {
+						$PVContext.WriteLog("Adding Node [$targetNode] to Cluster [$targetCluster].", "Important");
+						Add-ClusterNode -Cluster $targetCluster -Name $targetNode | Out-Null;
+					}
+					catch {
+						throw "Fatal Exception adding [$targetNode] to [$targetCluster]: $_ `r`t$($_.ScriptStackTrace) ";
+					}
 				}
 				else {
 					# TODO: POSSIBLY re-evaluate this - the rub, of course, is that I have to know if, say, SQLA is already in the cluster, and we're running on/against SQLB and have added it (or will), and SQLC (i.e., not this box and not in cluster) is READY to be added to the cluster...
-					$PVContext.WriteLog("Proviso can ONLY add [$targetNode] to Cluster [$targetCluster] if it 'knows' that the [$targetNode] has been fully validated and prepped - i.e., please run Proviso ON [$targetNode] to add it to the cluster.", "Critical");
+					$PVContext.WriteLog("Proviso will ONLY add [$targetNode] to Cluster [$targetCluster] when executed on/from [$targetNode].", "Important");
 				}
 			}
 		}
 		
 		Facet "ClusterIP" -Key "ClusterIPs" -ExpectIteratorValue {
 			Test {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "";
+				}
+				
 				$expectedIP = $PVContext.CurrentConfigKeyValue;
 				
-				$ips = Get-ClusterIpAddresses;
+				$ips = Get-ClusterIpAddresses -ClusterName $clusterName;
 				if ($ips -contains $expectedIP) {
 					return $expectedIP;
 				}
@@ -132,23 +180,41 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 				return "";
 			}
 			Configure {
-				# hmmm. easy enough on cluster creation... 
-				# but what if there's an additional IP? tend to think that I ONLY want to add that IF there's an ENTIRELY new node being added?
-				# Oof. this one's kind of hard. 
-				# 		in terms of adding cluster nodes (i.e., the facet before this one), i don't add them unless they're the 'current box'... 
-				# 		and i think that makes sense here... 
-				# only... IF I've got SQLA, SQLB, and SQLC ... and SQLA created the cluster, and we're now running on either SQLB or SQLC... adding either one of those (and alerting on not being able to add the OTHER) is easy. 
-				# 		what'll be a challenge is ... how do I end up a) determining when to add an additional cluster IP? and b) convincing WSFC to do that/allow it? 
-				# 		i.e., assume SQLA, SQLB are in different subnets, and SQLC is in the same as SQLA. 
-				# 		if code is running on SQLC ... and I 'think' i should add the IP for SubnetB (i.e., SQLB), i don't think that WSFC will let me add a cluster IP for a subnet
-				# 		other than the subnet I'm currently in? 
-				# 		and so, maybe this isn't that hard... 
-				# 			if the Cluster IP is similar to the current hosts's IP/subnet but is ... NOT in the cluster... then add it - the end? 
+				$expectedClusterIps = $PVConfig.GetValue("ClusterConfiguration.ClusterIPs");
+				$currentClusterIpFromConfig = $PVContext.CurrentConfigKeyValue;
+				
+				if ($currentClusterIpFromConfig -notin $expectedClusterIps) {
+					# get a list of all config-defined IPs on this box, and if one of those is in the same subnet as this IP ... go ahead and add it. 
+					$definedAdapters = $PVConfig.GetObjects("Host.NetworkDefinitions");
+					foreach ($definedAdapter in $definedAdapters) {
+						[string]$definedIp = $PVConfig.GetValue("Host.NetworkDefinitions.$definedAdapter.IpAddress");
+						
+						$parts = $definedIp -split '/';
+						[IpAddress]$address = $parts[0];
+						[IpAddress]$subnet = ConvertTo-SubnetMaskFromLength -CidrLength ([int]$parts[1]);
+						
+						if (Test-AreIpsInSameSubnet -FirstIp $address -SecondIp $currentClusterIpFromConfig -SubnetMask $subnet) {
+							$PVContext.WriteLog("Adding Expected ClusterIp [$currentClusterIpFromConfig] to Cluster because it is in the same subnet as [$address] - on adapter [$definedAdapter].", "Important");
+							
+							# TODO: add the cluster IP ... 
+							
+						}
+					}
+				}
+				else {
+					# we're dealing with a remove operation?  
+					$PVContext.WriteLog("Removing Cluster IPs is not YET supported by Proviso.", "Critical");
+				}
 			}
 		}
 		
 		Facet "WitnessType" -Key "Witness" {
 			Expect {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "";
+				}
+				
 				$witnessType = Get-ClusterWitnessTypeFromConfig;
 								
 				$PVContext.SetSurfaceState("EXPECTED_ClusterWitnessType", $witnessType);
@@ -159,17 +225,45 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 					return "";
 				}
 				
-				$info = Get-ClusterWitnessInfo;
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				$info = Get-ClusterWitnessInfo -ClusterName $clusterName;
 				return $info.Type;
 			}
 			Configure {
-				# If the witness hasn't been set up yet, create it as needed/expected. 
-				# Otherwise, if it exists and is different... look at options for making CHANGES. 
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				
+				$targetWitnessType = Get-ClusterWitnessTypeFromConfig;
+				$actualWitnessType = (Get-ClusterWitnessInfo -ClusterName $clusterName).Type;
+				
+				if ("NONE" -eq $actualWitnessType) {
+					$expectedPath = Get-FileShareWitnessPathFromConfig;
+					Validate-ClusterWitnessFileSharePath -Path $expectedPath;
+					
+					$PVContext.WriteLog("Setting Cluster Quorum for Cluster [$clusterName] to FileShareWitness -> [$expectedPath].", "Important");
+					Set-ClusterQuorum -FileShareWitness $expectedPath | Out-Null;
+				}
+				elseif (("FILESHARE" -eq $actualWitnessType) -and ("FILESHARE" -eq $targetWitnessType)) {
+					# expected and actual are BOTH file-share - meaning that the PATH is not set and/or is incorrect. 
+					$expectedPath = Get-FileShareWitnessPathFromConfig;
+					Validate-ClusterWitnessFileSharePath -Path $expectedPath;
+					
+					$PVContext.WriteLog("Re-Setting/Updating Cluster Quorum for Cluster [$clusterName] to FileShareWitness -> [$expectedPath].", "Important");
+					Set-ClusterQuorum -FileShareWitness $expectedPath | Out-Null;
+				}
+				else {
+					# based on evictionbehavior (might need a better name)... warn, change, throw, whatever... 
+					#  and/or just specify (when it makes sense - probably in MOST cases) ... that Proviso will NOT make changes to witness TYPES from x to y.
+				}
 			}
 		}
 		
 		Facet "WitnessDetails" -Key "Witness" -Proctor "WitnessType" -ElideWhenProctorIs "NONE" {
 			Expect {
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				if ([string]::IsNullOrEmpty($clusterName)) {
+					return "";
+				}
+				
 				$witnessDetail = Get-ClusterWitnessDetailFromConfig;
 				
 				return $witnessDetail;
@@ -179,7 +273,8 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 					return "";
 				}
 				
-				$info = Get-ClusterWitnessInfo;
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				$info = Get-ClusterWitnessInfo -ClusterName $clusterName;
 				switch ($info.Type) {
 					"NONE" {
 						return "";

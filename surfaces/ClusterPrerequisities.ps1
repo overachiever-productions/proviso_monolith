@@ -1,8 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
-# REFACTOR: might make sense to rename this to ClusterDependencies... 
 Surface "ClusterPrerequisites" -Target "Host" {
-	
+	# REFACTOR: might make sense to rename this to ClusterDependencies... 		
 	Assertions {
 		Assert-UserIsAdministrator;
 		Assert-HostIsWindows -Server;
@@ -44,11 +43,11 @@ Surface "ClusterPrerequisites" -Target "Host" {
 		
 		Facet "PoshV5SelfRemotingEnabled" -NoKey -Expect $true {
 			Test {
-				
+				return Get-SelfRemotingToNativePoshEnabled;
 			}
 			Configure {
-				# this one's going to be a TINY bit ugly... i'm going to have to invoke a PROCESS... and the process will have to be powershellv5.exe ... with 
-				# 	args to enable PSRemoting... 
+				# If we 'branched' to Configure, it's because this pre-requisite is NOT met, so no need for checks, just ENABLE:
+				Enable-SelfRemotingToNativePosh;
 			}
 		}
 	}

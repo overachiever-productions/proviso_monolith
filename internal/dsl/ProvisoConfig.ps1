@@ -27,11 +27,13 @@ Set-Variable -Name FINAL_NODE_SQL_SERVER_CONFIGURATION_KEYS -Option ReadOnly -Va
 Set-Variable -Name FINAL_NODE_ADMINDB_KEYS -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
 Set-Variable -Name FINAL_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("SessionName", "Enabled", "DefinitionFile", "StartWithSystem", "XelFileSizeMb", "XelFileCount", "XelFilePath");
 Set-Variable -Name FINAL_NODE_SQL_SERVER_PATCH_KEYS -Option ReadOnly -Value @("TargetSP", "TargetCU");
+Set-Variable -Name FINAL_NODE_AVAILABILITY_GROUP_KEYS -Option ReadOnly -Value @("AddPartners", "SyncCheckJobs", "AddFailoverProcessing", "CreateDisabledJobCategory", "Action", "Replicas", "Seeding", "Databases", "Listener", "Name", "PortNumber", "IPs", "ReadOnlyRounting", "GenerateClusterSPNs");
 
 #TODO: ClusterWitness AND FileShareWitness can NOT _BOTH_ be 'terminal/final' keys... 
 Set-Variable -Name FINAL_NODE_CLUSTER_CONFIGURATION_KEYS -Option ReadOnly -Value @("ClusterType", "PrimaryNode", "EvictionBehavior", "ClusterName", "ClusterNodes", "ClusterIPs", "ClusterDisks", "ClusterWitness", "FileShareWitness", "GenerateClusterSpns");
 
 Set-Variable -Name BRANCH_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("DisableTelemetry", "DefaultXelDirectory", "BlockedProcessThreshold");
+Set-Variable -Name BRANCH_NODE_AVAILABILITY_GROUP_KEYS -Option ReadOnly -Value @("Enabled", "EvictionBehavior", "MirroringEndpoint", "SynchronizationChecks");
 
 Set-Variable -Name ROOT_SQLINSTANCE_KEYS -Opt ReadOnly -Value @("ExpectedDirectories", "SqlServerInstallation", "SqlServerConfiguration", "SqlServerPatches", "AdminDb", "ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts");
 #endregion
@@ -323,7 +325,9 @@ filter Is-NonValidChildKey {
 			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXTENDED_EVENTS_KEYS;
 		}
 		"AvailabilityGroups"{
-			throw 'Proviso Framework Error. Determination of non-valid child keys for Availability Group Configuration has not been completed yet.';
+			#throw 'Proviso Framework Error. Determination of non-valid child keys for Availability Group Configuration has not been completed yet.';
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $BRANCH_NODE_AVAILABILITY_GROUP_KEYS;
+			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_AVAILABILITY_GROUP_KEYS;
 		}
 		"ResourceGovernor" {
 			throw 'Proviso Framework Error. Determination of non-valid child keys for Resource Governor Configuration has not been completed yet.';
@@ -799,6 +803,20 @@ filter Get-ClusterWitnessDetailFromConfig {
 			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
 		}
 	}
+}
+
+filter Get-FileShareWitnessPathFromConfig {
+	[string]$expectedPath = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+	if ([string]::IsNullOrEmpty($expectedPath)) {
+		throw "Invalid Operation. Can not set file share witness path to EMPTY value.";
+	}
+	
+	# This is fine: "\\somserver\witnesses" - whereas this will FAIL EVERY TIME: "\\somserver\witnesses\"
+	if ($expectedPath.EndsWith('\')) {
+		$expectedPath = $expectedPath.Substring(0, ($expectedPath.Length - 1));
+	}
+	
+	return $expectedPath;
 }
 
 filter Get-ConfigObjects {

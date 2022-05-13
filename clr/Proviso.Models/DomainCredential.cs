@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Management.Automation;
+using System.Security.Principal;
 using Proviso.Enums;
 
 namespace Proviso
@@ -54,5 +55,14 @@ namespace Proviso
 
             return this._credentialPromise;
         }
+
+        //public bool IsUserInGroup(string user, string group)
+        //{
+        //    using (WindowsIdentity identity = new WindowsIdentity(user))
+        //    {
+        //        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        //        return principal.IsInRole(group);
+        //    }
+        //}
     }
 }

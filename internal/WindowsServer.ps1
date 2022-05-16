@@ -358,38 +358,50 @@ filter Revoke-UserPermissionsFromDirectory {
 #	Set-Acl -Path $TargetDirectory -AclObject $acl
 }
 
-$clrCode = @"
-using System.Security.Principal;
-
-public class SecurityHelpers
-{
-    public static bool IsUserInGroup(string user, string group)
-    {
-        using (WindowsIdentity identity = new WindowsIdentity(user))
-        {
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
-            return principal.IsInRole(group);
-        }
-    }
-}
-"@;
-Add-Type -TypeDefinition $clrCode;
-filter Test-IsUserMemberOfGroup {
-	param (
-		[Parameter(Mandatory)]
-		[string]$User,
-		[Parameter(Mandatory)]
-		[string]$Group
-	);
+# Interestingly enough, this works in Posh 7: 
+filter Test-IsUserInAdministratorsRole {
+	$currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent();
+	$principal = New-Object System.Security.Principal.WindowsPrincipal($currentIdentity);
 	
-	try {
-		if ($User.Contains('\')) {
-			$User = ($User -split '\\')[1];
-		}
-		
-		return [SecurityHelpers]::IsUserInGroup($User, $Group);
+	if ($principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+		return $true;
 	}
-	catch {
-		throw "Fatal exception evaluating group membership: $_ `r`t$($_.ScriptStackTrace)";
-	}
+	
+	return $false;
 }
+
+#$clrCode = @"
+#using System.Security.Principal; 
+#
+#public class SecurityHelpers
+#{
+#    public static bool IsUserInGroup(string user, string group)
+#    {
+#        using (WindowsIdentity identity = new WindowsIdentity(user))
+#        {
+#            WindowsPrincipal principal = new WindowsPrincipal(identity);
+#            return principal.IsInRole(group);
+#        }
+#    }
+#}
+#"@;
+#Add-Type -TypeDefinition $clrCode;
+#filter Test-IsUserMemberOfGroup {
+#	param (
+#		[Parameter(Mandatory)]
+#		[string]$User,
+#		[Parameter(Mandatory)]
+#		[string]$Group
+#	);
+#	
+#	try {
+#		if ($User.Contains('\')) {
+#			$User = ($User -split '\\')[1];
+#		}
+#		
+#		return [SecurityHelpers]::IsUserInGroup($User, $Group);
+#	}
+#	catch {
+#		throw "Fatal exception evaluating group membership: $_ `r`t$($_.ScriptStackTrace)";
+#	}
+#}

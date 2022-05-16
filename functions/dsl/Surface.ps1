@@ -184,14 +184,9 @@ function Assert-UserIsAdministrator {
 		
 		try {
 			[ScriptBlock]$codeBlock = {
-				$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-				
-				# NICE. The C# code I'm using checks not only if user is explicitly in group, but if user is in a group... that's IN the GROUP:
-				if (Test-IsUserMemberOfGroup -User $currentUser -Group "Administrators") {
-					return $true;
+				if (-not (Test-IsUserInAdministratorsRole)) {
+					return $false;
 				}
-				
-				return $false;
 			}
 			
 			$assertion = New-Object Proviso.Models.Assertion("Assert-IsAdministrator", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);

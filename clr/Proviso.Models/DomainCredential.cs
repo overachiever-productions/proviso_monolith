@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Management.Automation;
-using System.Security.Principal;
 using Proviso.Enums;
 
 namespace Proviso

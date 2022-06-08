@@ -1,54 +1,88 @@
 ﻿Set-StrictMode -Version 1.0;
 
 <#
-	
+
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
+	
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
-	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-	$PVConfig.GetSqlInstanceNames("AdminDb");
+	Get-ConfigurationEntry -Key "SqlServerInstallation.MSSQLSERVER.Setup.SqlTempDbFileCount";
 
-
-#	Is-ValidProvisoKey -Key "SqlServerConfiguration.DisableSaLogin";
-#	Is-ValidProvisoKey -Key "SqlServerConfiguration.DeployContingencySpace";
-#
-#	$PVConfig.GetSqlInstanceNames("SqlServerConfiguration");
+	#Get-ConfigurationEntry -Key "ExtendedEvents.Sessions.BlockedProcesses.XelFileSizeMb";
+	#Get-ConfigurationEntry -Key "ExtendedEvents.DisableTelemetry";
+	
+	#Validate-ConfigurationEntry -Key "ExtendedEvents.Sessions.BlockedProcesses.DefinitionFile";
+	#Get-ConfigurationEntry -Key "ExtendedEvents.Sessions.BlockedProcesses.DefinitionFile";
+	
+	$PVConfig.GetValue("ExtendedEvents.Sessions.BlockedProcesses.DefinitionFile");
 
 #>
 
-[PSCustomObject]$global:PVConfig = $null;
+$script:be8c742fFlattenedConfigKeys = $null;
+$script:be8c742fLatestConfigData = $null;
+$script:hashtableForPVConfigContents = $null;
 
-#region 'Constants'
-Set-Variable -Name FINAL_NODE_EXPECTED_DIRECTORIES_KEYS -Option ReadOnly -Value @("VirtualSqlServerServiceAccessibleDirectories", "RawDirectories");
-Set-Variable -Name FINAL_NODE_EXPECTED_SHARES_KEYS -Option ReadOnly -Value @("ShareName", "SourceDirectory", "ReadOnlyAccess", "ReadWriteAccess");
-Set-Variable -Name FINAL_NODE_SQL_SERVER_INSTALLATION_KEYS -Option ReadOnly -Value @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
-Set-Variable -Name FINAL_NODE_SQL_SERVER_CONFIGURATION_KEYS -Option ReadOnly -Value @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisableSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
-Set-Variable -Name FINAL_NODE_ADMINDB_KEYS -Option ReadOnly -Value @("Deploy", "InstanceSettings", "DatabaseMail", "HistoryManagement", "DiskMonitoring", "Alerts", "IndexMaintenance", "ConsistencyChecks", "BackupJobs", "RestoreTestJobs");
-Set-Variable -Name FINAL_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("SessionName", "Enabled", "DefinitionFile", "StartWithSystem", "XelFileSizeMb", "XelFileCount", "XelFilePath");
-Set-Variable -Name FINAL_NODE_SQL_SERVER_PATCH_KEYS -Option ReadOnly -Value @("TargetSP", "TargetCU");
-Set-Variable -Name FINAL_NODE_AVAILABILITY_GROUP_KEYS -Option ReadOnly -Value @("AddPartners", "SyncCheckJobs", "AddFailoverProcessing", "CreateDisabledJobCategory", "Action", "Replicas", "Seeding", "Databases", "Listener", "Name", "PortNumber", "IPs", "ReadOnlyRounting", "GenerateClusterSPNs");
+filter Get-ProvisoConfigDataType {
+	param (
+		[Object]$Value = $null
+	);
+	
+	if ($null -eq $Value) {
+		return [Proviso.Enums.ConfigEntryDataType]::Null;
+	}
+	
+	if ($Value -is [array]) {
+		return [Proviso.Enums.ConfigEntryDataType]::Array;
+	}
+	else {
+		switch ($Value.GetType().Name) {
+			"Hashtable" {
+				return [Proviso.Enums.ConfigEntryDataType]::HashTable;
+			}
+			default {
+				return [Proviso.Enums.ConfigEntryDataType]::Scalar;
+			}
+		}
+	}
+}
 
-#TODO: ClusterWitness AND FileShareWitness can NOT _BOTH_ be 'terminal/final' keys... 
-Set-Variable -Name FINAL_NODE_CLUSTER_CONFIGURATION_KEYS -Option ReadOnly -Value @("ClusterType", "PrimaryNode", "EvictionBehavior", "ClusterName", "ClusterNodes", "ClusterIPs", "ClusterDisks", "ClusterWitness", "FileShareWitness", "GenerateClusterSpns");
+filter Get-AllowableChildKeyNames {
+	# Internal ONLY. Keys must be FULLY/PERFECTLY formatted and tokenized. 
+	param (
+		[string]$Key = ""
+	);
+	
+	$config = $script:ProvisoConfigDefaults;
+	
+	$output = @();
+	if ([string]::IsNullOrEmpty($Key)) {
+		foreach ($keyName in $config.Keys) {
+			$output += $keyName;
+		}
+		
+		return $output;
+	}
+	
+	$targetSection = Extract-ValueFromConfigByKey -Config $config -Key $Key;
+	foreach ($subKey in $targetSection.Keys) {
+		$output += $subKey;
+	}
+	
+	return $output;
+}
 
-Set-Variable -Name BRANCH_NODE_EXTENDED_EVENTS_KEYS -Option ReadOnly -Value @("DisableTelemetry", "DefaultXelDirectory", "BlockedProcessThreshold");
-Set-Variable -Name BRANCH_NODE_AVAILABILITY_GROUP_KEYS -Option ReadOnly -Value @("Enabled", "EvictionBehavior", "MirroringEndpoint", "SynchronizationChecks");
-
-Set-Variable -Name ROOT_SQLINSTANCE_KEYS -Opt ReadOnly -Value @("ExpectedDirectories", "SqlServerInstallation", "SqlServerConfiguration", "SqlServerPatches", "AdminDb", "ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts");
-#endregion
-
-filter Get-ProvisoConfigValueByKey {
+filter Extract-ValueFromConfigByKey {
 	param (
 		[Parameter(Mandatory)]
-		[hashtable]$Config, # NOTE: $Config here can be $this (current config) OR it could be the list of DEFAULTS. 
+		[hashtable]$Config, 	# NOTE: $Config here can be $this (current config) OR it could be the list of DEFAULTS.
 		[Parameter(Mandatory)]
 		[string]$Key
 	);
 	
 	$keys = $Key -split "\.";
 	$output = $null;
-	# vNext: I presume there's a more elegant way to do this... but, it works and ... I don't care THAT much.
+	# this isn't SUPER elegant ... but it works (and perf is not an issue).
 	switch ($keys.Count) {
 		1 {
 			$output = $Config.($keys[0]);
@@ -65,6 +99,15 @@ filter Get-ProvisoConfigValueByKey {
 		5 {
 			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]);
 		}
+		6 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]).($keys[5]);
+		}
+		7 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]).($keys[5]).($keys[6]);
+		}
+		8 {
+			$output = $Config.($keys[0]).($keys[1]).($keys[2]).($keys[3]).($keys[4]).($keys[5]).($keys[6]).($keys[7]);
+		}
 		default {
 			throw "Invalid Key. Too many key segments defined.";
 		}
@@ -73,34 +116,598 @@ filter Get-ProvisoConfigValueByKey {
 	return $output;
 }
 
-filter Get-KeyType {
+filter Ascertain-ExplicitOrImplicitSqlInstance {
 	param (
-		[string]
-		$Key
+		[Parameter(Mandatory)]
+		[Proviso.Processing.ConfigEntry]$ConfigEntry,
+		[Parameter(Mandatory)]
+		[string[]]$AcceptableNodes,
+		[Parameter(Mandatory)]
+		[ValidateRange(0, 6)]
+		[int]$Start
 	);
 	
-	switch (($Key -split '\.')[0]) {
-		{ "Host" -eq $_ } {
-			if (($Key -like 'Host.NetworkDefinitions*') -or ($Key -like "Host.ExpectedDisks*")) {
-				return "Dynamic";
+	$key = $ConfigEntry.OriginalKey;
+	$parts = $ConfigEntry.KeyParts;
+	if ($parts.Count -lt 2) {
+		$ConfigEntry.NormalizedKey = $ConfigEntry.OriginalKey;
+		$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::NotApplicable;
+		return $ConfigEntry;
+	}
+	
+	$currentTestSlot = $Start;
+	$testTargetSlot = $parts[$currentTestSlot];
+	if ($testTargetSlot -in $AcceptableNodes) {
+		$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Implicit;
+		$ConfigEntry.SqlInstanceName = "MSSQLSERVER";
+		
+		# HMMM. Might need to pass in a '-ReplacementDelegate' parameter to format this stuff?
+		$ConfigEntry.NormalizedKey = $key -replace "$($parts[0]).", "$($parts[0]).MSSQLSERVER.";
+		$ConfigEntry.TokenizedKey = $key -replace "$($parts[0]).", "$($parts[0]).{~SQLINSTANCE~}."; # tempting to try and 'reuse' logic from normalizedKey... but TINY chance 'mssqlserver' shows up 2x in the key?
+		
+		$ConfigEntry.IsValid = $true;
+	}
+	else {
+		$currentTestSlot++;
+		$testTargetSlot = $parts[$currentTestSlot];
+		if ($testTargetSlot -in $AcceptableNodes) {
+			$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Explicit;
+
+			$sqlInstanceName = $parts[($currentTestSlot) - 1];
+			$ConfigEntry.SqlInstanceName = $sqlInstanceName;
+			
+			$ConfigEntry.NormalizedKey = $key;
+					
+			# TODO: Limit to replacing only the FIRST instance of $sqlInstanceName. Sadly, -replace does NOT support this. So I'll need to use regex. Docs for -replace: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_comparison_operators?view=powershell-7.2
+			$ConfigEntry.TokenizedKey = $key -replace $sqlInstanceName, "{~SQLINSTANCE~}";
+			
+			$ConfigEntry.IsValid = $true;
+		}
+		else {
+			if ($parts.Count -eq 2) {
+				# At this point we know: a) root is legit + SqlInstance-able b) part[1] is NOT a sub-key IF this was an IMPLICIT key... 
+				# 		so, only option is: this is a request for an entire SQL Server instance node:
+				$ConfigEntry.IsValid = $true;
+				$ConfigEntry.SqlInstanceName = $parts[1];
+				$ConfigEntry.TokenizedKey = $key -replace $parts[1], "{~SQLINSTANCE~}";
+				$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Explicit;
 			}
-			return "Static";
+			else {
+				$ConfigEntry.IsValid = $false;
+				$ConfigEntry.InvalidReason = "Unable to determine explicit or implicit SQL Server Instance name for key [$($ConfigEntry.OriginalKey)] - Normalization Failure.";
+				$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Invalid;
+			}
 		}
-		{ $_ -in "SqlServerManagementStudio", "ClusterConfiguration" } {
-			return "Static";
+	}
+	
+	return $ConfigEntry;
+}
+
+filter Process-ImplicitOrExplicitSqlServerInstanceDetails {
+	param (
+		[Parameter(Mandatory)]
+		[Proviso.Processing.ConfigEntry]$ConfigEntry
+	);
+	
+	if (-not ($ConfigEntry.IsValid)) {
+		return $ConfigEntry;
+	}
+	
+	$parts = $ConfigEntry.KeyParts;
+	switch ($parts[0]) {
+		{ $_ -in @("Host", "ExpectedShares", "DataCollectorSets", "SqlServerManagementStudio") }	 {
+			$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::NotApplicable;
+			$ConfigEntry.NormalizedKey = $ConfigEntry.OriginalKey;
+			$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey;
+			return $ConfigEntry; # nothing to do here - these aren't SQLInstance-aware/capable.
 		}
-		{ $_ -in "ExpectedShares", "DataCollectorSets" } {
-			return "Dynamic";
+		#"AnyKindOfCustomOrVariableConfigSectionWithDifferentRules" {
+		#	# Place-holder for implementation of any CUSTOM logic (either different args to Ascertain-Explicit/Implicit OR full-blown, 100% different logic)
+		#	# 	for the implmentation of any SPECIALIZED config nodes. 
+		#   #  NOTE: make sure to set .NormalizedKey... and .TokenizedKey as applicable.
+		#}
+		#region stupid logic for ExtendedEvents (not used - I don't think)
+#		"ExtendedEvents" {
+#			# These are a bit of a challenge - due to the notion of 'top level' values. 
+#			$acceptableGlobalKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}";
+#				switch ($parts.Count) {
+#					1 {
+#						return $ConfigEntry; # nothing to normalize... 
+#					}
+#					2 {
+#						if ($parts[1] -in $acceptableGlobalKeys) {
+#							$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Implicit;
+#							$ConfigEntry.SqlInstanceName = "MSSQLSERVER";
+#							$ConfigEntry.NormalizedKey = "ExtendedEvents.MSSQLSERVER.$($parts[1])";
+#							$ConfigEntry.TokenizedKey = "ExtendedEvents.{~SQLINSTANCE~}.$($parts[1])";
+#						}
+#						else {
+#							$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Explicit;
+#							$ConfigEntry.SqlInstanceName = $parts[1];
+#							$ConfigEntry.NormalizedKey = "ExtendedEvents.$($parts[1])";
+#							$ConfigEntry.TokenizedKey = "ExtendedEvents.{~SQLINSTANCE~}";
+#						}
+#					}
+#					3 {
+#						if ($parts[2] -in $acceptableGlobalKeys) {
+#							$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Explicit;
+#							$ConfigEntry.SqlInstanceName = $parts[1];
+#							$ConfigEntry.NormalizedKey = "ExtendedEvents.$($parts[1]).$($parts[2])";
+#							$ConfigEntry.TokenizedKey = "ExtendedEvents.{~SQLINSTANCE~}.$($parts[2])";
+#						}
+#						else {
+#							# Could be explicit - e.g., "ExtendedEvents.BlockedProcesses.SessionName"
+#						}
+#					}
+#					4 {
+#						
+#					}
+#					default {
+#						throw "Invalid Length";
+#					}
+#				}
+#				
+#				return $ConfigEntry;
+		#		}		
+		#endregion
+		default { 	# this addresses most/all(?) SqlInstance-aware config-blocks:
+			$legitThirdSlotKeyNames = Get-AllowableChildKeyNames -Key "$currentRootNode.{~SQLINSTANCE~}";
+			return Ascertain-ExplicitOrImplicitSqlInstance -ConfigEntry $ConfigEntry -AcceptableNodes $legitThirdSlotKeyNames -Start 1;
 		}
-		{ $_ -in "ExpectedDirectories", "SqlServerInstallation", "SqlServerConfiguration", "SqlServerPatches", "AdminDb" } {
-			return "SqlInstance";
+	}
+}
+
+filter Process-ObjectInstanceTokenization {
+	param (
+		[Parameter(Mandatory)]
+		[Proviso.Processing.ConfigEntry]$ConfigEntry
+	);
+	
+	if (-not ($ConfigEntry.IsValid)) {
+		return $ConfigEntry;
+	}
+	
+	$currentRootNode = $ConfigEntry.ConfigRoot;
+	
+	if ($ConfigEntry.SqlInstanceKeyType -notin @("Implicit", "Explicit", "NotApplicable")) {
+		throw "Invalid Operation. Key [$($ConfigEntry.OriginalKey)] can NOT be evaluated for tokenization until it has been normalized.";
+	}
+	
+	$normalizedParts = $ConfigEntry.NormalizedKey -split '\.';
+	
+	switch ($currentRootNode) {
+		"Host" {
+			if ($normalizedParts.Count -ge 3) {
+				if ($normalizedParts[1] -in @("NetworkDefinitions", "ExpectedDisks")) {
+					
+					$childKeysForHostObjects = Get-AllowableChildKeyNames -Key "Host.$($normalizedParts[1]).{~ANY~}";
+					
+					if ($normalizedParts[2] -in $childKeysForHostObjects) {
+						$ConfigEntry.IsValid = $false;
+						
+						$objectType = "disk";
+						if ($normalizedParts[1] -eq "NetworkDefinitions") {
+							$objectType = "adapter";
+						}
+						
+						$ConfigEntry.InvalidReason = "Expected a [$objectType] name - but value [$($normalizedParts[2])] is an attribute instead.";
+					}
+					else {
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[2];
+		
+						$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[2], "{~ANY~}";
+					}
+				}
+			}
 		}
-		{ $_ -in "ExtendedEvents", "AvailabilityGroups", "ResourceGovernor", "CustomSqlScripts"	} {
-			return "Complex"; # SqlInstance + Dynamic
+		"ExpectedShares" {
+			if ($normalizedParts.Count -ge 2) {
+				$childKeys = Get-AllowableChildKeyNames -Key "ExpectedShares.{~ANY~}";
+				
+				if ($normalizedParts.Count -gt 2) {
+					if ($normalizedParts[2] -in $childKeys) {
+						$ConfigEntry.IsValid = $true;
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[1];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey -replace $normalizedParts[1], "{~ANY~}";
+					}
+					else {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Key [$($normalizedParts[2])] is not a valid attribute for Shares.";
+					}
+				}
+				else {
+					if ($normalizedParts[1] -in $childKeys) {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Expected the name of a Share but value [$($normalizedParts[1])] is a share attribute instead.";
+					}
+					else {
+						$ConfigEntry.IsValid = $true;
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[1];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey -replace $normalizedParts[1], "{~ANY~}";
+					}
+				}
+			}
+		}
+		"ExtendedEvents" {
+			if ($normalizedParts.Count -ge 4) {
+				$allowableChildKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}.Sessions.{~ANY~}";
+				
+				if ($normalizedParts[3] -in $allowableChildKeys) {
+					$ConfigEntry.IsValid = $false;
+					$ConfigEntry.InvalidReason = "Expected an Extended Events Session-Name but, instead, recieved [$($normalizedParts[3])] - which is a Session attribute.";
+				}
+				else {
+					$parentKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}";
+					if ($normalizedParts[2] -notin $parentKeys) {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Mal-formed Extended Events Configuration Key."; # create some tests to see if this  scenario is even a concern... 
+					}
+					else {
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+					}
+				}
+			}
+		}
+		"DataCollectorSets" {
+			
+			# REFACTOR: 
+			# 	COPY / PASTE / TWEAK (minor text changes) from ExpectedShares  (just changes $childKeys root lookup, and "shares" to "Data Collector Sets" in INvalidReasons. That's it)
+			if ($normalizedParts.Count -ge 2) {
+				$childKeys = Get-AllowableChildKeyNames -Key "DataCollectorSets.{~ANY~}";
+				
+				if ($normalizedParts.Count -gt 2) {
+					if ($normalizedParts[2] -in $childKeys) {
+						$ConfigEntry.IsValid = $true;
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[1];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey -replace $normalizedParts[1], "{~ANY~}";
+					}
+					else {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Key [$($normalizedParts[2])] is not a valid attribute for Data Collector Sets.";
+					}
+				}
+				else {
+					if ($normalizedParts[1] -in $childKeys) {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Expected the name of a Share but value [$($normalizedParts[1])] is a Data Collector Set attribute instead.";
+					}
+					else {
+						$ConfigEntry.IsValid = $true;
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[1];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey -replace $normalizedParts[1], "{~ANY~}";
+					}
+				}
+			}
+		}
+		"AvailabilityGroups" {
+			if ($normalizedParts.Count -ge 4) {
+				$agChildElements = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}.Groups.{~ANY~}";
+				
+				if ($normalizedParts[3] -in $agChildElements) {
+					$ConfigEntry.IsValid = $false;
+					$ConfigEntry.InvalidReason = "Expected the name of an Availability Group but value [$($normalizedParts[3])] is an attribute instead.";
+				}
+				else {
+					if ($normalizedParts.Count -gt 4) {
+						if ($normalizedParts[4] -in $agChildElements) {
+							$ConfigEntry.IsValid = $true;
+							$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+							$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+						}
+						else {
+							Write-Host "hmmm"
+						}
+					}
+					else {
+						$ConfigEntry.IsValid = $true;
+						$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+						$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+					}
+				}
+			}
 		}
 		default {
-			throw "Proviso Framework Error. Unable to determine Key-Type of Key [$Key].";
+			# no sub-groups/objects to process or account for... 
 		}
+	}
+	
+	return $ConfigEntry;
+}
+
+filter Process-KeyValidationViaDefaultValueExtraction {
+	param (
+		[Parameter(Mandatory)]
+		[Proviso.Processing.ConfigEntry]$ConfigEntry
+	);
+	
+	if (-not ($ConfigEntry.IsValid)) {
+		return $ConfigEntry;
+	}
+	
+	if ($null -eq $ConfigEntry.TokenizedKey) {
+		$ConfigEntry.TokenizedKey = $ConfigEntry.OriginalKey;
+	}
+	
+	$defaultValue = Extract-ValueFromConfigByKey -Config $script:ProvisoConfigDefaults -Key $ConfigEntry.TokenizedKey;
+	if ($null -eq $defaultValue) {
+		$ConfigEntry.IsValid = $false;
+		$ConfigEntry.InvalidReason = "The key [$($ConfigEntry.OriginalKey)] is not recognized by Proviso.";
+	}
+	else {
+		$ConfigEntry.IsValid = $true; # attempting to grab the explicit value can set this to false... 
+		$ConfigEntry.DefaultDataType = Get-ProvisoConfigDataType -Value $defaultValue;
+		$ConfigEntry.DefaultValue = $defaultValue;
+	}
+	
+	return $ConfigEntry;
+}
+
+filter Recurse-Keys {
+	param (
+		[Parameter(Mandatory)]
+		[hashtable]$Source,
+		[string]$ParentKey = ""
+	);
+	
+	foreach ($kvp in $Source.GetEnumerator()) {
+		$key = $kvp.Key;
+		$value = $kvp.Value;
+		
+		$chainedKey = $key;
+		if (-not ([string]::IsNullOrEmpty($ParentKey))) {
+			$chainedKey = "$ParentKey.$key";
+		}
+		
+		if ($value -is [hashtable]) {
+			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
+			Recurse-Keys -Source $value -ParentKey $chainedKey;
+		}
+		else {
+			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
+		}
+	}
+}
+
+filter Normalize-UserSuppliedConfigData {
+	param (
+		[Parameter(Mandatory)]
+		[hashtable]$ConfigData
+	);
+	
+	if ($null -eq $script:be8c742fDefaultConfigData) {
+		$script:be8c742fDefaultConfigData = $script:ProvisoConfigDefaults;
+	}
+	
+	$script:be8c742fLatestConfigData = $ConfigData;
+	
+	$script:be8c742fFlattenedConfigKeys = @{};
+	Recurse-Keys -Source $ConfigData;
+	
+	$script:hashtableForPVConfigContents = @{};
+	foreach ($key in $script:be8c742fFlattenedConfigKeys.Keys | Sort-Object { $_ }) {
+		$value = Extract-ValueFromConfigByKey -Config $ConfigData -Key $key;
+		
+		$normalizedOnlyEntry = Validate-ConfigurationEntry -Key $key;
+		
+		if(-not([string]::IsNullOrEmpty($normalizedOnlyEntry.NormalizedKey))){
+			$key = $normalizedOnlyEntry.NormalizedKey;
+		}
+		
+		$script:hashtableForPVConfigContents.Add($key, $value);
+	}
+	
+}
+
+filter Validate-ConfigurationEntry {
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	[Proviso.Processing.ConfigEntry]$entry = [Proviso.Processing.ConfigEntry]::ConfigEntryFromKey($Key);
+	
+	$currentRootNode = $entry.ConfigRoot;
+	$rootNodes = Get-AllowableChildKeyNames -Key "";
+	if ($currentRootNode -notin $rootNodes) {
+		$entry.IsValid = $false;
+		$entry.InvalidReason = "Root of key [$Key] is not a supported configuration key type.";
+	}
+	else {
+		$entry.IsValid = $true; # it's true for NOW...  (any of the following could switch it to false if it's no longer legit)
+		
+		$entry = Process-ImplicitOrExplicitSqlServerInstanceDetails($entry);
+		$entry = Process-ObjectInstanceTokenization($entry);
+		
+		$entry = Process-KeyValidationViaDefaultValueExtraction($entry);
+	}
+	
+	return $entry;
+}
+
+filter Extract-ExplicitValue {
+	param (
+		[Parameter(Mandatory)]
+		[Proviso.Processing.ConfigEntry]$ConfigEntry
+	);
+	
+	if (-not ($ConfigEntry.IsValid)) {
+		return $ConfigEntry;
+	}
+	
+	if ($null -eq $ConfigEntry.NormalizedKey) {
+		$ConfigEntry.NormalizedKey = $ConfigEntry.OriginalKey;
+	}
+	
+	try {
+		$explicitValue = $global:PVConfig[$ConfigEntry.NormalizedKey];
+		
+		$ConfigEntry.DataType = Get-ProvisoConfigDataType -Value $explicitValue;
+		$ConfigEntry.Value = $explicitValue; # might be null or even "", etc.
+	}
+	catch {
+		$ConfigEntry.IsValid = $false;
+		$ConfigEntry.InvalidReason = "Exception: $_ ";
+	}
+	
+	return $ConfigEntry;
+}
+
+filter Get-ConfigurationEntry {
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	if ($null -eq $global:PVConfig) {
+		throw "Explicit Values can NOT be extracted until a valid -Target has been specified."
+	}
+	
+	[Proviso.Processing.ConfigEntry]$entry = Validate-ConfigurationEntry -Key $Key;
+	return Extract-ExplicitValue -ConfigEntry $entry;
+}
+
+filter Process-SpecializedProvisoDefault {
+	param (
+		[Parameter(Mandatory)]
+		[string]$NormalizedKey,
+		[Parameter(Mandatory)]
+		[string]$DefaultToken
+	);
+	
+	switch ($DefaultToken) {
+		"{~DEFAULT_PROHIBITED~}" {
+			throw "Default Values for Key: [$NormalizedKey] are NOT permitted. Please provide an explicit value via configuration file or through explictly defined inputs.";
+		}
+		"{~EMPTY~}" {
+			return $null;
+		}
+		"{~PARENT~}" {
+			$pattern = $null;
+			switch ($NormalizedKey) {
+				{ $_ -like "Host*" } {
+					$pattern = 'Host.(NetworkDefinitions|ExpectedDisks).(?<parent>[^\.]+).(VolumeLabel|InterfaceAlias)';
+				}
+				{ $_ -like "ExpectedShares*" } {
+					$pattern = 'ExpectedShares.(?<parent>[^\.]+).ShareName';
+				}
+				{ $_ -like "ExtendedEvents*" } {
+					$pattern = 'ExtendedEvents.(?<sqlinstance>[^\.]+).(?<parent>[^\.]+).SessionName';
+				}
+				{ $_ -like "ResourceGovernor*" } {
+					throw "Resource Governor {~PARENT~} key defaults are not supported - YET.";
+				}
+				default {
+					throw "Provoso Framework Error. Unmatched {~PARENT~} key type for Key [$Key].";
+				}
+			}
+			
+			$match = [regex]::Matches($NormalizedKey, $pattern, 'IgnoreCase');
+			if ($match) {
+				$value = $match[0].Groups['parent'].Value;
+			}
+			else {
+				throw "Proviso Framework Error. Unable to determine {~PARENT~} for key [$NormalizedKey].";
+			}
+		}
+		"{~DYNAMIC~}" {
+			$parts = $NormalizedKey -split '\.';
+			
+			switch ($NormalizedKey) {
+				{ $_ -like '*SqlTempDbFileCount' } {
+					$coreCount = Get-WindowsCoreCount;
+					if ($coreCount -le 4) {
+						return $coreCount;
+					}
+					return 4;
+				}
+				{ $_ -like "*SqlServerInstallation*SqlServerDefaultDirectories*" } {
+					$match = [regex]::Matches($NormalizedKey, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
+					
+					if ($match) {
+						$instanceName = $match[0].Groups['instanceName'];
+						$directoryName = $parts[$parts.length - 1];
+						
+						return Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
+					}
+					else {
+						throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
+					}
+				}
+				{ $_ -like "SqlServerInstallation*Setup*Instal*Directory" } {
+					$instanceName = $parts[1];
+					$directoryName = $parts[3];
+					
+					return Get-SqlServerDefaultInstallationPath -InstanceName $instanceName -DirectoryName $directoryName;
+				}
+				{ $_ -like "*ServiceAccounts*" } {
+					$match = [regex]::Matches($NormalizedKey, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
+					if ($match) {
+						$instanceName = $match[0].Groups['instanceName'];
+						$serviceName = $parts[$parts.length - 1];
+						
+						return Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $serviceName;
+					}
+					else {
+						throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
+					}
+				}
+				{ $_ -like "Admindb*TimeZoneForUtcOffset" } {
+					throw "Proviso Framework Error. TimeZone-Offsets have not YET been made dynmaic.";
+				}
+				{ $_ -like "DataCollectorSets*XmlDefinition" }  {
+					$match = [regex]::Matches($NormalizedKey, 'SDataCollectorSets.(?<instanceName>[^\.]+).(?<setName>[^\.]+).XmlDefinition');
+					if ($match) {
+						$collectorSetName = $match[0].Groups['setName'].Value;
+						
+						return "$collectorSetName.xml";
+					}
+					else {
+						throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$NormalizedKey]."
+					}
+				}
+				{ $_ -like "ExtendedEvents*DefinitionFile" } {
+					# MKC: This DYNAMIC functionality might end up being really Stupid(TM). 
+					#  		Convention is that <XeSession>.DefinitionFile defaults to "(<XeSession>.SessionName).sql". 
+					# 		ONLY: 
+					# 		1. Complexity: <XeSession>.SessionName can be EMPTY and, by definition, defaults to <XeSession> - i.e., we're at potentially 2x redirects for defaults at this point.
+					#		2. We're currently in the 'GetDefaultValue' func - meaning it's POSSIBLE that a config hasn't even been loaded yet. 				
+					try {
+						$sessionNameKey = $NormalizedKey -replace "DefinitionFile", "SessionName";
+						$sessionName = $this[$sessionNameKey]; # Do NOT recurse using $this.GetValue() - i.e., attempt to use $this as a collection instead. 
+						return "$($sessionName).sql";
+					}
+					catch {
+						# if we fail, return the parent/node name instead. MIGHT be a bad idea (see comments above).
+						return "$($parts[2]).sql";
+					}
+				}
+				default {
+					throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$NormalizedKey].";
+				}
+			}
+		}
+		default {
+			throw;
+		}
+	}
+	
+	return $value;
+}
+
+filter Is-ValidProvisoKey {
+	param (
+		[Parameter(Mandatory)]
+		[string]$Key
+	);
+	
+	try {
+		$entry = Validate-ConfigurationEntry -Key $Key;
+		
+		return $entry.IsValid;
+	}
+	catch {
+		return $false;
 	}
 }
 
@@ -110,11 +717,13 @@ filter Get-FacetTypeByKey {
 		[string]$Key
 	);
 	
-	$Key = Ensure-ProvisoConfigKeyIsNotImplicit -Key $Key;
-	if (-not (Is-ValidProvisoKey -Key $Key)) {
-		throw "Invalid Configuration Key: [$Key].";
+	$entry = Validate-ConfigurationEntry -Key $Key;
+	if (-not ($entry.IsValid)) {
+		throw "Key [$Key] is Invalid: $($entry.InvalidReason).";
 	}
 	
+	$Key = $entry.NormalizedKey;
+
 	$parts = $Key -split '\.';
 	$output = $null;
 	
@@ -143,7 +752,8 @@ filter Get-FacetTypeByKey {
 				$output = "SimpleArray"
 			}
 		}
-		{ $_ -in @("ExpectedShares", "DataCollectorSets") } {  # NOTE: Host.ExpectedDisks and Host.NetworkDefinitions have already been handled in the "Host" case... 
+		{ $_ -in @("ExpectedShares", "DataCollectorSets") } {
+			# NOTE: Host.ExpectedDisks and Host.NetworkDefinitions have already been handled in the "Host" case... 
 			$output = "Object";
 			
 			if ($parts[2] -in @("ReadOnlyAccess", "ReadWriteAccess")) {
@@ -166,505 +776,10 @@ filter Get-FacetTypeByKey {
 		}
 		default {
 			throw "Proviso Framework Error. Unidentified FacetType/Key: [$Key].";
-		}	
-	}
-	
-	return $output;		
-}
-
-filter Ensure-ProvisoConfigKeyIsNotImplicit {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	$parts = $Key -split '\.';
-	
-	if ($parts[0] -in $ROOT_SQLINSTANCE_KEYS) {
-		if ((Is-NonValidChildKey -ParentKey $parts[0] -TestKey $parts[1]) -or ($null -eq $parts[1])) {
-			$explicitKey = $Key -replace $parts[0], "$($parts[0]).MSSQLSERVER";
-			return $explicitKey;
-		}
-		
-		switch ($parts[0]) {
-			"ExtendedEvents" {
-				switch ($parts.Count) {
-					1 {
-						throw "Invalid Configuration Key. ExtendedEvents keys must contain more than just the root element.";
-					}
-					2 {
-						if ($parts[1] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
-							return "ExtendedEvents.MSSQLSERVER.($parts[1])";
-						}
-						else {
-							if ($parts[1] -in $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-								throw "Invalid Configuration Key. ExtendedEvents keys must specify a SQL Server instance as target.";
-							}
-							else {
-								return $Key; # the key is a SQL Instance - i.e., "ExtendedEvents.X3" or "ExtendedEvents.Sales2014", etc
-							}
-						}
-					}
-					3 {
-						if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
-							return $Key; # legit - part[0] is ExtendedEvents, part[1] is an instance name, and part[2] is the terminator... e.g., "ExtendedEvents.MSSQLSERVER.DisableTelemetry"
-						}
-						else {
-							if ($parts[2] -in $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-								throw "Invalid Configuration Key. ExtendedEvents keys require a SQL Server Instance Name AND Extended Events Session name.";
-							}
-							else {
-								return $Key; # legit - assuming that $part[2] is the name of an XE Session - e.g., "ExtendedEvents.MSSQLSERVER.BlockedProcesses";
-							}
-						}
-					}
-					4 {
-						if ($parts[3] -notin $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-							throw "Invalid Configuration Key. The final part of [$Key] is not a recognized ExtendedEvents Session Value.";
-						}
-						
-						return $Key; # presumed legit ... but, more importantly: NOT implicit.
-					}
-				}
-			}
 		}
 	}
 	
-	return $Key;
-}
-
-filter Ensure-ProvisoConfigKeyIsFormattedForObjects {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	$parts = $Key -split '\.';
-	if ("Host" -eq $parts[0]) {
-		if ($parts[1] -in @("NetworkDefinitions", "ExpectedDisks")) {
-			if ("{~ANY~}" -notin $parts) {
-				return ($Key -replace $parts[1], "$($parts[1]).{~ANY~}");
-			}
-		}
-	}
-	
-	if ($parts[0] -in @("ExpectedShares", "DataCollectorSets")) {
-		if ("{~ANY~}" -notin $parts) {
-			return ($Key -replace $parts[0], "$($parts[0]).{~ANY~}");
-		}
-	}
-	
-	if ($parts[0] -eq "ExtendedEvents") {
-		if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
-			return $Key;
-		}
-		elseif ("{~ANY~}" -notin $parts) {
-			return ($Key -replace $parts[1], "$($parts[1]).{~ANY~}");
-		}
-		
-		throw "Not Implemented: (Ensure-ProvisoConfigKeyIsFormattedForObjects for ExtendedEvents-objects).";
-	}
-	
-	if ($parts[0] -in @("ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts")) {
-		if ("{~ANY~}" -notin $parts) {
-			return ($Key -replace $parts[2], "{~ANY~}");
-		}
-		
-		throw "Not Implemented (Ensure-ProvisoConfigKeyIsFormattedForObjects for COMPLEX objects).";
-	}
-	
-	return $Key;
-}
-
-filter Is-NonValidChildKey {
-	param (
-		[string]$ParentKey,
-		[string]$TestKey
-	);
-	
-	[string[]]$stringsThatAreChildKeysNotSqlServerInstanceNames = @();
-	
-	switch ($ParentKey) {
-		# Dynamic Keys: 
-		"NetworkDefinitions" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("ProvisioningPriority", "InterfaceAlias", "AssumableIfNames", "IpAddress", "Gateway", "PrimaryDns", "SecondaryDns");
-		}
-		"ExpectedDisks" { 
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("ProvisioningPriority", "VolumeName", "VolumeLabel", "PhysicalDiskIdentifiers");
-		}
-		"ExpectedShares" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXPECTED_SHARES_KEYS;
-		}
-		"DataCollectorSets" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("Enabled", "EnableStartWithOS", "DaysWorthOfLogsToKeep");
-		}
-		# Sql Instance Keys:
-		"ExpectedDirectories" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXPECTED_DIRECTORIES_KEYS;
-		}
-		"SqlServerInstallation" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("SqlExePath", "StrictInstallOnly", "Setup", "ServiceAccounts", "SqlServerDefaultDirectories", "SecuritySetup");
-		}
-		"SqlServerConfiguration"{
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("LimitSqlServerTls1dot2Only", "GenerateSPN", "DisableSaLogin", "DeployContingencySpace", "EnabledUserRights", "TraceFlags");
-		}	
-		"SqlServerPatches" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += @("TargetSP", "TargetCU");
-		}
-		"AdminDb" {
-			# add common 'typos' or keys used as child keys that can't/shouldn't be SQL Server instance names: 
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += "Enabled";
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_ADMINDB_KEYS;
-		}
-		# Complex Keys: 
-		"ExtendedEvents" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $BRANCH_NODE_EXTENDED_EVENTS_KEYS;
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXTENDED_EVENTS_KEYS;
-		}
-		"ExtendedEvents.{~SQLINSTANCE~}" {
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_EXTENDED_EVENTS_KEYS;
-		}
-		"AvailabilityGroups"{
-			#throw 'Proviso Framework Error. Determination of non-valid child keys for Availability Group Configuration has not been completed yet.';
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $BRANCH_NODE_AVAILABILITY_GROUP_KEYS;
-			$stringsThatAreChildKeysNotSqlServerInstanceNames += $FINAL_NODE_AVAILABILITY_GROUP_KEYS;
-		}
-		"ResourceGovernor" {
-			throw 'Proviso Framework Error. Determination of non-valid child keys for Resource Governor Configuration has not been completed yet.';
-		}
-		"CustomSqlScripts" {
-			throw 'Proviso Framework Error. Determination of non-valid child keys for Custom Sql Server Script Batches has not been completed yet.';
-		}
-	}
-	
-	return $stringsThatAreChildKeysNotSqlServerInstanceNames -contains $TestKey;
-}
-
-filter Is-InstanceGlobalComplexKey {
-	# for Compound/Complex objects is this a 'global' key like, say, ExtendedEvents.MSSQLSERVER.DisableTelemetry
-	# 	 or is it an objectKey - like, say: ExtendedEvents.MSSQLSERVER.BlockedProcesses.Enabled
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	$parts = $Key -split '\.';
-	switch ($parts[0]) {
-		"ExtendedEvents"		 {
-			if ($parts[2] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
-				return $true;
-			}
-		}
-		default {
-			throw "Not Implemented: Is-InstanceGlobalComplexKey for type: [$($parts[0])].";
-		}
-	}
-	
-	return $false;
-}
-
-filter Get-TokenizableDefaultValueFromDefaultConfigSettings {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $Key;
-	
-	if ($null -eq $value) {
-		$keyType = Get-KeyType -Key $Key;
-		
-		$parts = $Key -split '\.';
-		switch ($keyType) {
-			"SqlInstance" {
-				if (Is-NonValidChildKey -ParentKey $parts[0] -TestKey $parts[1]) {
-					return $null; # i.e., the key is invalid
-				}
-				$sqlInstanceDefaultedKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
-				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $sqlInstanceDefaultedKey;
-				
-			}
-			"Dynamic" {
-				$targetPart = 1;
-				if ($Key -like 'Host*') {
-					$targetPart = 2;
-				}
-				
-				if (Is-NonValidChildKey -ParentKey $parts[$targetPart - 1] -TestKey $parts[$targetPart]) {
-					return $null; # i.e., the key is invalid
-				}
-				
-				$anyDefaultedKey = $Key -replace $parts[$targetPart], "{~ANY~}";
-				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $anyDefaultedKey;
-			}
-			"Complex" {
-				switch ($parts[0]) {
-					
-					"ExtendedEvents" {
-						if ($parts[$parts.Count - 1] -in $BRANCH_NODE_EXTENDED_EVENTS_KEYS) {
-							if ($parts.Count -eq 2) { 
-								return $null; # this is an IMPLICIT key - which is illegal at this point, so return NULL/empty (just as would be the case with Is-NonValidChildKey - and, arguably, should PROBABLY handle this logic there?)
-							}
-							elseif ($parts.Count -eq 3) {
-								$complexKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
-							}
-							else {
-								throw "Invalid Configuration Key. Detected 'DisableTelemetery' at the wrong final position within Key: [$Key].";
-							}
-						}
-						# now look for Object/child 'Final-Keys': 
-						elseif ($parts[$parts.Count - 1] -in $FINAL_NODE_EXTENDED_EVENTS_KEYS) {
-							if ($parts.Count -eq 3) { # assume that the key is implicit (might not be ... but if it's not meh... )
-								$complexKey = $Key -replace $parts[0], "$($parts[0]).{~SQLINSTANCE~}";
-							}
-							elseif ($parts.Count -eq 4) {
-								$complexKey = $Key -replace $parts[1], "{~SQLINSTANCE~}";
-								$complexKey = $complexKey -replace $parts[2], "{~ANY~}";
-							}
-							else {
-								throw "Invalid Configuration Key. Detected '$($parts[$parts.Count - 1])' at the wrong final position within Key: [$Key].";
-							}
-						}
-						else {
-							# at this point, presumably, all we have left would be something like "ExtendedEvents.MSSQLSERVER.BlockedProcesses" or "ExtendedEvents.BlockedProcesses"
-							# 		i.e., some sort of 'key-group' lookup that's either implicit or explicit - but which ISN'T trying to pull 'child' keys. 
-							if ($parts.Count -eq 2) {
-								$complexKey = "ExtendedEvents.{~SQLINSTANCE~}.{~ANY~}";
-							}
-							elseif ($parts.Count -eq 3) {
-								$complexKey = "ExtendedEvents.{~SQLINSTANCE~}.{~ANY~}";
-							}
-							else {
-								throw "Invalid Configuration Key. Unknown final-position key '$($parts[$parts.Count - 1])' in Key: [$Key].";
-							}
-						}
-					}
-					"ResourceGovernor" {
-						throw "Not Implemented.";
-					}
-					"AvailabilityGroups" {
-						throw "Not Implemented.";
-					}
-					"CustomSqlScripts" {
-						throw "Not Implemented.";
-					}
-					default {
-						throw "Proviso Framework Error. Unknown Compound-Key type detected for Key: [$Key].";
-					}
-				}
-				
-				$value = Get-ProvisoConfigValueByKey -Config $script:be8c742fDefaultConfigData -Key $complexKey;
-			}
-		}
-	}
-	
-	return $value;
-}
-
-filter Is-ValidProvisoKey {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	if ($null -eq $script:be8c742fDefaultConfigData) {
-		throw "Proviso Framwork Error. Proviso Config Defaults are not yet loaded.";
-	}
-	
-	try {
-		$value = Get-TokenizableDefaultValueFromDefaultConfigSettings -Key $Key;
-	}
-	catch {
-		return $false; # anything that threw an exception would be ... because of an INVALID key... 
-	}
-	
-	return ($null -ne $value);
-}
-
-filter Get-ProvisoConfigDefaultValue {
-	param (
-		[Parameter(Mandatory)]
-		[string]$Key
-	);
-	
-	if ($null -eq $script:be8c742fDefaultConfigData) {
-		throw "Proviso Framwork Error. Proviso Config Defaults are not yet loaded.";
-	}
-	
-	if (-not (Is-ValidProvisoKey -Key $Key)) {
-		throw "Invalid Configuration Key: [$Key].";
-	}
-	
-	$value = Get-TokenizableDefaultValueFromDefaultConfigSettings -Key $Key;
-	if ($value -is [hashtable]) {
-		$reloadValues = $false;
-		if ($Key -like "*PhysicalDiskIdentifiers") {
-			$reloadValues = $true;
-		}
-		
-		# This is a BIT of a weird hack to get around cases where request of an entire 'block' of data results in ... nuffin' but defaults.
-		if ($reloadValues) {
-			$newValue = @{};
-			foreach ($valueKey in $value.Keys) {
-				$reloadFullKey = "$Key.$valueKey";
-				$reloadValue = Get-KeyValue -Key $reloadFullKey;
-				
-				$newValue.Add($valueKey, $reloadValue)
-			}
-			return $newValue;
-		}
-	}
-	
-	# check for {PARENT}, {PROHIBITED}, {EMPTY}, etc. 
-	if ("{~DEFAULT_PROHIBITED~}" -eq $value) {
-		throw "Default Values for Key: [$Key] are NOT permitted. Please provide an explicit value via configuration file or through explictly defined inputs.";
-	}
-	
-	if ("{~DEFAULT_IGNORED~}" -eq $value) {
-		return $null;
-	}
-	
-	if ("{~EMPTY~}" -eq $value) { # NOTE: this if-check sucks. It's PowerShell 'helping me'. I should have to check for ($value -is [string[]]) -and ($value.count -eq 1) -and ("{~EMPTY~}" -eq $value[0])
-		return $null;
-	}
-		
-	if ("{~PARENT~}" -eq $value) {
-		$pattern = $null;
-		switch ($Key) {
-			{ $_ -like "Host*" } {
-				$pattern = 'Host.(NetworkDefinitions|ExpectedDisks).(?<parent>[^\.]+).(VolumeLabel|InterfaceAlias)';
-			}
-			{ $_ -like "ExpectedShares*" } {
-				$pattern = 'ExpectedShares.(?<parent>[^\.]+).ShareName';
-			}
-			{ $_ -like "ExtendedEvents*" } {
-				$pattern = 'ExtendedEvents.(?<sqlinstance>[^\.]+).(?<parent>[^\.]+).SessionName';
-			}
-			{ $_ -like "ResourceGovernor*" } {
-				throw "Resource Governor {~PARENT~} key defaults are not supported - YET.";
-			}
-			default {
-				throw "Provoso Framework Error. Unmatched {~PARENT~} key type for Key [$Key].";
-			}
-		}
-		
-		$match = [regex]::Matches($Key, $pattern, 'IgnoreCase');
-		if ($match) {
-			$value = $match[0].Groups['parent'].Value;
-		}
-		else {
-			throw "Proviso Framework Error. Unable to determine {~PARENT~} for key [$Key].";
-		}
-	}
-	
-	if ("{~DYNAMIC~}" -eq $value) {
-		
-		$parts = $Key -split '\.';
-		
-		switch ($Key) {
-			{ $_ -like '*SqlTempDbFileCount' } {
-				$coreCount = Get-WindowsCoreCount;
-				if ($coreCount -le 4) {
-					return $coreCount;
-				}
-				return 4;
-			}
-			{ $_ -like "*SqlServerInstallation*SqlServerDefaultDirectories*" } {
-				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
-
-				if ($match) {
-					$instanceName = $match[0].Groups['instanceName'];
-					$directoryName = $parts[$parts.length - 1];
-					
-					return Get-SqlServerDefaultDirectoryLocation -InstanceName $instanceName -SqlDirectory $directoryName;
-				}
-				else {
-					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
-				}
-			}
-			{ $_ -like "SqlServerInstallation*Setup*Instal*Directory"} {
-				$instanceName = $parts[1];
-				$directoryName = $parts[3];
-				
-				return Get-SqlServerDefaultInstallationPath -InstanceName $instanceName -DirectoryName $directoryName;
-			}
-			{ $_ -like "*ServiceAccounts*"} {
-				$match = [regex]::Matches($Key, 'SqlServerInstallation\.(?<instanceName>[^\.]+).', 'IgnoreCase');
-				if ($match) {
-					$instanceName = $match[0].Groups['instanceName'];
-					$serviceName = $parts[$parts.length - 1];
-					
-					return Get-SqlServerDefaultServiceAccount -InstanceName $instanceName -AccountType $serviceName;
-				}
-				else {
-					throw "Proviso Framework Error. Non-Default SQL Server Instance for SQL Server Default Directories threw an exception.";
-				}
-			}
-			{ $_ -like "Admindb*TimeZoneForUtcOffset" } {
-				throw "Proviso Framework Error. TimeZone-Offsets have not YET been made dynmaic.";
-			}
-			{ $_ -like "DataCollectorSets*XmlDefinition" }  {
-				$match = [regex]::Matches($Key, 'SDataCollectorSets.(?<instanceName>[^\.]+).(?<setName>[^\.]+).XmlDefinition');
-				if ($match) {
-					$collectorSetName = $match[0].Groups['setName'].Value;
-					
-					return "$collectorSetName.xml";
-				}
-				else {
-					throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$Key]."
-				}
-			}
-			{ $_ -like "ExtendedEvents*DefinitionFile" } {
-				# MKC: This DYNAMIC functionality might end up being really Stupid(TM). 
-				#  		Convention is that <XeSession>.DefinitionFile defaults to "(<XeSession>.SessionName).sql". 
-				# 		ONLY: 
-				# 		1. Complexity: <XeSession>.SessionName can be EMPTY and, by definition, defaults to <XeSession> - i.e., we're at potentially 2x redirects for defaults at this point.
-				#		2. We're currently in the 'GetDefaultValue' func - meaning it's POSSIBLE that a config hasn't even been loaded yet. 				
-				try {
-					$sessionNameKey = $Key -replace "DefinitionFile", "SessionName";
-					$sessionName = $this[$sessionNameKey]; # Do NOT recurse using $this.GetValue() - i.e., attempt to use $this as a collection instead. 
-					return "$($sessionName).sql";
-				}
-				catch {
-					# if we fail, return the parent/node name instead. MIGHT be a bad idea (see comments above).
-					return "$($parts[2]).sql";
-				}
-			}
-			default {
-				throw "Proviso Framework Error. Invalid {~DYNAMIC~} default provided for key: [$Key].";
-			}
-		}
-	}
-	
-	return $value;
-}
-
-# TODO: use private variable here instead of misdirection (i.e. Set-Variable xxx -Visibility Private)
-$script:be8c742fFlattenedConfigKeys = $null;
-filter Recurse-Keys {
-	param (
-		[Parameter(Mandatory)]
-		[hashtable]$Source,
-		[string]$ParentKey = ""
-	);
-	
-	foreach ($kvp in $Source.GetEnumerator()) {
-		$key = $kvp.Key;
-		$value = $kvp.Value;
-		
-		$chainedKey = $key;
-		if (-not ([string]::IsNullOrEmpty($ParentKey))) {
-			$chainedKey = "$ParentKey.$key";
-		}
-		
-		if ($value -is [hashtable]) {
-			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
-			Recurse-Keys -Source $value -ParentKey $chainedKey;
-		}
-		else {
-			$script:be8c742fFlattenedConfigKeys.Add($chainedKey, $value);
-		}
-	}
+	return $output;
 }
 
 filter Get-KeyValue {
@@ -673,21 +788,22 @@ filter Get-KeyValue {
 		[string]$Key
 	);
 	
-	# vNEXT: I _COULD_ route keys through Ensure-ProvisoConfigKeyIsNotImplicit (and potentially even Ensure-ProvisoConfigKeyIsFormattedForObjects)
-	# 	to address scenarios of if/when code calls for something like $PVConfig.GetValue("Admindb.Deployed") - to 'switch that' to "AdminDb.MSSQLSERVER.Deployed". 
-	# ONLY... while I COULD do that, the reality is that all Surfaces/Aspects/Facets SHOULD be wired to call for these keys CORRECTLY (i.e., non-implicitly).
-	
-	if (-not (Is-ValidProvisoKey -Key $Key)) {
-		throw "Fatal Error. Invalid Configuration key requested: [$Key].";
+	[Proviso.Processing.ConfigEntry]$output = Get-ConfigurationEntry -Key $Key;
+	if (-not ($output.IsValid)) {
+		throw "Key [$Key] is Invalid: $($output.InvalidReason)";
 	}
 	
-	$output = $this[$Key];
-	
-	if (-not ($this.AllowDefaults) -or ($null -ne $output)) {
-		return $output;
+	if (-not ($global:PVConfig.AllowDefaults) -or ($null -ne $output.Value)) {
+		return $output.Value;
 	}
-
-	return Get-ProvisoConfigDefaultValue -Key $Key;
+	else {
+		if ($output.DefaultValue -like "{~*~}") {
+			return Process-SpecializedProvisoDefault -NormalizedKey ($output.NormalizedKey) -DefaultToken ($output.DefaultValue) ;
+		}
+		else {
+			return $output.DefaultValue;
+		}
+	}
 }
 
 filter Set-KeyValue {
@@ -700,157 +816,165 @@ filter Set-KeyValue {
 		[string]$Value
 	);
 	
-	if ($this.ContainsKey($Key)) {
-		$this[$Key] = $Value;
-	}
-	else {
-		$this.Add($Key, $Value);
-	}
+	throw "Set-KeyValue is NOT Implemented Yet...";
+	
+	# TODO: validate/verify the key being passed in - as in... make sure it's normalized and tokenizable and the whole 9 yards
+	
+	
+#	if ($this.ContainsKey($Key)) {
+#		$this[$Key] = $Value;
+#	}
+#	else {
+#		$this.Add($Key, $Value);
+#	}
 }
 
-filter Get-ConfigSqlInstanceNames {
+filter Get-SqlInstanceNames {
 	param (
 		[parameter(Mandatory)]
 		[string]$Key
 	);
 	
-	$parts = $Key -split '\.';
-	$target = $parts[0];
+	$tokenized = Validate-ConfigurationEntry -Key $Key;
+	if (-not ($tokenized.IsValid)) {
+		throw "Invalid Key. Key [$Key] is Invalid: $($tokenized.InvalidReason)";
+	}
 	
-	$instances = @();
-	if ($target -in $ROOT_SQLINSTANCE_KEYS) {
-		foreach ($sqlKey in $this.Keys) {
-			if ($sqlKey -like "$($target)*") {
-				$instance = ($sqlKey -split '\.')[1];
-				
-				# MKC: ... sigh. once again: super confused by how this code EVEN WORKS. 
-				#  		i.e., the -notin BELOW is a hack. (BUT, how come i don't have to set up -notin entries for, say, Deploy, DatabaseMail, and a bazillion other entries inside of Admindb.x?)
-				if ($instance -notin @("OverrideSource")) {
+	$tokenizedKey = $tokenized.TokenizedKey;
+	# SQL Server Instance name is ALWAYS parts[1] (i.e., second key). If that ever changes, will need to create a switch in here to evaluate/etc. 
+	$leadingEdge = ($tokenizedKey -split '\.')[0];
+	
+	$instanceNames = @();
+	foreach ($sqlKey in $this.Keys) {
+		if ($sqlKey -like "$leadingEdge*") {
+			
+			$instanceName = (($sqlKey -replace "$($leadingEdge).", "") -split '\.')[0];
+			
+			if ($instanceName -ne $leadingEdge) {
+				if ($instanceNames -notcontains $instanceName) {
 					
-					if ($instances -notcontains $instance) {
-						$instances += $instance
-					}
+					$instanceNames += $instanceName;
 				}
-				
 			}
 		}
 	}
 	
-	return $instances;
+	return $instanceNames;
 }
 
-filter Get-ClusterWitnessTypeFromConfig {
-	# Simple 'helper' for DRY purposes... 
-	# May, EVENTUALLY, need to add a param here for the SQL Server INSTANCE... 
-	
-	$share = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-	$disk = $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
-	$cloud = $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
-	$quorum = $PVConfig.GetValue("ClusterConfiguration.Witness.Quorum");
-	
-	$witnessType = "NONE";
-	if ($share) {
-		$witnessType = "FILESHARE";
-	}
-	if ($disk) {
-		if ("NONE" -ne $witnessType) {
-			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-		}
-		$witnessType = "DISK";
-	}
-	if ($cloud) {
-		if ("NONE" -ne $witnessType) {
-			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-		}
-		$witnessType = "CLOUD";
-	}
-	if ($quorum) {
-		if ("NONE" -ne $witnessType) {
-			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-		}
-		$witnessType = "QUORUM";
-	}
-	
-	return $witnessType;
-}
-
-filter Get-ClusterWitnessDetailFromConfig {
-	param (
-		[string]$ClusterType = $null
-	);
-	
-	if ([string]::IsNullOrEmpty($ClusterType)) {
-		$ClusterType = Get-ClusterWitnessTypeFromConfig;
-	}
-
-	switch ($ClusterType) {
-		"NONE" {
-			return "";
-		}
-		"FILESHARE" {
-			return $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-		}
-		"DISK" {
-			return $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
-		}
-		"CLOUD" {
-			return $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
-		}
-		"QUORUM" {
-			return $true;
-		}
-		default {
-			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
-		}
-	}
-}
-
-filter Get-FileShareWitnessPathFromConfig {
-	[string]$expectedPath = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-	if ([string]::IsNullOrEmpty($expectedPath)) {
-		throw "Invalid Operation. Can not set file share witness path to EMPTY value.";
-	}
-	
-	# This is fine: "\\somserver\witnesses" - whereas this will FAIL EVERY TIME: "\\somserver\witnesses\"
-	if ($expectedPath.EndsWith('\')) {
-		$expectedPath = $expectedPath.Substring(0, ($expectedPath.Length - 1));
-	}
-	
-	return $expectedPath;
-}
-
-filter Get-ConfigObjects {
+filter Get-ObjectInstanceNames {
 	param (
 		[parameter(Mandatory)]
 		[string]$Key
 	);
 	
-	$parts = $Key -split '\.';
-	$target = 1;
-	$leadingKey = "$($parts[0])*";
-	
-	if ($parts[0] -in @("Host", "ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts")) {
-		$target = 2;
-		$leadingKey = "$($parts[0]).$($parts[1])*";
+	$tokenized = Validate-ConfigurationEntry -Key $Key;
+	if (-not ($tokenized.IsValid)) {
+		throw "Invalid Key. Key [$Key] is Invalid: $($tokenized.InvalidReason)";
 	}
 	
+	$tokenizedKey = $tokenized.TokenizedKey;
+#	if ($tokenizedKey -notlike "*{~ANY~}*") {
+#		throw "Invalid Operation. Key [$Key] does NOT target object instances.";
+#	}
+	
+	$leadingEdge = ($tokenizedKey -split '{~ANY~}')[0];
 	$objects = @();
 	foreach ($objectKey in $this.Keys) {
-		if ($objectKey -like $leadingKey) {
-			$objectName = ($objectKey -split '\.')[$target];
+		if ($objectKey -like "$leadingEdge*") {
 			
-			if ($objects -notcontains $objectName) {
-				$objects += $objectName;
+			$objectInstanceName = (($objectKey -replace $leadingEdge, "") -split '\.')[0]
+			
+			if ($objects -notcontains $objectInstanceName) {
+				$objects += $objectInstanceName;
 			}
 		}
-	}
-	
-	if ("ExtendedEvents" -eq $parts[0]) {
-		$objects = @($objects | Where-Object { $_ -notlike "*isableTelemetry" });
 	}
 	
 	return $objects;
 }
+
+#region Recovered Older Code
+#filter Get-ClusterWitnessTypeFromConfig {
+#	# Simple 'helper' for DRY purposes... 
+#	# May, EVENTUALLY, need to add a param here for the SQL Server INSTANCE... 
+#	
+#	$share = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+#	$disk = $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
+#	$cloud = $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
+#	$quorum = $PVConfig.GetValue("ClusterConfiguration.Witness.Quorum");
+#	
+#	$witnessType = "NONE";
+#	if ($share) {
+#		$witnessType = "FILESHARE";
+#	}
+#	if ($disk) {
+#		if ("NONE" -ne $witnessType) {
+#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+#		}
+#		$witnessType = "DISK";
+#	}
+#	if ($cloud) {
+#		if ("NONE" -ne $witnessType) {
+#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+#		}
+#		$witnessType = "CLOUD";
+#	}
+#	if ($quorum) {
+#		if ("NONE" -ne $witnessType) {
+#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+#		}
+#		$witnessType = "QUORUM";
+#	}
+#	
+#	return $witnessType;
+#}
+#
+#filter Get-ClusterWitnessDetailFromConfig {
+#	param (
+#		[string]$ClusterType = $null
+#	);
+#	
+#	if ([string]::IsNullOrEmpty($ClusterType)) {
+#		$ClusterType = Get-ClusterWitnessTypeFromConfig;
+#	}
+#	
+#	switch ($ClusterType) {
+#		"NONE" {
+#			return "";
+#		}
+#		"FILESHARE" {
+#			return $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+#		}
+#		"DISK" {
+#			return $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
+#		}
+#		"CLOUD" {
+#			return $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
+#		}
+#		"QUORUM" {
+#			return $true;
+#		}
+#		default {
+#			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
+#		}
+#	}
+#}
+#
+#filter Get-FileShareWitnessPathFromConfig {
+#	[string]$expectedPath = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
+#	if ([string]::IsNullOrEmpty($expectedPath)) {
+#		throw "Invalid Operation. Can not set file share witness path to EMPTY value.";
+#	}
+#	
+#	# This is fine: "\\somserver\witnesses" - whereas this will FAIL EVERY TIME: "\\somserver\witnesses\"
+#	if ($expectedPath.EndsWith('\')) {
+#		$expectedPath = $expectedPath.Substring(0, ($expectedPath.Length - 1));
+#	}
+#	
+#	return $expectedPath;
+#}
+#endregion
 
 filter Set-ConfigTarget {
 	param (
@@ -875,73 +999,18 @@ filter Set-ConfigTarget {
 		}
 	}
 	
-	# validate config inputs/data: 
-	$script:be8c742fFlattenedConfigKeys = @{};
-	Recurse-Keys -Source $ConfigData;
-	
-	$hashtableForPVConfigContents = @{};
-	
-	foreach ($key in $script:be8c742fFlattenedConfigKeys.Keys | Sort-Object { $_ }) {
-		
-		$value = Get-ProvisoConfigValueByKey -Config $ConfigData -Key $key;
-		
-		if ("{~DEFAULT_INGORED~}" -eq $value) {
-			continue;
-		}
-		
-		#region OLD Comments on how confusing this next bit of code is... (i.e., IGNORE-ish)
-		# MKC: the ELSE clause below needs to be removed/reworked. 
-		# 	I THINK it's some bit of 'extra protection/validation' added in 'after the fact' that tries to do a couple of things: 
-		# 		1. watch for invalid 'terminator' keys... 
-		# 			Only, it does NOT do that correctly - it's checking parts[1] all the time/etc... 
-		# 			i.e., it's NOT strong enough for LEGIT evaluations... so, all it does is CAUSE PROBLEMS with things that should, otherwise, be FINE. 
-		# 		2. shift IMPLICIT keys that are NOT yet valid (ExtendedEvents.DisableTelemetry) to explicit keys (ExtendedEvents.MSSQLSERVER.DisableTelemetry)
-		# 			which is great... 
-		# 			but... i think the fix there should be: 
-		# 				a. get rid of all of the termination/final-node checking. 
-		# 				b. do the replace that's defined AFTER the switch (i.e., make things explicit)
-		# 				c. ... run an ADDITIONAL check to see if the key is NOW valid. 
-		#   and... yeah... looks like that totally worked. 
-		#endregion
-		
-		# MKC: 
-		# 	This code/logic is confusing. 
-		#   Effectively: 
-		# 		loop through ALL keys in the .psd1 file (or source). 
-		# 		if the file is a LEGIT key ... then just add it in (unless it's a hashtable... (then just ignore it, its CHILDREN will get added as needed.)
-		# 		if it's NOT valid... then, it SHOULD just be an IMPLICIT key that needs to be made into an EXPLICIT key (e.g., parts[0] + .MSSQLSERVER)
-		# 			arguably, there could, also be a scenario where the key - after being made explicit, MIGHT? need place-holders for {~ANY~}... 
-		# 			but I don't THINK so???? 
-		
-		if (Is-ValidProvisoKey -Key $key) {
-			
-			if ($value -isnot [hashtable]) {
-				$hashtableForPVConfigContents.Add($key, $value);
-			}
-		}
-		else {
-			$parts = $key -split '\.';
-			$explicitKey = $key -replace "$($parts[0])", "$($parts[0]).MSSQLSERVER";
-			
-			if (-not (Is-ValidProvisoKey -Key $explicitKey)) {
-				throw "Fatal Error. Invalid Configuration Key Encountered while Executing Import from config file. Key: [$key].";
-			}
-			
-			$hashtableForPVConfigContents.Add($explicitKey, $value);
-		}
-	}
+	Normalize-UserSuppliedConfigData -ConfigData $ConfigData;
 	
 	# add members/etc. 
-	[PSCustomObject]$configObject = $hashtableForPVConfigContents;
+	[PSCustomObject]$configObject = $script:hashtableForPVConfigContents;
 	
 	$configObject | Add-Member -MemberType NoteProperty -Name Strict -Value $Strict -Force;
 	$configObject | Add-Member -MemberType NoteProperty -Name AllowDefaults -Value $AllowDefaults -Force;
 	
 	$configObject | Add-Member -MemberType ScriptMethod -Name GetValue -Value ((Get-Item "Function:\Get-KeyValue").ScriptBlock) -Force;
 	$configObject | Add-Member -MemberType ScriptMethod -Name SetValue -Value ((Get-Item "Function:\Set-KeyValue").ScriptBlock) -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetDefault -Value ((Get-Item "Function:\Get-ProvisoConfigDefaultValue").ScriptBlock) -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetSqlInstanceNames -Value ((Get-Item "Function:\Get-ConfigSqlInstanceNames").ScriptBlock) -Force;
-	$configObject | Add-Member -MemberType ScriptMethod -Name GetObjects -Value ((Get-Item "Function:\Get-ConfigObjects").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetSqlInstanceNames -Value ((Get-Item "Function:\Get-SqlInstanceNames").ScriptBlock) -Force;
+	$configObject | Add-Member -MemberType ScriptMethod -Name GetObjectInstanceNames -Value ((Get-Item "Function:\Get-ObjectInstanceNames").ScriptBlock) -Force;
 	
 	# assign as global/intrinsic: 
 	$global:PVConfig = $configObject;

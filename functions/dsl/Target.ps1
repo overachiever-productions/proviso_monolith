@@ -56,7 +56,7 @@ function Target {
 		}
 		
 		if ($null -ne $ConfigData) {
-			Set-ConfigTarget -ConfigData ([PSCustomObject]$ConfigData) -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
+			Set-ConfigTarget -ConfigData ([Hashtable]$ConfigData) -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
 		}
 		
 		if (-not ([string]::IsNullOrEmpty($ConfigFile))) {
@@ -65,9 +65,10 @@ function Target {
 			}
 			
 			try {
-				$data = Import-PowerShellDataFile $ConfigFile;
+				[Hashtable]$data = Import-PowerShellDataFile $ConfigFile;
+				
 				Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
-				$script:be8c742fMostRecentConfigFilePath = $ConfigFile;
+#				$script:be8c742fMostRecentConfigFilePath = $ConfigFile;
 			}
 			catch {
 				throw "Exception Loading Proviso Config File at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
@@ -81,11 +82,11 @@ function Target {
 			
 			try {
 				$hostConfigFile = $PVCatalog.GetHostConfigFileByHostName($HostName);
-				$data = Import-PowerShellDataFile $hostConfigFile;
+				[Hashtable]$data = Import-PowerShellDataFile $hostConfigFile;
 				
 				Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
 				
-				$script:be8c742fMostRecentConfigFilePath = $hostConfigFile;
+#				$script:be8c742fMostRecentConfigFilePath = $hostConfigFile;
 			}
 			catch {
 				throw "Exception Loading Proviso Config File via -HostName at $ConfigFile. $_  `r$($_.ScriptStackTrace) ";
@@ -108,10 +109,11 @@ function Target {
 				}
 				1 {
 					try {
-						$data = Import-PowerShellDataFile ($matches[0].Name);
+						[Hashtable]$data = Import-PowerShellDataFile ($matches[0].Name);
+						
 						Set-ConfigTarget -ConfigData $data -Strict:$Strict -AllowDefaults:$AllowGlobalDefaults;
 						
-						$script:be8c742fMostRecentConfigFilePath = ($matches[0].Name);
+#						$script:be8c742fMostRecentConfigFilePath = ($matches[0].Name);
 					}
 					catch {
 						throw "Exception Loading Proviso Config File at $($matches[0].Name) via [-CurrentHost]. $_  `r$($_.ScriptStackTrace) ";

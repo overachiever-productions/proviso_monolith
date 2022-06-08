@@ -6,6 +6,8 @@
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
+
+
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
 
@@ -19,7 +21,7 @@
 	#Validate-SqlConfiguration;
 	#Validate-ExpectedDirectories;
 	#Validate-ExpectedShares;
-	#Validate-SsmsInstallation;
+	Validate-SsmsInstallation;
 
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
@@ -332,7 +334,7 @@ function Process-Surface {
 		$objectFacets = $surface.GetObjectFacets();
 		if ($objectFacets) {
 			foreach ($objectFacet in $objectFacets) {
-				$objects = @($PVConfig.GetObjects($objectFacet.Key));
+				$objects = @($PVConfig.GetObjectInstanceNames($objectFacet.Key));
 				
 				# TODO: implement sort-order stuff... (might need to actually 'move' this logic up into the call to $PVConfig.GetObjects ... as that might make more sense as a place to do the sort by CHILD key stuff.	
 				#$descending = $false;

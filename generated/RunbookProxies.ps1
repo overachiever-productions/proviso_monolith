@@ -96,6 +96,25 @@ function Provision-Cluster {
 }															 
 
 #-------------------------------------------------------------------------------------
+# AvailabilityGroups
+#-------------------------------------------------------------------------------------
+function Evaluate-AvailabilityGroups {
+	Validate-MethodUsage -MethodName "Evaluate";
+	Execute-Runbook -RunbookName "AvailabilityGroups" -Operation Evaluate;
+}
+
+function Provision-AvailabilityGroups {
+	param(
+		[switch]$AllowReboot = $false, 
+		[switch]$AllowSqlRestart = $false, 
+		[string]$NextRunbookOperation = $null
+	);
+
+	Validate-MethodUsage -MethodName "Provision";
+	Execute-Runbook -RunbookName "AvailabilityGroups" -Operation Provision -AllowReboot:$AllowReboot -AllowSqlRestart:$AllowSqlRestart -NextRunbookOperation $NextRunbookOperation;
+}															 
+
+#-------------------------------------------------------------------------------------
 # Tests
 #-------------------------------------------------------------------------------------
 function Evaluate-Tests {

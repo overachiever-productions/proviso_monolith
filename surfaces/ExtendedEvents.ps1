@@ -67,8 +67,10 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				}
 			}
 		}
-		
-		# TODO: 
+	}
+	
+	Aspect -IterateForScope "Sessions" {
+	# TODO: 
 		#  HMMMM. Look at how I'm tackling this with SqlInstallation.InstanceExists - i.e., ExpectIteratorKey... (That might be a better option - though I don't want to expect a 'raw' value... )
 		# 		yeah... should TOTALLY be -ExpectIteratorKey here... 
 		# 		OTHERWISE (original comments below):

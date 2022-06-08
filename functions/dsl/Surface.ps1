@@ -593,19 +593,38 @@ function Aspect {
 	param (
 		[Parameter(Mandatory)]
 		[ScriptBlock]$AspectBlock,
-		[string]$Scope,
+		[string]$Scope = $null,
+		[string]$IterateForScope = $null,
+		[switch]$IterateScope = $false,   # same as above, but does not specify a key... 
 		[switch]$OrderDescending = $false,
 		[string]$OrderByChildKey
 	);
 	
 	Validate-SurfaceBlockUsage -BlockName "Aspect";
 	
+	if ($IterateForScope -and $IterateScope) {
+		throw "-IterateForScope and -IterateScope are mutually exclusive - use one of the other (-IterateForScope requires/specifies a sub-key, -IterateScope uses current sub key).";
+	}
+	
+	if ($Scope -and $IterateForScope) {
+		throw "-Scope and -IterateForScope are mutually exclusive - use one or the other (Iterate = per each child object in scope).";
+	}
+	
 	$aspectKey = $Target;
 	if(-not([string]::IsNullOrEmpty($Scope))) {
 		$aspectKey += ".$Scope";
 	}
+	
+	if (-not ([string]::IsNullOrEmpty($IterateForScope))) {
+		$aspectKey += ".$IterateForScope.{~ANY~}";
+	}
+	
+	if ($IterateScope) {
+		$aspectKey += ".{~ANY~}";
+	}
+	
 	if (-not ([string]::IsNullOrEmpty($aspectKey))) {
-		$aspectKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $aspectKey;
+		$aspectKey = (Validate-ConfigurationEntry -Key $aspectKey).NormalizedKey;
 	}
 	
 	& $AspectBlock;
@@ -639,13 +658,11 @@ function Facet {
 		$facetType = $null;
 		if (-not ($NoKey)) {
 			if ($FullKey) {
-				$facetKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $FullKey;
+				$facetKey = $FullKey;
 			}
 			else {
 				$facetKey = "$($aspectKey).$Key";
 			}
-			
-			$facetKey = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key $facetKey;
 				
 			if (-not (Is-ValidProvisoKey -Key $facetKey)) {
 				throw "Invalid Configuration Key [$facetKey] found in Surface [$($surface.Name)] and Facet of [$Name].";

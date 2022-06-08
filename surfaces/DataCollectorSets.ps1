@@ -5,7 +5,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 		Assert-UserIsAdministrator;
 	}
 	
-	Aspect {
+	Aspect -IterateScope {
 		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
 			Test {
 				$collectorSetName = $PVContext.CurrentObjectName;

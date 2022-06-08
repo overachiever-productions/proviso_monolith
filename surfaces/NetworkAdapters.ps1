@@ -8,7 +8,7 @@ Surface "NetworkAdapters" -Target "Host" {
 		Assert-HostIsWindows;
 	}
 	
-	Aspect -Scope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
+	Aspect -IterateForScope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
 		Facet "Interface.Exists" -Expect $true -NoKey {
 		# TODO: this facet should work with the definition below... 
 		#Facet "Interface.Exists" -ExpectIteratorValue {

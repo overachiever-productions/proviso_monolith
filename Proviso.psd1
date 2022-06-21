@@ -4,7 +4,7 @@
 	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.7.3'
+	ModuleVersion = '0.7.8'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -55,7 +55,7 @@
 	NestedModules = @()
 	
 	# Functions to export from this module
-	FunctionsToExport = '*'
+	FunctionsToExport = "*"
 	
 	# Cmdlets to export from this module
 	CmdletsToExport = '*' 

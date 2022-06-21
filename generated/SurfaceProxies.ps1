@@ -211,6 +211,48 @@ function Run-AdminDbRestoreTests {
 }
 
 #-------------------------------------------------------------------------------------
+# AGPrerequisites
+#-------------------------------------------------------------------------------------
+function Validate-AGPrerequisites {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "AGPrerequisites" -Operation "Validate";
+}
+
+function Configure-AGPrerequisites {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "AGPrerequisites" -Operation "Configure";
+}
+
+function Run-AGPrerequisites {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "AGPrerequisites" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
+# AGsCore
+#-------------------------------------------------------------------------------------
+function Validate-AGsCore {
+	Validate-MethodUsage -MethodName "Validate";
+	Process-Surface -SurfaceName "AGsCore" -Operation "Validate";
+}
+
+function Configure-AGsCore {
+	Validate-MethodUsage -MethodName "Configure";
+	Process-Surface -SurfaceName "AGsCore" -Operation "Configure";
+}
+
+function Run-AGsCore {
+	Validate-MethodUsage -MethodName "Run";
+	Validate-RunbookProcessing;
+	$operationType = $PVContext.GetSurfaceOperationFromCurrentRunbook();
+	
+	Process-Surface -SurfaceName "AGsCore" -Operation $operationType;
+}
+
+#-------------------------------------------------------------------------------------
 # ClusterConfiguration
 #-------------------------------------------------------------------------------------
 function Validate-ClusterConfiguration {

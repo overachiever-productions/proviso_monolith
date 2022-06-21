@@ -3,9 +3,13 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+
+
+#Validate-ConfigurationEntry -Key "AvailabilityGroups.Groups.ExpectedDatabases";
+#Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.ReplicaNodes";
+
 
 	Get-ConfigurationEntry -Key "SqlServerInstallation.MSSQLSERVER.Setup.SqlTempDbFileCount";
 
@@ -174,7 +178,7 @@ filter Ascertain-ExplicitOrImplicitSqlInstance {
 			}
 			else {
 				$ConfigEntry.IsValid = $false;
-				$ConfigEntry.InvalidReason = "Unable to determine explicit or implicit SQL Server Instance name for key [$($ConfigEntry.OriginalKey)] - Normalization Failure.";
+				$ConfigEntry.InvalidReason = "The third subnode (or higher) in Key [$($ConfigEntry.OriginalKey)] is invalid - i.e., not an allowed or expected attribute. Recheck spelling/documentation, etc.";
 				$ConfigEntry.SqlInstanceKeyType = [Proviso.Enums.SqlInstanceKeyType]::Invalid;
 			}
 		}
@@ -329,22 +333,43 @@ filter Process-ObjectInstanceTokenization {
 			}
 		}
 		"ExtendedEvents" {
-			if ($normalizedParts.Count -ge 4) {
-				$allowableChildKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}.Sessions.{~ANY~}";
-				
-				if ($normalizedParts[3] -in $allowableChildKeys) {
-					$ConfigEntry.IsValid = $false;
-					$ConfigEntry.InvalidReason = "Expected an Extended Events Session-Name but, instead, recieved [$($normalizedParts[3])] - which is a Session attribute.";
-				}
-				else {
-					$parentKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}";
-					if ($normalizedParts[2] -notin $parentKeys) {
+			switch ($normalizedParts.Count) {
+				# NOTE: don't need a 'case/handler' for length < 3... 
+				3 {
+					$allowableXeGlobalKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}"; # i.e., any of the 'sql instance global' keys.. 
+					if ($normalizedParts[2] -in $allowableXeGlobalKeys) {
+						$ConfigEntry.IsValid = $true;
+						# .TokenizedKey is already set, and there's no .ObjectInstanceName to set/define (we're not in a Session)
+					}   
+					else {
 						$ConfigEntry.IsValid = $false;
-						$ConfigEntry.InvalidReason = "Mal-formed Extended Events Configuration Key."; # create some tests to see if this  scenario is even a concern... 
+						$ConfigEntry.InvalidReason = "Sub-Key [$($normalizedParts[2])] is NOT a valid child-key for ExtendedEvents.";
+					}
+				}
+				{ $_ -ge 4 } {
+					if ($normalizedParts[2] -ne "Sessions") {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Incorrectly-formed ExtendedEvents Configuration Key. Expecting 'Sessions' for segment 2 of key, but got [$($normalizedParts[2])] instead.";
 					}
 					else {
-						$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
-						$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+						$allowableSessionChildKeys = Get-AllowableChildKeyNames -Key "ExtendedEvents.{~SQLINSTANCE~}.Sessions.{~ANY~}";
+						
+						if ($normalizedParts[3] -notin $allowableSessionChildKeys) {
+							$ConfigEntry.IsValid = $true;
+							$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+							$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+						}
+						else {
+							$ConfigEntry.IsValid = $false;
+							$ConfigEntry.InvalidReason = "Expected an explicit XE Session Name, whereas [$($normalizedParts[3])] is a CHILD-KEY for Session-Names.";
+						}
+						
+						if ($normalizedParts.Count -ge 5) {
+							if ($normalizedParts[4] -notin $allowableSessionChildKeys) {
+								$ConfigEntry.IsValid = $false;
+								$ConfigEntry.InvalidReason = "Expected a child-key for XE Sessions (e.g., SessionName, Enabled, XelFileCount, etc), but [$($normalizedParts[4])] is NOT a viable Proviso Child Key.";
+							}				
+						}
 					}
 				}
 			}
@@ -381,28 +406,65 @@ filter Process-ObjectInstanceTokenization {
 			}
 		}
 		"AvailabilityGroups" {
-			if ($normalizedParts.Count -ge 4) {
-				$agChildElements = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}.Groups.{~ANY~}";
-				
-				if ($normalizedParts[3] -in $agChildElements) {
-					$ConfigEntry.IsValid = $false;
-					$ConfigEntry.InvalidReason = "Expected the name of an Availability Group but value [$($normalizedParts[3])] is an attribute instead.";
-				}
-				else {
-					if ($normalizedParts.Count -gt 4) {
-						if ($normalizedParts[4] -in $agChildElements) {
-							$ConfigEntry.IsValid = $true;
-							$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
-							$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
-						}
-						else {
-							Write-Host "hmmm"
-						}
+			$allowableAgGlobalKeys = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}";
+			
+			switch ($normalizedParts.Count) {
+				3 {
+					if ($normalizedParts[2] -in $allowableAgGlobalKeys) {
+						$ConfigEntry.IsValid = $true;
+						# .TokenizedKey is already set, and there's no .ObjectInstanceName to set/define (we're not in Groups... )
 					}
 					else {
-						$ConfigEntry.IsValid = $true;
-						$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
-						$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "Sub-Key [$($normalizedParts[2])] is NOT a valid child-key for AvailabilityGroups.";
+					}
+				}
+				{ $_ -ge 4 } {
+					if ($normalizedParts[2] -notin $allowableAgGlobalKeys) {
+						$ConfigEntry.IsValid = $false;
+						$ConfigEntry.InvalidReason = "needs to be in MirroringEndpoint, SyncChecks, or Groups and isn't... ";
+					}
+					else {
+						$allowedChildNodes = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}.$($normalizedParts[2])";
+						
+						if ($normalizedParts[2] -eq "Groups") {
+							if ($normalizedParts.Count -gt 4) {
+								$allowedAGChildKeys = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}.Groups.{~ANY~}";
+								
+								if ($normalizedParts[4] -in $allowedAGChildKeys) {
+									$ConfigEntry.IsValid = $true;
+									$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+									$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+								}
+								else {
+									$ConfigEntry.IsValid = $false;
+									$ConfigEntry.InvalidReason = "Sub-Key [$($normalizedParts[4])] is NOT a valid child-key for the [Groups.{GROUPNAME}] node.";
+								}
+							}
+							else {
+								$allowedAGChildKeys = Get-AllowableChildKeyNames -Key "AvailabilityGroups.{~SQLINSTANCE~}.Groups.{~ANY~}";
+			
+								if ($normalizedParts[3] -in $allowedAGChildKeys) {
+									$ConfigEntry.IsValid = $false;
+									$ConfigEntry.InvalidReason = "Key-Segment ...[Groups.$($normalizedParts[3])]... can not be a Proviso-Supported AG-Name because [$($normalizedParts[3])] is a Child-key of AG Names/Nodes.";
+								}
+								else {
+									$ConfigEntry.IsValid = $true;
+									$ConfigEntry.ObjectInstanceName = $normalizedParts[3];
+									$ConfigEntry.TokenizedKey = $ConfigEntry.TokenizedKey -replace $normalizedParts[3], "{~ANY~}";
+								}
+							}
+						}
+						else {
+							if ($normalizedParts[3] -in $allowedChildNodes) {
+								$ConfigEntry.IsValid = $true;
+								# Tokenization is done and there is no object (AG) name... 
+							}
+							else {
+								$ConfigEntry.IsValid = $false;
+								$ConfigEntry.InvalidReason = "Sub-Key [$($normalizedParts[3])] is NOT a valid child-key for the [$($normalizedParts[2])] node.";
+							}
+						}
 					}
 				}
 			}
@@ -581,6 +643,9 @@ filter Process-SpecializedProvisoDefault {
 		}
 		"{~EMPTY~}" {
 			return $null;
+		}
+		"{~EMPTY_ARRAY~}" {
+			return @();
 		}
 		"{~PARENT~}" {
 			$pattern = $null;
@@ -773,6 +838,10 @@ filter Get-FacetTypeByKey {
 		}
 		{ $_ -in @("ExtendedEvents", "ResourceGovernor", "AvailabilityGroups", "CustomSqlScripts") } {
 			$output = "Compound";
+			
+			if ("{~EMPTY_ARRAY~}" -eq $entry.DefaultValue) {
+				$output = "CompoundArray";
+			}
 		}
 		default {
 			throw "Proviso Framework Error. Unidentified FacetType/Key: [$Key].";
@@ -847,7 +916,6 @@ filter Get-SqlInstanceNames {
 	$instanceNames = @();
 	foreach ($sqlKey in $this.Keys) {
 		if ($sqlKey -like "$leadingEdge*") {
-			
 			$instanceName = (($sqlKey -replace "$($leadingEdge).", "") -split '\.')[0];
 			
 			if ($instanceName -ne $leadingEdge) {
@@ -865,28 +933,40 @@ filter Get-SqlInstanceNames {
 filter Get-ObjectInstanceNames {
 	param (
 		[parameter(Mandatory)]
-		[string]$Key
+		[string]$Key,
+		[string]$SqlInstanceName = "MSSQLSERVER"  # only needed for 'complex' objects... 
 	);
 	
-	$tokenized = Validate-ConfigurationEntry -Key $Key;
-	if (-not ($tokenized.IsValid)) {
-		throw "Invalid Key. Key [$Key] is Invalid: $($tokenized.InvalidReason)";
+	$entry = Validate-ConfigurationEntry -Key $Key;
+	if (-not ($entry.IsValid)) {
+		throw "Invalid Key. Key [$Key] is Invalid: $($entry.InvalidReason)";
+	}
+		
+	$tokenizedKey = $entry.TokenizedKey;
+	$leadingEdge = ($tokenizedKey -split '.{~ANY~}')[0];
+
+	if ($leadingEdge -like "*{~SQLINSTANCE~*") {
+		$leadingEdge = $leadingEdge -replace "{~SQLINSTANCE~}", $SqlInstanceName;
 	}
 	
-	$tokenizedKey = $tokenized.TokenizedKey;
-#	if ($tokenizedKey -notlike "*{~ANY~}*") {
-#		throw "Invalid Operation. Key [$Key] does NOT target object instances.";
-#	}
-	
-	$leadingEdge = ($tokenizedKey -split '{~ANY~}')[0];
 	$objects = @();
 	foreach ($objectKey in $this.Keys) {
+		
 		if ($objectKey -like "$leadingEdge*") {
 			
-			$objectInstanceName = (($objectKey -replace $leadingEdge, "") -split '\.')[0]
+			$partialMatchKey = $objectKey -replace "$($leadingEdge).", "";
 			
-			if ($objects -notcontains $objectInstanceName) {
-				$objects += $objectInstanceName;
+			# NOTE: leadingEdgeMatches CAN/will (in a few cases) be the SAME as the leading edge. 
+			# 		e.g., if we're looking for Host.ExpectedDisks**** ... then we'll match on Host.ExpectedDisks as a full-blown key in $PVConfig
+			# 				or, if we're looking for XEs.Sessions*** we'll get a full-on match against XEs.SEssions (as a full blown key). 
+			# 		if we split + [0]th position on these matches, we get [Host] and [ExtendedEvents] (respectively) as object names. 
+			# 	So... to avoid that, this simple comparison filters those out... 
+			if ($partialMatchKey -ne $leadingEdge) {
+				$objectName = ($partialMatchKey -split '\.')[0];
+				
+				if ($objects -notcontains $objectName) {
+					$objects += $objectName;
+				}
 			}
 		}
 	}

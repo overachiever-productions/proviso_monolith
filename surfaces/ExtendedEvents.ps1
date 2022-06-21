@@ -85,7 +85,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				}
 				
 				$sessionKey = $PVContext.CurrentObjectName;				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName'; ").name;
 				if ($exists) {
 					return $true;
@@ -97,7 +97,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				$sessionKey = $PVContext.CurrentObjectName;
 				
-				$definitionFile = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.DefinitionFile");
+				$definitionFile = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.DefinitionFile");
 				
 				# TODO: determine if we're in a DROP or CREATE scenario and warn/announce that PROVISO won't drop existing XeSessions... 
 				#  	that said, I PRESUME there's a case where this might exist or not? or, is Configure ONLY EVER going to be called if/when we EXPECT an XE session and it doesn't exist?
@@ -108,17 +108,13 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				}
 				
 				$template = Get-Content $fullDefinitionPath;
-				
-				
-				# PICKUP / NEXT:
-				#INVALID key requested: [ExtendedEvents.MSSQLSERVER.BlockedProcesses.XelFileCount];
-				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
-				$enabled = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.Enabled");
-				$startWithSystem = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.StartWithSystem");
-				$fileSize = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFileSizeMb");
-				$fileCount = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFileCount");
-				$xelFilePath = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.XelFilePath");
+							
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");
+				$enabled = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.Enabled");
+				$startWithSystem = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.StartWithSystem");
+				$fileSize = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFileSizeMb");
+				$fileCount = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFileCount");
+				$xelFilePath = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFilePath");
 				
 				$startupState = "OFF";
 				$isEnabled = "OFF";
@@ -148,7 +144,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				}
 				
 				$sessionKey = $PVContext.CurrentObjectName;				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");				
 				$state = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[dm_xe_sessions] WHERE [name] = N'$sessionName'; ").name;
 				if ($state) {
 					return $true;
@@ -160,9 +156,16 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				$sessionKey = $PVContext.CurrentObjectName;
 				
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");
+				$desiredState = $PVContext.CurrentConfigKeyValue;
+				$desiredStateString = "START";
+				if (-not ($desiredState)) {
+					$desiredStateString = "STOP";
+					
+					$PVContext.WriteLog("WARNING: Extended Events Session [$sessionName] has been DISABLED.", "Important");
+				}
 				
-				
-				
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER EVENT SESSION [$sessionName] ON SERVER STATE = $desiredStateString); ";
 			}
 		}
 		
@@ -174,7 +177,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				}
 				
 				$sessionKey = $PVContext.CurrentObjectName;				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");
 				
 				$startState = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT startup_state FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName';").startup_state;
 				if ($startState) {
@@ -187,7 +190,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				$sessionKey = $PVContext.CurrentObjectName;
 				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.$sessionKey.SessionName");
+				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");
 				
 				$desiredState = $PVContext.CurrentConfigKeyValue;
 				$desiredStateString = "ON";
@@ -195,7 +198,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 					$desiredStateString = "OFF";
 					
 					# TODO: need to see what the CURRENT value is - it MIGHT be OFF/disabled. (though, in which case, why is this... trying to make a change? )
-					$PVContext.WriteLog("WARNING: Extended Events Session [$sessionName] has been DISABLED.", "Important");
+					$PVContext.WriteLog("WARNING: Auto-Start for Extended Events Session [$sessionName] has been DISABLED.", "Important");
 				}
 				
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER EVENT SESSION [$sessionName] ON SERVER WITH (STARTUP_STATE = $desiredStateString); ";

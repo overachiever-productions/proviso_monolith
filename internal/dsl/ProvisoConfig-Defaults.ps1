@@ -38,7 +38,7 @@
 			}
 		}
 		
-		LocalAdministrators = @("{~EMPTY~}")
+		LocalAdministrators = @("{~EMPTY_ARRAY~}")
 		
 		WindowsPreferences  = @{
 			DvdDriveToZ				     = $false
@@ -84,8 +84,8 @@
 	
 	ExpectedDirectories = @{
 		"{~SQLINSTANCE~}" = @{
-			VirtualSqlServerServiceAccessibleDirectories = @("{~EMPTY~}")
-			RawDirectories = @("{~EMPTY~}")
+			VirtualSqlServerServiceAccessibleDirectories = @("{~EMPTY_ARRAY~}")
+			RawDirectories = @("{~EMPTY_ARRAY~}")
 		}
 	}
 	
@@ -93,8 +93,8 @@
 		"{~ANY~}" = @{
 			ShareName	   		= "{~PARENT~}"
 			SourceDirectory 	= "{~DEFAULT_PROHIBITED~}"
-			ReadOnlyAccess 		= @("{~EMPTY~}")
-			ReadWriteAccess 	= @("{~EMPTY~}")
+			ReadOnlyAccess 		= @("{~EMPTY_ARRAY~}")
+			ReadWriteAccess 	= @("{~EMPTY_ARRAY~}")
 		}
 	}
 	
@@ -151,7 +151,7 @@
 				EnableSqlAuth		  = $false
 				AddCurrentUserAsAdmin = $false
 				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
-				MembersOfSysAdmin	  = @("{~EMPTY~}")
+				MembersOfSysAdmin	  = @("{~EMPTY_ARRAY~}")
 			}
 		}
 	}
@@ -389,10 +389,10 @@
 			EvictionBehavior = "WARN" # If ALREADY part of a cluster but ClusterType = "NONE". Options: [ NONE | WARN | ABORT | FORCE-EVICTION]
 			
 			ClusterName	     = "{~DEFAULT_PROHIBITED~}"
-			ClusterNodes	 = @("{~EMPTY~}") # each 'node' will only attempt to a) create cluster (with itself if no cluster exists) OR b) add itself to cluster if should be part of node. 
-			ClusterIPs	     = @("{~EMPTY~}") # IPs behave like nodes (i.e., same behavior as above)
+			ClusterNodes	 = @("{~EMPTY_ARRAY~}") # each 'node' will only attempt to a) create cluster (with itself if no cluster exists) OR b) add itself to cluster if should be part of node. 
+			ClusterIPs	     = @("{~EMPTY_ARRAY~}") # IPs behave like nodes (i.e., same behavior as above)
 			
-			ClusterDisks	 = @("{~EMPTY~}") # ONLY for FCIs - and not implemented yet... 
+			ClusterDisks	 = @("{~EMPTY_ARRAY~}") # ONLY for FCIs - and not implemented yet... 
 			
 			Witness		     = @{
 				# will check for whichever ONE of the following is NOT empty (or, if they're all empty, no witness).
@@ -410,40 +410,47 @@
 		"{~SQLINSTANCE~}" = @{
 			#EnabledOrStrictEnabled = "probably need 2x keys/entries here... but idea is a) configure AG membership or not? and b) what if ... we find the server as PART of an AG that's NOT defined below?"
 			Enabled			        = $true
-			EvictionBehavior 		= "WARN"
+			EvictionBehavior  = "WARN"
+			
+			AlwaysOnXeHealthEnabled = $true;
 			
 			MirroringEndpoint	   = @{
-				Enabled						    = $false
-				PortNumber					    = 5022
-				Name						    = ""
-				AllowedOwnersConnectingAccounts = @("{~EMPTY~}")  # e.g., xyZAdmin, sa, etc... 
+				Enabled					= $false
+				Name			    	= "HADR"
+				PortNumber				= 5022
+				EncryptionAlgorithm   	= "AES"
+				EndpointOwner	    	= "sa"
+				GrantConnect 			= @("{~EMPTY_ARRAY~}")
 			}
 			
 			SynchronizationChecks  = @{
-				AddPartners		       = ""
-				SyncCheckJobs		   = ""
-				AddFailoverProcessing  = ""
-				CreateDisabledJobCategory = ""
+				DefinePartnerLinkedServer	= $false
+				SyncCheckJobs		   		= $false
+				AddFailoverProcessing  		= $true
+				CreateDisabledJobCategory 	= $false
 			}
 			
 			Groups = @{
 				"{~ANY~}" = @{
-					Action   = "NONE" # Options would be ??? NONE, ADD, EXTEND? , REMOVE? ... need to give this a bit more thought. And, might not even WANT an 'action' option. which... is a problem cuz i'm trying to key a bunch of "is key valid" stuff off of whether this exists or not... '
+					ConfigurationAction   = "NONE" # Options would be ??? NONE, ADD, EXTEND? , REMOVE? ... need to give this a bit more thought. And, might not even WANT an 'action' option. which... is a problem cuz i'm trying to key a bunch of "is key valid" stuff off of whether this exists or not... '
 					
-					Replicas = @("{~EMPTY~}")
+					# TODO: need a bit more thought on this particular node (ReplicaType) name... 
+					ReplicaType = "READ_WRITE" # could be READONLY? 					
+					
+					ReplicaNodes = @("{~EMPTY~}")
 					
 					Seeding  = @{
 						# Hmmm... options would somewhat include: Auto, some sort of file path, or backups/restore + ... file-path... 
 					}
 					
-					Databases = @("{~EMPTY~}")
+					ExpectedDatabases = @("{~EMPTY_ARRAY~}")
 					
 					Listener = @{
 						Name			    = "{~DEFAULT_PROHIBITED~}"
 						PortNumber		    = 1433
-						IPs				    = @("{~EMPTY~}")
+						IPs				    = @("{~EMPTY_ARRAY~}")
 						
-						ReadOnlyRounting    = @("{~EMPTY~}")
+						ReadOnlyRounting    = @("{~EMPTY_ARRAY~}")
 						
 						GenerateListenerSPN = $false
 					}

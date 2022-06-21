@@ -4,7 +4,7 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 	
 	Assertions  {
 		Assert-UserIsAdministrator; # can't set user rights otherwise... 
-		Assert-SqlServerIsInstalled -SurfaceTarget "SqlServerConfiguration" -AssertOnConfigureOnly;
+		Assert-SqlServerIsInstalled -SurfaceTarget "SqlServerConfiguration" -AssertOnConfigureOnly -FailureMessage "SqlConfiguration can NOT be Configured until target SQL Server Instances have been installed.";
 	}
 	
 	Aspect {

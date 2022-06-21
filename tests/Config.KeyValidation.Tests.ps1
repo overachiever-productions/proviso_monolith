@@ -391,14 +391,17 @@ Describe "Key-Validation Tests" {
 	Context "AvailabilityGroups" {
 		It "Detects Invalid Keys" {
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.PortNumber").IsValid | Should -Be $false;
-			(Validate-ConfigurationEntry -Key "AvailabilityGroups.Groups.Databases").IsValid | Should -Be $false;
 			
-			# TODO: 
-			# i KIND of doubt someone will call their AG 'replicas' ... but, if so, it's currently invalid cuz i'm treating that solely as an attribute
-			#  I could change this to HostReplicas
-			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.Replicas").IsValid | Should -Be $false;
+			# NOTE: This one is TRICKY. But it's invalid because 'ExpectedDatabases' is a child-key of an AG NAME. 
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.Groups.ExpectedDatabases").IsValid | Should -Be $false;
+			# NOTE: also 'tricky' - ReplicaNodes is a child of an AG NAME and don't expect someone would name their AG 'ReplicaNodes'... too meta.
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.ReplicaNodes").IsValid | Should -Be $false;
 			
-			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.SynchronizationChecks.AddFailoverProcessing").IsValid | Should -Be $false;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.SQLN28.SynchronizationChecks.AddFailoverProcessing").IsValid | Should -Be $true;
+			
+			# additional key-tests from re-authoring some of the low-level details ... 
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.SynchronizationChecks.CheckJobs").IsValid | Should -Be $false; # invalid
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.Groups.MainAG.Piggies").IsValid | Should -Be $false; #invalid
 		}
 		
 		It "Detects Valid Keys" {
@@ -406,12 +409,22 @@ Describe "Key-Validation Tests" {
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.SynchronizationChecks").IsValid | Should -Be $true;
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.SynchronizationChecks").IsValid | Should -Be $true;
 			
-			
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups").IsValid | Should -Be $true;
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.MainAg").IsValid | Should -Be $true;
-			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.MainAg.Replicas").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.MainAg.ReplicaNodes").IsValid | Should -Be $true;
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.MainAg.Listener").IsValid | Should -Be $true;
 			(Validate-ConfigurationEntry -Key "AvailabilityGroups.N28.Groups.MainAg.Listener.IPs").IsValid | Should -Be $true;
+			
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.MirroringEndpoint.Enabled").IsValid | Should -Be $true;
+			
+			# additional key-tests from re-authoring some of the low-level details ... 
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.Enabled").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.MirroringEndpoint").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.MirroringEndpoint.Enabled").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.Groups").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.SynchronizationChecks.SyncCheckJobs").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.Groups.MainAG").IsValid | Should -Be $true;
+			(Validate-ConfigurationEntry -Key "AvailabilityGroups.MSSQLSERVER.Groups.MainAG.ReplicaNodes").IsValid | Should -Be $true;
 		}
 		
 		It "Converts Implicit Keys" {

@@ -605,7 +605,7 @@ function Process-Surface {
 				}
 			}
 			
-			if ($surface.UsesBuild) {
+			if ($surface.UsesBuild -and (-not($surfaceProcessingResult.AllValidationsMatched()))) {
 				# NOTE: there's no 'state' within a Deploy operation... (e.g., Configure operations use .SetConfigurationState(), validations use .SetValidationState(), but ... there's NO state here.)
 				try {
 					[ScriptBlock]$deployBlock = $surface.Deploy.DeployBlock;

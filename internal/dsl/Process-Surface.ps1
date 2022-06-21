@@ -6,7 +6,14 @@
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
+#	#Get-ConfigurationEntry -Key "AvailabilityGroups.MirroringEndpoint.AllowedOwnerAccounts";w
+#write-host "----------------------------"
+#	Get-FacetTypeByKey -Key "AvailabilityGroups.MirroringEndpoint.AllowedOwnerAccounts";
+#	
 
+
+	#Validate-AGPrerequisites;
+	Validate-AGsCore;
 
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
@@ -21,7 +28,7 @@
 	#Validate-SqlConfiguration;
 	#Validate-ExpectedDirectories;
 	#Validate-ExpectedShares;
-	Validate-SsmsInstallation;
+	#Validate-SsmsInstallation;
 
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
@@ -334,6 +341,7 @@ function Process-Surface {
 		$objectFacets = $surface.GetObjectFacets();
 		if ($objectFacets) {
 			foreach ($objectFacet in $objectFacets) {
+
 				$objects = @($PVConfig.GetObjectInstanceNames($objectFacet.Key));
 				
 				# TODO: implement sort-order stuff... (might need to actually 'move' this logic up into the call to $PVConfig.GetObjects ... as that might make more sense as a place to do the sort by CHILD key stuff.	
@@ -383,44 +391,37 @@ function Process-Surface {
 		$compoundFacets = $surface.GetCompoundFacets();
 		if ($compoundFacets) {
 			foreach ($compoundFacet in $compoundFacets) {
+#Write-Host "compound: $($compoundFacet.Name)  => Key: $($compoundFacet.Key)"
 				$sqlInstances = @(($PVConfig.GetSqlInstanceNames($compoundFacet.Key)));
 				foreach ($sqlInstance in $sqlInstances) {
+#Write-Host "	sqlInstance: $sqlInstance "
 					$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
 					
-					if (Is-InstanceGlobalComplexKey -Key $compoundFacet.Key) {
-						if ($compoundFacet.FacetType -eq "Compound") {
-							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName;
-						}
-						else {
-							$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
-							foreach ($arrayValue in $arrayValues) {
-								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -SubChildName $arrayValue;
-							}
+					$token = Validate-ConfigurationEntry -Key $compoundFacet.Key;
+					if (-not ($token.IsValid)) {
+						throw "Invalid";
+					}
+					$tokenizedKey = $token.TokenizedKey;
+					
+					if ($tokenizedKey -like "*{~ANY~}*") {
+						$objectNames = @($PVConfig.GetObjectInstanceNames($tokenizedKey, $sqlInstance));
+						foreach ($objectName in $objectNames) {
+							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -ObjectName $objectName -SubChildName $objectName;
 						}
 					}
 					else {
-#Write-Host "Compound Key: $($compoundFacet.Key) "
+						# effectively just the same as a new SqlInstanceFacet (i.e., there's no 'complex' object to complicate things... )
 						
-	# call to objects is busted. the compound key above is perfect. 
-	#   but the call into GetObjects is returning SQL Server instances - not objects... 					
-						$objects = @($PVConfig.GetObjects($compoundFacet.Key));
+						$facetType = Get-FacetTypeByKey -Key $token.NormalizedKey;
 						
-						if ("Compound" -eq $compoundFacet.FacetType) {
-							foreach ($objectName in $objects) {
-#		Write-Host "	Object: $objectName"						
-								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $objectName;
+						if ("CompoundArray" -eq $facetType) {
+							$arrayValues = @($PVConfig.GetValue($token.NormalizedKey));
+							foreach ($aValue in $arrayValues) {
+								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -ObjectName $aValue -SubChildName $aValue;
 							}
 						}
 						else {
-							# CompoundArray
-							foreach ($objectName in $objects) {
-								$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
-								foreach ($arrayValue in $arrayValues) {
-									# Hmmm... I THINK this'll work?'
-									$subChildName = "$($objectName)>>$($arrayValue)";
-									$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $subChildName;
-								}
-							}
+							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName;
 						}
 					}
 				}

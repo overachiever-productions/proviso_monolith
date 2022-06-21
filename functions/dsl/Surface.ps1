@@ -450,9 +450,9 @@ function Assert-SqlServerIsInstalled {
 				# TODO: verify that this is working as expected ... i.e., what's it doing for other variable names? i.e., is the string output what I expect it to be? 
 				$codeBlockAsString = '$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
 
-$targetInstancenames = $PVConfig.GetSqlInstanceNames("$SurfaceTarget");
+$targetInstancenames = $PVConfig.GetSqlInstanceNames("{0}");
 if (($null -eq $targetInstancenames) -or ($targetInstancenames.Count -lt 1)) {{
-	throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [$SurfaceTarget] - but none were defined.";
+	throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [{0}] - but none were defined.";
 }}
 
 foreach ($targetInstance in $targetInstancenames) {{
@@ -461,6 +461,8 @@ foreach ($targetInstance in $targetInstancenames) {{
 	}}
 }}
 ';
+				$codeBlockAsString = [string]::Format($codeBlockAsString, $SurfaceTarget);
+				
 				[ScriptBlock]$codeBlock = [ScriptBlock]::Create($codeBlockAsString);
 			}
 			else {
@@ -680,6 +682,7 @@ function Facet {
 				$facetKey = $aspectKey;
 			}
 		}
+#Write-Host "FacetType: $facetType  -> Key: $facetKey"
 	}
 	
 	process {

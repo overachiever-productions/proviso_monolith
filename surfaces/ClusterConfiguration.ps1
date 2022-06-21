@@ -6,10 +6,12 @@
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
+	$PVConfig.GetValue("AvailabilityGroups.MSSQLSERVER.Enabled");
+
+
 	Validate-ClusterConfiguration;
 
 #>
-
 
 Surface ClusterConfiguration -Target "ClusterConfiguration" {
 	Assertions {
@@ -26,10 +28,18 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 			}
 		}
 		
-#		Assert "Is Domain Joined" {
-#			# well... not if/when the TYPE of cluster is a workgroup cluster... 
-# 			# in those cases, probably need to verify that DNS suffixes are in play... 
-#		}
+		# TODO: Look at options to address this... 
+		#		Assert "Cluster Object Name Does NOT Already Exist" {
+		#			# er... well, kind of like checking for whether or not a ServerName ALREADY exists in AD - even though it hasn't yet been 'created'
+		#			# 			i.e., if it's a 'turd' from before... then... need to throw/remove... 
+		#			# 			the rub, of course, is that ...  I need to figure out if the cluster EXISTS (on the current box)
+		#			# 				and, if not, if the CNO exists in AD... 
+		#		}
+		
+		#		Assert "Is Domain Joined" {
+		#			# well... not if/when the TYPE of cluster is a workgroup cluster... 
+		# 			# in those cases, probably need to verify that DNS suffixes are in play... 
+		#		}
 		
 		# TODO: re-asses ... so far... i don't actually NEED these in LAB... 
 		Assert-HasDomainCreds -ForClusterCreation -AssertOnConfigureOnly;
@@ -81,12 +91,29 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 				}
 			}
 			Configure {
+				$clusterType = $PVContext.CurrentConfigKeyValue;
+				$clusterName = $PVConfig.GetValue("ClusterConfiguration.ClusterName");
+				$intialNode = $PVContext.GetSurfaceState("CurrentExpectedClusterNode");
+				$initialNodeClusterIp = $PVContext.GetSurfaceState("CurrentExpectedClusterIp");
+				
 				if ("NONE" -eq $PVContext.GetSurfaceState("ACTUAL_ClusterType")) {
-					$PVContext.WriteLog("Creating new cluster of type x as current cluster configuration is [NONE].", "Debug");
+					$PVContext.WriteLog("Creating new cluster of type [$clusterType] as current cluster configuration is [NONE].", "Important");
 					
-					
-					Write-Host "Would be creating a new cluster at this point... ";
-					
+					switch ($clusterType) {
+						{ $_ -in @("AG", "SCALEOUT-AG") } {
+							
+							New-SingleNodeAgCluster -ClusterName $clusterName -InitialNode $intialNode -InitialNodeClusterIp $initialNodeClusterIp;
+						}
+						"WORGROUP" {
+							throw "WORKGROUP Clusters are not YET supported in Proviso.";
+						}
+						{ $_ -in @("FCI", "MULTINODE-FCI") } {
+							throw "FCIs are not YET supported in Proviso";
+						}
+						default {
+							throw "Invalid Cluster Type defined: [$clusterTYpe].";
+						}
+					}
 				}
 				else {
 					throw "Not Implemented. Changing Cluster Types and/or Tearing down Clusters is not YET supported.";
@@ -132,7 +159,8 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 					$node = Get-ClusterNode -Cluster $clusterName -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Where-Object -Property Name -eq $targetNode;
 					
 					if ($node) {
-						return ($node).Name; 
+						$PVContext.SetSurfaceState("CurrentExpectedClusterNode", ($node).Name);
+						return ($node).Name;
 					}
 				}
 				catch {
@@ -174,6 +202,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 				
 				$ips = Get-ClusterIpAddresses -ClusterName $clusterName;
 				if ($ips -contains $expectedIP) {
+					$PVContext.SetSurfaceState("CurrentExpectedClusterIp", $expectedIP);
 					return $expectedIP;
 				}
 				
@@ -216,7 +245,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 				}
 				
 				$witnessType = Get-ClusterWitnessTypeFromConfig;
-								
+				
 				$PVContext.SetSurfaceState("EXPECTED_ClusterWitnessType", $witnessType);
 				return $witnessType
 			}
@@ -289,7 +318,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 						return "<NOT_IMPLEMENTED>";
 					}
 					"QOURUM" {
-						return "<NOT_IMPLEMENTED>";  # not sure there's anything to return? (maybe the # of nodes? )
+						return "<NOT_IMPLEMENTED>"; # not sure there's anything to return? (maybe the # of nodes? )
 					}
 					default {
 						return "<UNKNONWN>";

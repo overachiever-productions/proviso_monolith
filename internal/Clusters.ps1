@@ -46,6 +46,32 @@ filter Disable-SelfRemotingToNativePosh {
 	}
 }
 
+filter New-SingleNodeAgCluster {
+	# TODO: potentially makes sense to try via current creds? then... try via DomainCreds? IF it makes sense to use domain creds, see how I did it in _OLD proviso... 
+	param (
+		[Parameter(Mandatory)]
+		[string]$ClusterName,
+		[Parameter(Mandatory)]
+		[string]$InitialNode,
+		[Parameter(Mandatory)]
+		[string]$InitialNodeClusterIp
+	);
+	
+	try {
+		New-Cluster -Name $ClusterName -Node $InitialNode -StaticAddress $InitialNodeClusterIp -NoStorage -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Out-Null;
+		$cluster = Get-Cluster -Name $ClusterName;
+	}
+	catch {
+		# TODO: evaluate error types/etc. and... if it makes sense to attempt creation of cluster via domain creds, then: 
+		# 		a. flag that via $PVContext.WriteLog, and b) use the domain creds (will have to add them as a param), and c) use the code I was using in Proviso_OLD - it's fully functional.
+		throw "Fatal exception during cluster creation: $_ `r`t$($_.ScriptStackTrace)";
+	}
+	
+	if (-not ($cluster)) {
+		throw "Cluster Creation Failed. Expected Cluster [$ClusterName] to exist but it does NOT.";
+	}
+}
+
 filter Get-ClusterIpAddresses {
 	param (
 		[string]$ClusterName	
@@ -184,5 +210,4 @@ filter Revoke-SqlServerAccessToWsfcCluster {
 #		}
 #	}
 }
-
 #endregion

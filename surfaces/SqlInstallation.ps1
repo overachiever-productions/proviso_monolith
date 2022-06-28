@@ -249,6 +249,7 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 		#		}		
 		
 		Build {
+			
 			$sqlServerInstance = $PVContext.CurrentSqlInstance;
 			$matched = $PVContext.Matched;
 			
@@ -268,7 +269,7 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 		
 		Deploy {
 			$currentInstances = $PVContext.GetSurfaceState("InstallationInstances");
-			
+				
 			foreach ($instanceKey in $currentInstances) {
 				$version = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.Setup.Version");
 				$sqlExePathKey = $PVConfig.GetValue("SqlServerInstallation.$instanceKey.SqlExePath");

@@ -33,7 +33,7 @@ Surface AGsCore -Target "AvailabilityGroups" {
 			}
 		}
 		
-		Facet "AlwaysOneXeHealthEnabled" -Key "AlwaysOnXeHealthEnabled" -ExpectKeyValue {
+		Facet "AlwaysOnXeHealthEnabled" -Key "AlwaysOnXeHealthEnabled" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				

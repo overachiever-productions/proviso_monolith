@@ -445,7 +445,6 @@ function Assert-SqlServerIsInstalled {
 			
 			if ($SurfaceTarget) {
 				
-				
 				# This 'has' to be dynamically created - to get around the need to pass $SurfaceTarget around inside as a 'string'... 
 				# TODO: verify that this is working as expected ... i.e., what's it doing for other variable names? i.e., is the string output what I expect it to be? 
 				$codeBlockAsString = '$installedInstanceNames = Get-ExistingSqlServerInstanceNames;

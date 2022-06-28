@@ -165,7 +165,7 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 					$PVContext.WriteLog("WARNING: Extended Events Session [$sessionName] has been DISABLED.", "Important");
 				}
 				
-				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER EVENT SESSION [$sessionName] ON SERVER STATE = $desiredStateString); ";
+				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "ALTER EVENT SESSION [$sessionName] ON SERVER STATE = $desiredStateString; ";
 			}
 		}
 		

@@ -362,7 +362,7 @@
 			Sessions = @{
 				"{~ANY~}" = @{
 					SessionName	    = "{~PARENT~}"
-					Enabled		    = $false
+					Enabled		    = $true
 					
 					DefinitionFile  = "{~DYNAMIC~}" # defaults, by convention, to [SessionName].sql - but CAN, obviously, be overridden
 					StartWithSystem = $false

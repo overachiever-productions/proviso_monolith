@@ -451,12 +451,13 @@ function Process-Surface {
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		
 		foreach ($facet in $facets) {
+			$PVContext.WriteLog("Starting Validation of Facet [$($facet.Name)].", "Debug");
 			$validationResult = New-Object Proviso.Processing.ValidationResult($facet, $processingGuid); 
 			$validations += $validationResult;
 			
 			[ScriptBlock]$expectedBlock = $facet.Expect;
 			if ($null -eq $expectedBlock) {
-				throw "Proviso Framework Error. Expect block should be loaded - but is NOT.";	
+				throw "Proviso Framework Error. Expect block for Facet [$($facet.Name)] is NOT set.";	
 			}
 			
 			$expectedResult = $null;
@@ -552,6 +553,7 @@ function Process-Surface {
 		# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
+		$PVContext.WriteLog("Count of NON-matched Validations for Current Surface: $($surfaceProcessingResult.NonMatchedValidationsCount())", "Debug");
 		if ("Configure" -eq $Operation) {
 			
 			$surfaceProcessingResult.StartConfigurations();
@@ -583,6 +585,7 @@ function Process-Surface {
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);
+					$PVContext.WriteLog("Starting Configuration for Facet $($validation.Name)", "Debug");
 					
 					try {
 						[ScriptBlock]$configureBlock = $null;
@@ -599,13 +602,17 @@ function Process-Surface {
 						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
 						$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 						$configurationResult.AddConfigurationError($configurationError);
+						
+						$PVContext.WriteLog("Configuration Exception: $_  `r$($_.ScriptStackTrace) ", "Debug");
 					}
 					
 					$PVContext.ClearSurfaceState();
 				}
 			}
 			
-			if ($surface.UsesBuild -and (-not($surfaceProcessingResult.AllValidationsMatched()))) {
+			if ($surface.UsesBuild -and ($surfaceProcessingResult.NonMatchedValidationsCount()) -gt 0) {
+				$PVContext.WriteLog("Starting BUILD process for Surface: $($surface.Name)", "Debug");
+				
 				# NOTE: there's no 'state' within a Deploy operation... (e.g., Configure operations use .SetConfigurationState(), validations use .SetValidationState(), but ... there's NO state here.)
 				try {
 					[ScriptBlock]$deployBlock = $surface.Deploy.DeployBlock;
@@ -617,9 +624,12 @@ function Process-Surface {
 					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
 					$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 					$configurationResult.AddConfigurationError($configurationError);
+					
+					$PVContext.WriteLog("Exception in BUILD: ", "Debug");
 				}
 			}
 			
+			$PVContext.WriteLog("Starting Re-Validation/Re-Compare Process.", "Debug");
 			# Now that we're done running configuration operations, time to execute Re-Compare operations:
 			$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};
 			foreach ($configurationResult in $targets) {

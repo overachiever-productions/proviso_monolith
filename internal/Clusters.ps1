@@ -52,13 +52,13 @@ filter New-SingleNodeAgCluster {
 		[Parameter(Mandatory)]
 		[string]$ClusterName,
 		[Parameter(Mandatory)]
-		[string]$InitialNode,
-		[Parameter(Mandatory)]
 		[string]$InitialNodeClusterIp
 	);
 	
+	$initialNode = [System.Net.Dns]::GetHostName();
+	
 	try {
-		New-Cluster -Name $ClusterName -Node $InitialNode -StaticAddress $InitialNodeClusterIp -NoStorage -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Out-Null;
+		New-Cluster -Name $ClusterName -Node $initialNode -StaticAddress $InitialNodeClusterIp -NoStorage -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Out-Null;
 		$cluster = Get-Cluster -Name $ClusterName;
 	}
 	catch {
@@ -107,7 +107,6 @@ filter Get-ClusterWitnessInfo {
 			}
 			{ $_ -like "File Share Witnes*" } {
 				$clusterInfo.Add("Type", "FILESHARE");
-				
 				
 				[ScriptBlock]$code = {
 					param ([string]$ClusterName);
@@ -173,41 +172,41 @@ filter Grant-CnoPermissionsToCreateObjects {
 	
 }
 
-filter Grant-SqlServerAccessToWsfcCluster {
-	# Grant SQL Server the Ability to Leverage underlying WSFC: 
-#	# Only enable IF not already enabled:
-#	$output = Invoke-SqlCmd -Query "SELECT SERVERPROPERTY('IsHadrEnabled') [result];";
+#filter Grant-SqlServerAccessToWsfcCluster {
+#	# Grant SQL Server the Ability to Leverage underlying WSFC: 
+##	# Only enable IF not already enabled:
+##	$output = Invoke-SqlCmd -Query "SELECT SERVERPROPERTY('IsHadrEnabled') [result];";
+##	
+##	if ($output.result -ne 1) {
+##		$machineName = $env:COMPUTERNAME;
+##		
+##		Enable-SqlAlwaysOn -Path SQLSERVER:\SQL\$machineName\DEFAULT -Force;
+##		
+##		#Once that's done, we'll almost certainly have to restart the SQL Server Agent cuz, again, SqlPS sucks... 
+##		$agentStatus = (Get-Service SqlServerAgent).Status;
+##		
+##		if ($agentStatus -ne 'Running') {
+##			Start-Service SqlServerAgent;
+##		}
+##	}
+#}
+#
+#filter Revoke-SqlServerAccessToWsfcCluster {
 #	
-#	if ($output.result -ne 1) {
-#		$machineName = $env:COMPUTERNAME;
-#		
-#		Enable-SqlAlwaysOn -Path SQLSERVER:\SQL\$machineName\DEFAULT -Force;
-#		
-#		#Once that's done, we'll almost certainly have to restart the SQL Server Agent cuz, again, SqlPS sucks... 
-#		$agentStatus = (Get-Service SqlServerAgent).Status;
-#		
-#		if ($agentStatus -ne 'Running') {
-#			Start-Service SqlServerAgent;
-#		}
-#	}
-}
-
-filter Revoke-SqlServerAccessToWsfcCluster {
-	
-#	# Only disable IF enabled:
-#	$output = Invoke-SqlCmd -Query "SELECT SERVERPROPERTY('IsHadrEnabled') [result];";
-#	
-#	if ($output.result -eq 1) {
-#		$machineName = $env:COMPUTERNAME;
-#		
-#		Disable-SqlAlwaysOn -Path SQLSERVER:\SQL\$machineName\DEFAULT -Force;
-#		
-#		#Once that's done, we'll almost certainly have to restart the SQL Server Agent cuz, again, SqlPS sucks... 
-#		$agentStatus = (Get-Service SqlServerAgent).Status;
-#		
-#		if ($agentStatus -ne 'Running') {
-#			Start-Service SqlServerAgent;
-#		}
-#	}
-}
+##	# Only disable IF enabled:
+##	$output = Invoke-SqlCmd -Query "SELECT SERVERPROPERTY('IsHadrEnabled') [result];";
+##	
+##	if ($output.result -eq 1) {
+##		$machineName = $env:COMPUTERNAME;
+##		
+##		Disable-SqlAlwaysOn -Path SQLSERVER:\SQL\$machineName\DEFAULT -Force;
+##		
+##		#Once that's done, we'll almost certainly have to restart the SQL Server Agent cuz, again, SqlPS sucks... 
+##		$agentStatus = (Get-Service SqlServerAgent).Status;
+##		
+##		if ($agentStatus -ne 'Running') {
+##			Start-Service SqlServerAgent;
+##		}
+##	}
+#}
 #endregion

@@ -813,7 +813,7 @@ filter Get-FacetTypeByKey {
 		"ClusterConfiguration" {
 			$output = "Simple";
 			
-			if ($parts[1] -in @("ClusterNodes", "ClusterIPs", "ClusterDisks")) {
+			if ($parts[2] -in @("ClusterNodes", "ClusterIPs", "ClusterDisks")) {
 				$output = "SimpleArray"
 			}
 		}
@@ -974,87 +974,91 @@ filter Get-ObjectInstanceNames {
 	return $objects;
 }
 
-#region Recovered Older Code
-#filter Get-ClusterWitnessTypeFromConfig {
-#	# Simple 'helper' for DRY purposes... 
-#	# May, EVENTUALLY, need to add a param here for the SQL Server INSTANCE... 
-#	
-#	$share = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-#	$disk = $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
-#	$cloud = $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
-#	$quorum = $PVConfig.GetValue("ClusterConfiguration.Witness.Quorum");
-#	
-#	$witnessType = "NONE";
-#	if ($share) {
-#		$witnessType = "FILESHARE";
-#	}
-#	if ($disk) {
-#		if ("NONE" -ne $witnessType) {
-#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-#		}
-#		$witnessType = "DISK";
-#	}
-#	if ($cloud) {
-#		if ("NONE" -ne $witnessType) {
-#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-#		}
-#		$witnessType = "CLOUD";
-#	}
-#	if ($quorum) {
-#		if ("NONE" -ne $witnessType) {
-#			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
-#		}
-#		$witnessType = "QUORUM";
-#	}
-#	
-#	return $witnessType;
-#}
-#
-#filter Get-ClusterWitnessDetailFromConfig {
-#	param (
-#		[string]$ClusterType = $null
-#	);
-#	
-#	if ([string]::IsNullOrEmpty($ClusterType)) {
-#		$ClusterType = Get-ClusterWitnessTypeFromConfig;
-#	}
-#	
-#	switch ($ClusterType) {
-#		"NONE" {
-#			return "";
-#		}
-#		"FILESHARE" {
-#			return $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-#		}
-#		"DISK" {
-#			return $PVConfig.GetValue("ClusterConfiguration.Witness.DiskWitness");
-#		}
-#		"CLOUD" {
-#			return $PVConfig.GetValue("ClusterConfiguration.Witness.AzureCloudWitness");
-#		}
-#		"QUORUM" {
-#			return $true;
-#		}
-#		default {
-#			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
-#		}
-#	}
-#}
-#
-#filter Get-FileShareWitnessPathFromConfig {
-#	[string]$expectedPath = $PVConfig.GetValue("ClusterConfiguration.Witness.FileShareWitness");
-#	if ([string]::IsNullOrEmpty($expectedPath)) {
-#		throw "Invalid Operation. Can not set file share witness path to EMPTY value.";
-#	}
-#	
-#	# This is fine: "\\somserver\witnesses" - whereas this will FAIL EVERY TIME: "\\somserver\witnesses\"
-#	if ($expectedPath.EndsWith('\')) {
-#		$expectedPath = $expectedPath.Substring(0, ($expectedPath.Length - 1));
-#	}
-#	
-#	return $expectedPath;
-#}
-#endregion
+filter Get-ClusterWitnessTypeFromConfig {
+	param (
+		[string]$SqlInstanceName = "MSSQLSERVER"
+	);
+	
+	$share = $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.FileShareWitness");
+	$disk = $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.DiskWitness");
+	$cloud = $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.AzureCloudWitness");
+	$quorum = $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.Quorum");
+	
+	$witnessType = "NONE";
+	if ($share) {
+		$witnessType = "FILESHARE";
+	}
+	if ($disk) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "DISK";
+	}
+	if ($cloud) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "CLOUD";
+	}
+	if ($quorum) {
+		if ("NONE" -ne $witnessType) {
+			throw "Invalid Configuration. Clusters may only have ONE configured/defined Witness type. Comment-out or remove all but ONE witness definition.";
+		}
+		$witnessType = "QUORUM";
+	}
+	
+	return $witnessType;
+}
+
+filter Get-ClusterWitnessDetailFromConfig {
+	param (
+		[string]$ClusterType = $null,
+		[string]$SqlInstanceName = "MSSQLSERVER"
+	);
+	
+	if ([string]::IsNullOrEmpty($ClusterType)) {
+		$ClusterType = Get-ClusterWitnessTypeFromConfig -SqlInstanceName $SqlInstanceName;
+	}
+	
+	switch ($ClusterType) {
+		"NONE" {
+			return "";
+		}
+		"FILESHARE" {
+			return $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.FileShareWitness");
+		}
+		"DISK" {
+			return $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.DiskWitness");
+		}
+		"CLOUD" {
+			return $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.AzureCloudWitness");
+		}
+		"QUORUM" {
+			return $true;
+		}
+		default {
+			throw "Proviso Framework Error. Invalid ClusterType defined: [$ClusterType].";
+		}
+	}
+}
+
+filter Get-FileShareWitnessPathFromConfig {
+	param (
+		[string]$SqlInstanceName = "MSSQLSERVER"
+	);
+	
+	[string]$expectedPath = $PVConfig.GetValue("ClusterConfiguration.$SqlInstanceName.Witness.FileShareWitness");
+	if ([string]::IsNullOrEmpty($expectedPath)) {
+		throw "Invalid Operation. Can not set file share witness path to EMPTY value.";
+	}
+	
+	# This is fine: "\\somserver\witnesses" - whereas this will FAIL EVERY TIME: "\\somserver\witnesses\"
+	if ($expectedPath.EndsWith('\')) {
+		$expectedPath = $expectedPath.Substring(0, ($expectedPath.Length - 1));
+	}
+	
+	return $expectedPath;
+}
 
 filter Set-ConfigTarget {
 	param (

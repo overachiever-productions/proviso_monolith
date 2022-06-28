@@ -107,3 +107,14 @@ filter ConvertTo-SubnetMaskFromLength {
 	
 	$placeHolder.IPAddressToString;
 }
+
+filter Get-ProvisoDefinedNetworkAddresses {
+	$output = @();
+	
+	$definedAdapters = $PVConfig.GetObjects("Host.NetworkDefinitions");
+	foreach ($definedAdapter in $definedAdapters) {
+		[string]$definedIp = $PVConfig.GetValue("Host.NetworkDefinitions.$definedAdapter.IpAddress");
+		
+		$output += $definedIp;
+	}
+}

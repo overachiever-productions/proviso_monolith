@@ -53,7 +53,8 @@ filter New-DataCollectorSetFromConfigFile {
 	Invoke-Expression "logman.exe import `"$Name`" -xml `"$ConfigFilePath`"" | Out-Null;
 	
 	# force a wait before attempting start: 
-	Start-Sleep -Milliseconds 1800 | Invoke-Expression "logman.exe start `"$Name`"" | Out-Null;
+	Start-Sleep -Milliseconds 6800;
+	Invoke-Expression "logman.exe start `"$Name`"" | Out-Null;
 }
 
 filter Enable-DataCollectorSetForAutoStart {

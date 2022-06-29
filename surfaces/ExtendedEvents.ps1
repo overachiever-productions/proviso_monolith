@@ -70,22 +70,16 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 	}
 	
 	Aspect -IterateForScope "Sessions" {
-	# TODO: 
-		#  HMMMM. Look at how I'm tackling this with SqlInstallation.InstanceExists - i.e., ExpectIteratorKey... (That might be a better option - though I don't want to expect a 'raw' value... )
-		# 		yeah... should TOTALLY be -ExpectIteratorKey here... 
-		# 		OTHERWISE (original comments below):
-		# 	Using -Key "Enabled" _here_ is a HACK. I'm not ACTUALLY even using the key - just 'forcing' it to be a placeholder. 
-		# 		Instead, I need to add an option for -NoChildKey or -SkipChildKey (or whatever) that allows for these kinds of 'Exists' checks. 
-		# 		as in, they should allow for the creation of the key UP TO the 'current' point (which is different than -NoKey - which ignores keys ENTIRELY)
-		Facet "Exists" -Key "Enabled" -Expect $true {
+		Facet "Exists" -Key "SessionName" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
 					return "";
 				}
 				
-				$sessionKey = $PVContext.CurrentObjectName;				
-				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");				
+#				$sessionKey = $PVContext.CurrentObjectName;				
+#				$sessionName = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.SessionName");			
+				$sessionName = $PVContext.CurrentConfigKeyValue;
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT [name] FROM sys.[server_event_sessions] WHERE [name] = N'$sessionName'; ").name;
 				if ($exists) {
 					return $true;
@@ -115,6 +109,11 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				$fileSize = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFileSizeMb");
 				$fileCount = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFileCount");
 				$xelFilePath = $PVConfig.GetValue("ExtendedEvents.$instanceName.Sessions.$sessionKey.XelFilePath");
+				$defaultXelFilePath = $PVConfig.GetValue("ExtendedEvents.$instanceName.DefaultXelDirectory");
+				
+				if ([string]::IsNullOrEmpty($xelFilePath)) {
+					$xelFilePath = $defaultXelFilePath;
+				}
 				
 				$startupState = "OFF";
 				$isEnabled = "OFF";

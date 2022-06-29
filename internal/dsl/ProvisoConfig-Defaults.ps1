@@ -371,7 +371,7 @@
 					# 'advanced' defaults: 
 					XelFileSizeMb   = 100
 					XelFileCount    = 6
-					XelFilePath	    = "D:\Traces"
+					XelFilePath	    = ""
 				}
 			}
 		}

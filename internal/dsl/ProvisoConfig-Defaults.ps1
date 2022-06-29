@@ -345,6 +345,7 @@
 	
 	DataCollectorSets = @{
 		"{~ANY~}" = @{
+			Name 				  = "{~DYNAMIC~}"
 			Enabled			      = $false
 			XmlDefinition		  = "{~DYNAMIC~}"
 			EnableStartWithOS	  = $false

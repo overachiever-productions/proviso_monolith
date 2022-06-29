@@ -51,10 +51,35 @@ filter New-DataCollectorSetFromConfigFile {
 	}
 	
 	Invoke-Expression "logman.exe import `"$Name`" -xml `"$ConfigFilePath`"" | Out-Null;
+}
+
+filter Start-DataCollector {
+	param (
+		[string]$Name
+	);
 	
-	# force a wait before attempting start: 
-	Start-Sleep -Milliseconds 6800;
-	Invoke-Expression "logman.exe start `"$Name`"" | Out-Null;
+	$status = Get-DataCollectorSetStatus -Name $Name;
+	if ("Running" -ne $status) {
+		$results = Invoke-Expression "logman.exe start `"$Name`"";
+		if ("The command completed successfully." -ne $results) {
+			throw "Error STARTING Data Collector Set [$Name]: $results";
+		}
+	}
+}
+
+filter Stop-DataCollector {
+	param (
+		[string]$Name,
+		[string]$ConfigFilePath
+	);
+	
+	$status = Get-DataCollectorSetStatus -Name $Name;
+	if ("Stopped" -ne $status) {
+		$results = Invoke-Expression "logman.exe stop `"$Name`"";
+		if ("The command completed successfully." -ne $results) {
+			throw "Error STOPPING Data Collector Set [$Name]: $results";
+		}
+	}
 }
 
 filter Enable-DataCollectorSetForAutoStart {

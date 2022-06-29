@@ -6,24 +6,19 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 	}
 	
 	Aspect -IterateScope {
-		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
+		
+		Facet "Exists" -Key "Name" -ExpectKeyValue {
 			Test {
-				$collectorSetName = $PVContext.CurrentObjectName;
-				
-				$status = Get-DataCollectorSetStatus -Name $collectorSetName;
-				if ($status -like "<*") {
-					return $status;
+				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
+				$status = Get-DataCollectorSetStatus -Name ($PVContext.CurrentObjectName);
+				if ("<EMPTY>" -eq $status) {
+					return "<EMPTY>";
 				}
 				
-				if ($status -eq "Running") {
-					return $collectorSetName;
-				}
-				
-				if ($status -eq "Stopped") {
-					return "<STOPPED>";
-				}
+				return $PVContext.CurrentObjectName;
 			}
 			Configure {
+				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
 				$collectorSetName = $PVContext.CurrentObjectName;
 				$expected = $PVContext.Expected;
 				
@@ -31,14 +26,15 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 					
 					# TODO: need to allow for 'overrides' of the xml config file - i.e., the code below just assumes/accepts that the DataCollectorSet def will be the <keyName>.xml
 					# 		when... that's the CONVENTION, but there's a "DataCollectorSets.<collectorName>.XmlDefinition" key that CAN be used to overwrite/explicitly define a path... 
-					
 					$xmlDefinition = $PVResources.GetAsset($collectorSetName, "xml", $false, $true);
 					if (-not (Test-Path $xmlDefinition)) {
 						throw "Data Collector Set Definition file for [$collectorSetName] - not found at path [$xmlDefinition].";
 					}
 					
-					Copy-Item $xmlDefinition -Destination "C:\PerfLogs" -Force; # note that we DO copy the definition LOCAL, but the SOURCE is the remote/foreign file... 
-					New-DataCollectorSetFromConfigFile -Name $collectorSetName -ConfigFilePath $xmlDefinition; 
+					Copy-Item $xmlDefinition -Destination "C:\PerfLogs" -Force;
+					
+					$localDefinitionPath = Join-Path "C:\PerfLogs" -ChildPath (Split-Path -Path $xmlDefinition -Leaf);
+					New-DataCollectorSetFromConfigFile -Name $collectorSetName -ConfigFilePath $localDefinitionPath;
 				}
 				else {
 					$PVContext.WriteLog("Config setting for [DataCollectorSets.$collectorSetName.Enabled] is set to `$false - but a Data Collector Set with the name of [$collectorSetName] already exists. Proviso will NOT drop this Data Collector Set. Please make changes manually.", "Critical");
@@ -46,14 +42,47 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 			}
 		}
 		
+		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
+			Test {
+				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
+				$status = Get-DataCollectorSetStatus -Name ($PVContext.CurrentObjectName);
+				
+				if ($status -like "<*") {
+					return "<EMPTY>";  # emtpy... 
+				}
+				
+				if ($status -eq "Running") {
+					return $true;
+				}
+				
+				if ($status -eq "Stopped") {
+					return $false;
+				}
+			}
+			Configure {
+				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
+				$collectorSetName = $PVContext.CurrentObjectName;
+				$expected = $PVContext.Expected;
+				
+				# NOTE: if we're 'in here' it's because ACTUAL <> expected - so, set expected:
+				if ($expected) {
+					Start-DataCollector -Name $collectorSetName;
+				}
+				else {
+					Stop-DataCollector -Name $collectorSetName;
+				}
+			}
+		}
+		
 		Facet "EnableStartWithOS" -Key "EnableStartWithOS" -ExpectKeyValue {
 			Test {
+				# TODO: this isn't the name, it's the key... 
 				$collectorSetName = $PVContext.CurrentObjectName;
 				
-				# Since TaskScheduler tasks SUCK so much AND since Posh sucks in terms of support, it's EASIER to simple extract the XML for tasks and 'go that route'... 
+				# Since TaskScheduler tasks SUCK so much AND since Posh sucks in terms of support, it's EASIER to simply extract the XML for tasks and 'go that route'... 
 				$path = "C:\Windows\System32\Tasks\Microsoft\Windows\PLA\$collectorSetName";
 				if (-not (Test-Path $path)) {
-					return $false;
+					return "<EMPTY>";
 				}
 				
 				$xmlTask = New-Object System.Xml.XmlDocument;
@@ -65,7 +94,10 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 					$command = ($xmlTask).Task.Actions.Exec.Command;
 					$arguments = ($xmlTask).Task.Actions.Exec.Arguments;
 					
-					if (($command -eq "C:\windows\system32\rundll32.exe") -and ($arguments -eq 'C:\windows\system32\pla.dll,PlaHost "Consolidated" "$(Arg0)"')) {
+					# TODO: potentially have to check/validate this info AGAINST the current OS? 
+					$argValue = [string]::Format('C:\windows\system32\pla.dll,PlaHost "{0}" "$(Arg0)"', $collectorSetName);
+					
+					if (("C:\windows\system32\rundll32.exe" -eq $command) -and ($argValue -eq $arguments)) {
 						return $true;
 					}
 				}
@@ -82,12 +114,13 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 		
 		Facet "RetentionDays" -Key "DaysWorthOfLogsToKeep" -ExpectKeyValue {
 			Test {
+				# TODO: this isn't the name, it's the key... 
 				$collectorSetName = $PVContext.CurrentObjectName;
 								
 				# Ditto on scheduled tasks sucking - i.e., using xml instead: 
 				$path = "C:\Windows\System32\Tasks\$collectorSetName - Cleanup Older Files";
 				if (-not (Test-Path $path)) {
-					return $false;
+					return "<EMPTY>";
 				}
 				
 				$xmlTask = New-Object System.Xml.XmlDocument;

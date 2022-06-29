@@ -550,6 +550,14 @@ Describe "Get-KeyValue Tests" {
 			
 			$PVConfig.GetValue("SqlServerInstallation.MSSQLSERVER.SqlServerDefaultDirectories.SqlLogsPath") | Should -Be "X:\TestDirectory";
 		}
+		
+		It "Returns CollectorSet Parent for Dynamic-Name-Default" {
+			Set-ConfigTarget -ConfigData (Fake-DataCollectorSetsConfigData) -Strict:$false;
+			
+			
+			$PVConfig.GetValue("DataCollectorSets.Consolidated.Name") | Should -Be "Consolidated";
+			
+		}
 	}
 	
 	#Context "Dynamic-XXX Defaults xxxx" {

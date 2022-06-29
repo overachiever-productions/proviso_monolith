@@ -720,16 +720,21 @@ filter Process-SpecializedProvisoDefault {
 				{ $_ -like "Admindb*TimeZoneForUtcOffset" } {
 					throw "Proviso Framework Error. TimeZone-Offsets have not YET been made dynmaic.";
 				}
-				{ $_ -like "DataCollectorSets*XmlDefinition" }  {
-					$match = [regex]::Matches($NormalizedKey, 'SDataCollectorSets.(?<instanceName>[^\.]+).(?<setName>[^\.]+).XmlDefinition');
+				{ $_ -like "DataCollectorSets*" }  {
+					$match = [regex]::Matches($NormalizedKey, 'DataCollectorSets.(?<setName>[^\.]+).[Name|XmlDefinition]');
 					if ($match) {
 						$collectorSetName = $match[0].Groups['setName'].Value;
 						
-						return "$collectorSetName.xml";
+						if ($NormalizedKey -like "*.Name") {
+							return "$collectorSetName";
+						}
+						
+						if ($NormalizedKey -like "*.XmlDefinition") {
+							return "$collectorSetName.xml";
+						}
 					}
-					else {
-						throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$NormalizedKey]."
-					}
+
+					throw "Proviso Framework Error. Unable to determine default value of XmlDefinition for Data Collector Set for Key: [$NormalizedKey]."
 				}
 				{ $_ -like "ExtendedEvents*DefinitionFile" } {
 					# MKC: This DYNAMIC functionality might end up being really Stupid(TM). 

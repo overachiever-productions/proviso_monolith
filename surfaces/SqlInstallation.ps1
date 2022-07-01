@@ -28,7 +28,8 @@ Surface SqlInstallation -Target "SqlServerInstallation" {
 				foreach ($key in $keyPrefixes) {
 					$accountName = $PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Name");
 					if ($accountName -notlike "NT SERVICE\*") {
-						$accountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Password"));
+						#$accountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Password"));
+						$accountPassword = $PVConfig.GetValue("SqlServerInstallation.$($instance).ServiceAccounts.$($key)Password");
 						
 						if (-not (Validate-WindowsCredentials -User $accountName -Password $accountPassword)) {
 							$FailureMessage = "UserName + Password for [$accountName] Failed Authentication Test.";

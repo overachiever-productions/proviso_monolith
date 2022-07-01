@@ -445,15 +445,13 @@ function Install-SqlServer {
 		
 		if ($Features -like '*FullText*') {
 			if ($ServiceAccounts["FullTextServiceAccount"] -notlike "NT SERVICE\*") {
-				# as above, CRITICAL to escape/replace problematic chars:
 				$FullTextServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["FullTextServicePassword"]);
 				$arguments += "/FTSVCPASSWORD='$FullTextServiceAccountPassword' ";
 			}
 		}
 		
 		if ($Settings["SQLAuthEnabled"]) {
-			# as above, CRITICAL to escape/replace problematic chars:
-			[string]$SaPassword = $Settings["SaPassword"];
+			[string]$SaPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($Settings["SaPassword"]);
 			if (([string]::IsNullOrEmpty($SaPassword)) -or ($SaPassword.Length -lt 9)) {
 				throw "Sa Password specified is empty or too short (it NEEDS to be 9 or more chars in length.";
 			}
@@ -468,6 +466,9 @@ function Install-SqlServer {
 		foreach ($arg in $arguments) {
 			$installCommand += $arg;
 		}
+		
+		# TODO: escape/remove the passwords... (especially SA) - otherwise, this LEAKS security info... 
+		#$PVContext.WriteLog("Installation Commands: $installCommand", "Debug");
 		
 		$outcome = Invoke-Expression $installCommand;
 		

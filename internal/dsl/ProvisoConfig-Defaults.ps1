@@ -206,8 +206,8 @@
 				SmtpPortNumber			    = "{~DEFAULT_PROHIBITED~}"
 				SmtpRequiresSSL			    = $true
 				SmtpAuthType			    = "{~DEFAULT_PROHIBITED~}"
-				SmptUserName			    = "{~DEFAULT_PROHIBITED~}"
-				SmtpPassword			    = "{~DEFAULT_PROHIBITED~}"
+				SmptUserName			    = "{~EMPTY~}"
+				SmtpPassword			    = "{~EMPTY~}"
 				SendTestEmailUponCompletion = $true
 			}
 			

@@ -6,14 +6,7 @@
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
-#	#Get-ConfigurationEntry -Key "AvailabilityGroups.MirroringEndpoint.AllowedOwnerAccounts";w
-#write-host "----------------------------"
-#	Get-FacetTypeByKey -Key "AvailabilityGroups.MirroringEndpoint.AllowedOwnerAccounts";
-#	
-
-
-	#Validate-AGPrerequisites;
-	Validate-AGsCore;
+	Validate-WindowsPreferences;
 
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
@@ -315,14 +308,14 @@ function Process-Surface {
 		
 		$simpleFacets = $surface.GetSimpleFacets();
 		foreach ($simpleFacet in $simpleFacets) {
+			$simpleFacet.CurrentKey = $simpleFacet.Key;
+			$simpleFacet.CurrentKeyValue = $PVConfig.GetValue($simpleFacet.Key);
+			
 			if ($simpleFacet.ExpectsKeyValue) {
 				
 				$script = "return `$PVConfig.GetValue(`"$($simpleFacet.Key)`");";
 				$expectedBlock = [ScriptBlock]::Create($script);
 				$simpleFacet.SetExpect($expectedBlock);
-				
-				$simpleFacet.CurrentKey = $simpleFacet.Key;
-				$simpleFacet.CurrentKeyValue = $PVConfig.GetValue($simpleFacet.Key);
 			}
 			
 			$facets += $simpleFacet;

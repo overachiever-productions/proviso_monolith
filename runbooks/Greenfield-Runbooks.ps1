@@ -1,6 +1,8 @@
 ﻿Set-StrictMode -Version 1.0;
 
-runbook ServerInitialization -RequiresDomainCredsConfigureOnly -SummarizeProblemsOnly -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 30Seconds {
+# TODO: Hmmm. this won't ALWAYS require domain creds ... (i.e., if I'm spinning up boxes for a workgroup... duh)
+# 		so... require only if there's a change... 
+runbook ServerInitialization -RequiresDomainCredsConfigureOnly -SummarizeProblemsOnly -DeferRebootUntilRunbookEnd -WaitBeforeRebootFor 20Seconds {
 	Run-NetworkAdapters;
 	Run-ServerName;
 }

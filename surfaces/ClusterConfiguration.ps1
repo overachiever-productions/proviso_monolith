@@ -46,6 +46,11 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 		#		}
 		
 		# TODO: re-asses ... so far... i don't actually NEED these in LAB... 
+		# Yeah, needing domain creds - or not - totally depends upon the security setup of the environment/domain. 
+		# 		I THINK the best option here might be: attempt to create WITHOUT domain creds
+		# 			UNLESS: domain creds were supplied. 
+		# 			and, when attempting to create without domain creds, look at options for trapping errors that would be indicative of 
+		# 				problems with permissions and such - and try to surface those as much as possible. 
 		#Assert-HasDomainCreds -ForClusterCreation -AssertOnConfigureOnly;
 	}
 	

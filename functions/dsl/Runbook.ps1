@@ -42,7 +42,7 @@ function Runbook {
 		[ScriptBlock]$RunbookBlock,
 		[switch]$RequiresDomainCredentials = $false,
 		[switch]$RequiresDomainCredsConfigureOnly = $false,
-		[ValidateSet("5Seconds", "10Seconds", "30Seconds", "60Seconds", "90Seconds")]
+		[ValidateSet("5Seconds", "10Seconds", "20Seconds", "30Seconds", "60Seconds", "90Seconds")]
 		[string]$WaitBeforeRebootFor,
 		[switch]$DeferRebootUntilRunbookEnd = $false,
 		[switch]$SkipSummary = $false,

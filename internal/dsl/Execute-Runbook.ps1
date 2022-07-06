@@ -48,8 +48,13 @@ function Execute-Runbook {
 		}
 		
 		if ($AllowReboot) {
-			if (-not($PVDomainCreds.RebootCredentials)) {
-				throw "Invalid Operation. In order to -AllowReboot, you must use Assign to either supply -PasswordForReboot or specify a -RebootCredential.";
+			if ([string]::IsNullOrEmpty($NextRunbookOperation) -or ($runbook.DeferRebootUntilRunbookEnd)) {
+				$PVContext.WriteLog("Bypassing requirement for Reboot Credentials as -AllowReboot will be for simple Restart (vs Restart + Resume).", "Debug");
+			}
+			else {
+				if (-not ($PVDomainCreds.RebootCredentials)) {
+					throw "Invalid Operation. In order to -AllowReboot, you must use Assign to either supply -PasswordForReboot or specify a -RebootCredential.";
+				}
 			}
 		}
 	};

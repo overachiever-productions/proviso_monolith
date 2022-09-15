@@ -26,7 +26,9 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 					
 					# TODO: need to allow for 'overrides' of the xml config file - i.e., the code below just assumes/accepts that the DataCollectorSet def will be the <keyName>.xml
 					# 		when... that's the CONVENTION, but there's a "DataCollectorSets.<collectorName>.XmlDefinition" key that CAN be used to overwrite/explicitly define a path... 
-					$xmlDefinition = $PVResources.GetAsset($collectorSetName, "xml", $false, $true);
+					#$xmlDefinition = $PVResources.GetAsset($collectorSetName, "xml", $false, $true);
+					$xmlDefinition = $PVResources.GetDataCollectorSetDefinitionFile($collectorSetName);
+					
 					if (-not (Test-Path $xmlDefinition)) {
 						throw "Data Collector Set Definition file for [$collectorSetName] - not found at path [$xmlDefinition].";
 					}

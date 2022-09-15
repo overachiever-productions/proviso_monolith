@@ -1,5 +1,9 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# TODO: 
+# 		Add a method that cleans up ALL Proviso "xyz clenaup jobs in the task scheduler."
+
+
 filter Get-DataCollectorSetStatus {
 	param (
 		[string]$Name
@@ -127,7 +131,6 @@ filter New-DataCollectorSetFileCleanupJob {
 		$action = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument "-ExecutionPolicy BYPASS -NonInteractive -NoProfile -File C:\PerfLogs\Remove-OldCollectorSetFiles.ps1 -Name $Name -RetentionDays $RetentionDays ";
 		$task = Register-ScheduledTask -TaskName $jobName -Trigger $trigger -Action $action -User $runAsUser -Settings $settings -RunLevel Highest -Description "Regular cleanup of Data Collector Set files (> 45 days old) for `"$Name`" Data Collecctor.";
 	}
-	
 }
 
 # TODO: turn this into a FUNC (not filter), allow it to be called per MULTIPLE data-collector sets 

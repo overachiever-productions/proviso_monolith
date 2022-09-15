@@ -61,6 +61,19 @@ filter PVResources-ValidateRootSet {
 	}
 }
 
+
+# TODO:
+# vNEXT:
+# 	This method sucks. It was written to, effectively, be a 'catch-all/do-all' helper for any/all assets. 
+# 		ONLY:
+# 			- I've since started breaking various kinds of assets off into their own sub-directories
+# 			- which has necessitated all sorts of spin-off/duplicate-logic-ish kinds of methods. 
+# 	
+# 		What I need: 
+# 			- a single kind of catch-all _LIKE_ this - but where I can pass in path, OPTIONAL extensions, and a few other details. 
+# 			- facades/wrappers around calls to this - for specific file-types/asset-types. 
+# 			- this way, the facades can do some additional validation and/or wire-up of params and so on... 
+# 				but, I'll only have a single 'area' or block of code that handles actual retrieval from the core/base directory and stuff.
 filter PVResources-GetAsset {
 	param (
 		[Parameter(Mandatory)]
@@ -136,6 +149,36 @@ filter PVResources-GetXeSessionDefinitionFile {
 	$provisoRoot = $PVResources.ProvisoRoot;
 	
 	$testPath = Join-Path -Path $provisoRoot -ChildPath "\assets\extended_events\$($DefinitionFile)";
+	if (Test-Path -Path $testPath -ErrorAction SilentlyContinue) {
+		return $testPath;
+	}
+	
+	return $null;
+}
+
+# TODO: refactor - see vNEXT note above about PVResources-GetAsset sucking... 
+#  	i.e., the _ONLY_ diff between this method and PVResources-GetXeSessionDefinitionFile is that I've changed a hard-coded string (in the root path)
+# 		well... and I've added a ".xml" into the mix... (not sure how that isn't needed/the-case in the XE paths... )
+filter PVResources-GetDataCollectorSetDefinitionFile {
+	param (
+		[Parameter(Mandatory)]
+		[string]$DefinitionFile
+	);
+	
+	# allow for hard-coded paths: 
+	if (Test-Path -Path $DefinitionFile -ErrorAction SilentlyContinue) {
+		return $DefinitionFile;
+	}
+	
+	# otherwise, build/validate a path by convention: 
+	$PVResources.ValidateRootSet();
+	$provisoRoot = $PVResources.ProvisoRoot;
+	
+	if ($DefinitionFile.EndsWith(".xml")) {
+		$DefinitionFile = $DefinitionFile.Replace(".xml", "");
+	}
+	
+	$testPath = Join-Path -Path $provisoRoot -ChildPath "\assets\data_collector_sets\$($DefinitionFile).xml";
 	if (Test-Path -Path $testPath -ErrorAction SilentlyContinue) {
 		return $testPath;
 	}
@@ -524,6 +567,7 @@ $PVResources | Add-Member -MemberType ScriptMethod -Name SetRoot -Value ((Get-It
 $PVResources | Add-Member -MemberType ScriptMethod -Name ValidateRootSet -Value ((Get-Item "Function:\PVResources-ValidateRootSet").ScriptBlock) -Force;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetAsset -Value ((Get-Item "Function:\PVResources-GetAsset").ScriptBlock) -Force;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetXeSessionDefinitionFile -Value ((Get-Item "Function:\PVResources-GetXeSessionDefinitionFile").ScriptBlock) -Force;
+$PVResources | Add-Member -MemberType ScriptMethod -Name GetDataCollectorSetDefinitionFile -Value ((Get-Item "Function:\PVResources-GetDataCollectorSetDefinitionFile").ScriptBlock) -Force;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSqlSetupExe -Value ((Get-Item "Function:\PVResources-GetSqlSetupExe").ScriptBlock) -Force;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSqlSetupIso -Value ((Get-Item "Function:\PVResources-GetSqlSetupIso").ScriptBlock) -Force;
 $PVResources | Add-Member -MemberType ScriptMethod -Name GetSsmsBinaries -Value ((Get-Item "Function:\PVResources-GetSsmsBinaries").ScriptBlock) -Force;

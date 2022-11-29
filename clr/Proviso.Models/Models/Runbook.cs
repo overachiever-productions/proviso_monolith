@@ -11,6 +11,7 @@ namespace Proviso.Models
         public ScriptBlock RunbookBlock { get; private set; }
 
         public bool RequiresDomainCreds { get; private set; }
+        public bool RequiresDomainCredsConfigureOnly { get; private set; }
         public bool DeferRebootUntilRunbookEnd { get; private set; }
         public bool SkipSummary { get; private set; }
         public bool SummarizeProblemsOnly { get; private set; }
@@ -28,9 +29,10 @@ namespace Proviso.Models
             this.RunbookBlock = runbookBlock;
         }
 
-        public void SetOptions(bool requiresDomainCreds, bool deferReboot, bool skipSummary, bool summarizeProblemsOnly, string waitBeforeRebootFor = null)
+        public void SetOptions(bool requiresDomainCreds, bool requireDomainCredsConfigOnly, bool deferReboot, bool skipSummary, bool summarizeProblemsOnly, string waitBeforeRebootFor = null)
         {
             this.RequiresDomainCreds = requiresDomainCreds;
+            this.RequiresDomainCredsConfigureOnly = requireDomainCredsConfigOnly;
             this.DeferRebootUntilRunbookEnd = deferReboot;
             this.SkipSummary = skipSummary;
             this.SummarizeProblemsOnly = summarizeProblemsOnly;

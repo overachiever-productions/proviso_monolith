@@ -94,22 +94,5 @@ namespace Proviso.Models
                 this.UsesBuild = true;
             }
         }
-
-        #region Processing-Details
-        //public void SetCurrentIteratorDetails(string currentIteratorKey, object currentIteratorValue)
-        //{
-        //    //this.CurrentIteratorKey = currentIteratorKey;
-        //    //this.CurrentIteratorKeyValue = currentIteratorValue;
-        //}
-
-        //public void SetCurrentIteratorDetails(string currentIteratorKey, string currentIteratorValue, string currentIteratorChildKey, object currentIteratorChildValue)
-        //{
-        //    //this.CurrentIteratorKey = currentIteratorKey;
-        //    //this.CurrentIteratorKeyValue = currentIteratorValue;
-
-        //    //this.CurrentIteratorChildKey = currentIteratorChildKey;
-        //    //this.CurrentIteratorChildKeyValue = currentIteratorChildValue;
-        //}
-        #endregion
     }
 }

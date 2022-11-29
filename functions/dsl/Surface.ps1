@@ -184,14 +184,9 @@ function Assert-UserIsAdministrator {
 		
 		try {
 			[ScriptBlock]$codeBlock = {
-				$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name;
-				$admins = Get-LocalGroupMember -Group Administrators | Select-Object -Property "Name";
-				
-				if ($admins.Name -contains $currentUser) {
-					return $true;
+				if (-not (Test-IsUserInAdministratorsRole)) {
+					return $false;
 				}
-				
-				return $false;
 			}
 			
 			$assertion = New-Object Proviso.Models.Assertion("Assert-IsAdministrator", $Name, $codeBlock, $FailureMessage, $false, $Ignored, $false, $AssertOnConfigureOnly);
@@ -450,14 +445,13 @@ function Assert-SqlServerIsInstalled {
 			
 			if ($SurfaceTarget) {
 				
-				
 				# This 'has' to be dynamically created - to get around the need to pass $SurfaceTarget around inside as a 'string'... 
 				# TODO: verify that this is working as expected ... i.e., what's it doing for other variable names? i.e., is the string output what I expect it to be? 
 				$codeBlockAsString = '$installedInstanceNames = Get-ExistingSqlServerInstanceNames;
 
-$targetInstancenames = $PVConfig.GetSqlInstanceNames("$SurfaceTarget");
+$targetInstancenames = $PVConfig.GetSqlInstanceNames("{0}");
 if (($null -eq $targetInstancenames) -or ($targetInstancenames.Count -lt 1)) {{
-	throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [$SurfaceTarget] - but none were defined.";
+	throw "Expected ONE or more SQL Server Instance Names defined within Configuration Surface [{0}] - but none were defined.";
 }}
 
 foreach ($targetInstance in $targetInstancenames) {{
@@ -466,6 +460,8 @@ foreach ($targetInstance in $targetInstancenames) {{
 	}}
 }}
 ';
+				$codeBlockAsString = [string]::Format($codeBlockAsString, $SurfaceTarget);
+				
 				[ScriptBlock]$codeBlock = [ScriptBlock]::Create($codeBlockAsString);
 			}
 			else {
@@ -598,19 +594,38 @@ function Aspect {
 	param (
 		[Parameter(Mandatory)]
 		[ScriptBlock]$AspectBlock,
-		[string]$Scope,
+		[string]$Scope = $null,
+		[string]$IterateForScope = $null,
+		[switch]$IterateScope = $false,   # same as above, but does not specify a key... 
 		[switch]$OrderDescending = $false,
 		[string]$OrderByChildKey
 	);
 	
 	Validate-SurfaceBlockUsage -BlockName "Aspect";
 	
+	if ($IterateForScope -and $IterateScope) {
+		throw "-IterateForScope and -IterateScope are mutually exclusive - use one of the other (-IterateForScope requires/specifies a sub-key, -IterateScope uses current sub key).";
+	}
+	
+	if ($Scope -and $IterateForScope) {
+		throw "-Scope and -IterateForScope are mutually exclusive - use one or the other (Iterate = per each child object in scope).";
+	}
+	
 	$aspectKey = $Target;
 	if(-not([string]::IsNullOrEmpty($Scope))) {
 		$aspectKey += ".$Scope";
 	}
+	
+	if (-not ([string]::IsNullOrEmpty($IterateForScope))) {
+		$aspectKey += ".$IterateForScope.{~ANY~}";
+	}
+	
+	if ($IterateScope) {
+		$aspectKey += ".{~ANY~}";
+	}
+	
 	if (-not ([string]::IsNullOrEmpty($aspectKey))) {
-		$aspectKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $aspectKey;
+		$aspectKey = (Validate-ConfigurationEntry -Key $aspectKey).NormalizedKey;
 	}
 	
 	& $AspectBlock;
@@ -644,13 +659,11 @@ function Facet {
 		$facetType = $null;
 		if (-not ($NoKey)) {
 			if ($FullKey) {
-				$facetKey = Ensure-ProvisoConfigKeyIsNotImplicit -Key $FullKey;
+				$facetKey = $FullKey;
 			}
 			else {
 				$facetKey = "$($aspectKey).$Key";
 			}
-			
-			$facetKey = Ensure-ProvisoConfigKeyIsFormattedForObjects -Key $facetKey;
 				
 			if (-not (Is-ValidProvisoKey -Key $facetKey)) {
 				throw "Invalid Configuration Key [$facetKey] found in Surface [$($surface.Name)] and Facet of [$Name].";
@@ -668,6 +681,7 @@ function Facet {
 				$facetKey = $aspectKey;
 			}
 		}
+#Write-Host "FacetType: $facetType  -> Key: $facetKey"
 	}
 	
 	process {

@@ -9,60 +9,60 @@ Surface "RequiredPackages" -Target "Host" {
 	}
 	
 	Aspect -Scope "RequiredPackages" {
-		Facet "WSFCRequired" -Key "WsfcComponents" -ExpectKeyValue -RequiresReboot {
-			Test {
-				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
-				$PVContext.SetSurfaceState("WSFC_Installed", $installed);
-				
-				# TODO: instead of showing true/false for WSFCRequired in the Summary/Summarize-output... show INSTALLED, AVAILABLE, PENDING or whatever. 
-				# 		this'll require a tweak to the Expect{} block as well. i.e., it' can't show 'true' and expect that to match 'installed', 'available', etc. 
-				if ($installed -eq "Installed") {
-					return $true;
-				}
-				
-				return $false;
-			}
-			Configure {
-				
-				if($PVContext.CurrentConfigKeyValue) {
-					
-					$rebootRequired = Install-WsfcComponents;
-					
-					if ($rebootRequired) {
-						$PVContext.SetRebootRequired("WSFC Component installation requires reboot.");
-					}
-				}
-				else {
-					$installed = $PVContext.GetSurfaceState("WSFC_Installed");
-					if ($installed) {
-						# it's actually, currently, installed ... and the config value is that it doesn't NEED to be installed
-						$PVContext.WriteLog("WSFC Components Installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall WSFC components. Manually use [Uninstall-WindowsFeature Failover-Clustering] if needed.", "Important");
-					}
-				}
-			}
-		}
-		
-#		Facet "NetFXRequired" -ExpectKeyValue "Host.RequiredPackages.NetFxForPre2016InstancesRequired" {
+#		Facet "WSFCRequired" -Key "WsfcComponents" -ExpectKeyValue -RequiresReboot {
 #			Test {
-#				# check to see if v3.5 is installed: 
-#				$allInstalled = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -recurse |	Get-ItemProperty -name Version, Release -EA 0 | Where-Object {	$_.PSChildName -match '^(?!S)\p{L}' } | Select-Object PSChildName, Version;
-#				$installed = $allInstalled | Where-Object { $_.PSChildName -eq "v3.5 " };
+#				$installed = (Get-WindowsFeature -Name Failover-Clustering).InstallState;
+#				$PVContext.SetSurfaceState("WSFC_Installed", $installed);
 #				
-#				$PVContext.SetSurfaceState("NetFX35_Installed", $installed);
-#				
-#				if ($installed) {
+#				# TODO: instead of showing true/false for WSFCRequired in the Summary/Summarize-output... show INSTALLED, AVAILABLE, PENDING or whatever. 
+#				# 		this'll require a tweak to the Expect{} block as well. i.e., it' can't show 'true' and expect that to match 'installed', 'available', etc. 
+#				if ($installed -eq "Installed") {
 #					return $true;
 #				}
 #				
 #				return $false;
 #			}
-#			
 #			Configure {
-#				if ($PVConfig.GetValue("Host.RequiredPackages.NetFxForPre2016InstancesRequired")) {
-#					$windowsVersion = Get-WindowsServerVersion -Version ([System.Environment]::OSVersion.Version);
+#				
+#				if($PVContext.CurrentConfigKeyValue) {
 #					
-#					Install-NetFx35ForPre2016Instances -WindowsServerVersion $windowsVersion -NetFxSxsRootPath (Join-Path -Path $script:resourcesRoot -ChildPath "binaries\net3.5_sxs");
+#					$rebootRequired = Install-WsfcComponents;
+#					
+#					if ($rebootRequired) {
+#						$PVContext.SetRebootRequired("WSFC Component installation requires reboot.");
+#					}
 #				}
+#				else {
+#					$installed = $PVContext.GetSurfaceState("WSFC_Installed");
+#					if ($installed) {
+#						# it's actually, currently, installed ... and the config value is that it doesn't NEED to be installed
+#						$PVContext.WriteLog("WSFC Components Installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall WSFC components. Manually use [Uninstall-WindowsFeature Failover-Clustering] if needed.", "Important");
+#					}
+#				}
+#			}
+#		}
+		
+		Facet "NetFXRequired" -Key "NetFxForPre2016InstancesRequired" -ExpectKeyValue {
+			Test {
+				# check to see if v3.5 is installed: 
+				$allInstalled = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP' -recurse |	Get-ItemProperty -name Version, Release -EA 0 | Where-Object {	$_.PSChildName -match '^(?!S)\p{L}' } | Select-Object PSChildName, Version;
+				$installed = $allInstalled | Where-Object { $_.PSChildName -eq "v3.5 " };
+				
+				$PVContext.SetSurfaceState("NetFX35_Installed", $installed);
+				
+				if ($installed) {
+					return $true;
+				}
+				
+				return $false;
+			}
+			
+			Configure {
+				if ($PVConfig.GetValue("Host.RequiredPackages.NetFxForPre2016InstancesRequired")) {
+					$windowsVersion = Get-WindowsServerVersion -Version ([System.Environment]::OSVersion.Version);
+					
+					Install-NetFx35ForPre2016Instances -WindowsServerVersion $windowsVersion -NetFxSxsRootPath (Join-Path -Path $script:resourcesRoot -ChildPath "binaries\net3.5_sxs");
+				}
 #				else {
 #					$installed = $PVContext.GetSurfaceState("NetFX35_Installed");
 #					if ($installed) {
@@ -70,8 +70,8 @@ Surface "RequiredPackages" -Target "Host" {
 #						$PVContext.WriteLog(".NET 3.5 is currently installed - but not _REQUIRED_ via Config. Proviso will NOT uninstall.", "Important");
 #					}
 #				}
-#			}
-#		}
+			}
+		}
 		
 #		Facet "ADManagementFeaturesForPoshRequired" -ExpectKeyValue "Host.RequiredPackages.AdManagementFeaturesforPowershell6PlusRequired" {
 #			Test {

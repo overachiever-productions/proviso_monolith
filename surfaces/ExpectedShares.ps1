@@ -18,7 +18,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 		}
 	}
 	
-	Aspect {
+	Aspect -IterateScope {
 		Facet "DirectoryExists" -Key "SourceDirectory" -Expect $true {
 			Test {
 				$targetDirectory = $PVContext.CurrentConfigKeyValue;

@@ -33,9 +33,28 @@ function Execute-Runbook {
 			throw "Invalid Runbook Name. Runbook [$RunbookName] does not exist or has not been loaded. If this is a custom Runbook, verify that [Import-Runbook] has been correctly executed.";
 		}
 		
+		if ($runbook.RequiresDomainCreds) {
+			if (-not ($PVDomainCreds.CredentialsSet)) {
+				throw "Invalid Operation. Runbook [$($runbook.Name)] specifies that -DomainCredentials are required. Please use [Assign] to provide Domain Credentials using one of the parameters provided.";
+			}
+		}
+		
+		if ($runbook.RequiresDomainCredsConfigureOnly) {
+			if ("Provision" -eq $Operation) {
+				if (-not ($PVDomainCreds.CredentialsSet)) {
+					throw "Invalid Operation. Runbook [$($runbook.Name)] specifies that -DomainCredentialsConfigOnly are required. Please use [Assign] to provide Domain Credentials using one of the parameters provided.";
+				}
+			}
+		}
+		
 		if ($AllowReboot) {
-			if (-not($PVDomainCreds.RebootCredentials)) {
-				throw "Invalid Operation. In order to -AllowReboot, you must use Assign to either supply -PasswordForReboot or specify a -RebootCredential.";
+			if ([string]::IsNullOrEmpty($NextRunbookOperation) -or ($runbook.DeferRebootUntilRunbookEnd)) {
+				$PVContext.WriteLog("Bypassing requirement for Reboot Credentials as -AllowReboot will be for simple Restart (vs Restart + Resume).", "Debug");
+			}
+			else {
+				if (-not ($PVDomainCreds.RebootCredentials)) {
+					throw "Invalid Operation. In order to -AllowReboot, you must use Assign to either supply -PasswordForReboot or specify a -RebootCredential.";
+				}
 			}
 		}
 	};

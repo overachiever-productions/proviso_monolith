@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.PowerShell.Commands;
 using Proviso.Enums;
 using Proviso.Models;
 using Proviso.Processing;

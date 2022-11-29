@@ -14,8 +14,14 @@ Surface "WindowsPreferences" -Target "Host" {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
 				if ($dvdDrive) {
 					$output = $PVConfig.GetValue("Host.WindowsPreferences.DvdDriveToZ");
-					return $output;
+					if ($output) {
+						return "Z:"
+					}
+					
+					return $false;
 				}
+				
+				return "<EMPTY>";
 			}
 			Test {
 				$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
@@ -23,23 +29,24 @@ Surface "WindowsPreferences" -Target "Host" {
 					$drive = $dvdDrive | Select-Object DriveLetter;
 					$driveLetter = $drive.DriveLetter;
 					
-					$PVContext.SetSurfaceState("DvdDrive", $dvdDrive);
-					
 					return $driveLetter;
 				}
+				
+				return "<EMPTY>";
 			}
 			Configure {
-				#$moveToZ = $PVConfig.GetValue("Host.WindowsPreferences.DvdDriveToZ");
 				$moveToZ = $PVContext.CurrentConfigKeyValue;
+				
 				if ($moveToZ) {
-					$dvdDrive = $PVContext.GetSurfaceState("DvdDrive");
+					$dvdDrive = Get-CimInstance -Class Win32_volume -Filter 'DriveType = 5';
+					
 					if ($dvdDrive) {
 						$drive = $dvdDrive | Select-Object DriveLetter;
 						$driveLetter = $drive.DriveLetter;
 						
 						if ($driveLetter -ne "Z") {
-							Set-CimInstance -InputObject $dvdDrive -Arguments @{
-								DriveLetter = "Z"
+							Set-CimInstance -InputObject $dvdDrive -Property @{
+								DriveLetter = "Z:"
 							} | Out-Null;
 							
 							$PVContext.WriteLog("DVD Drive moved to Z:\ ... ", "Verbose");

@@ -11,6 +11,9 @@ Surface AdminDbHistory -Target "AdminDb" {
 		Facet "CleanupEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$state = Get-AgentJobStartTime -SqlServerAgentJob "Regular History Cleanup" -SqlServerInstanceName $instanceName;
 				if ($state -like "<*") {
@@ -24,6 +27,10 @@ Surface AdminDbHistory -Target "AdminDb" {
 		Facet "SQLServerLogsToKeep" -Key "SqlServerLogsToKeep" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+				
 				
 				# could read the registry directly... but INSTANCE_reg_read is nice/easy
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DECLARE @NumberOfServerLogsToKeep int;
@@ -41,8 +48,11 @@ Surface AdminDbHistory -Target "AdminDb" {
 		Facet "AgentJobHistory" -Key "AgentJobHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$retentionSettings = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Job History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
 					return $jobStepBody;
@@ -61,8 +71,11 @@ Surface AdminDbHistory -Target "AdminDb" {
 		Facet "BackupHistory" -Key "BackupHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$retentionSettings = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Backup History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
 					return $jobStepBody;
@@ -81,8 +94,11 @@ Surface AdminDbHistory -Target "AdminDb" {
 		Facet "EmailHistory" -Key "EmailHistoryRetention" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$retentionSettings = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$retentionSettings = $PVContext.CurrentConfigKeyValue;				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular History Cleanup" -JobStepName "Truncate Email History" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
 					return $jobStepBody;

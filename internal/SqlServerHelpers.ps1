@@ -10,6 +10,21 @@
 
 #>
 
+# Premise:
+# 		need to leave the following inside of Proviso as they're bridges/wrappers only:
+
+
+# 		ACTUALLY: the following 3 funcs COULD be moved into Premise:
+# 				- Get-SqlServerDefaultInstallationPath
+# 				- Get-SqlServerDefaultDirectoryLocation
+# 				- Get-SqlServerDefaultServiceAccount
+
+
+# 		- Escape-PasswordCharactersForCommandLineUsage  really only care about this within proviso... 
+# 		- Install-SqlServer - too complex for stand-alone. 
+# 		- Install-SqlServerPatch - ditto-ish to above (too many dependencies/etc.)
+
+
 filter Get-ExistingSqlServerInstanceNames {
 	
 	[string[]]$output = @();
@@ -134,7 +149,7 @@ filter Get-SqlServerDefaultServiceAccount {
 			"AgentServiceAccountName" {
 				return "NT SERVICE\SQLSERVERAGENT";
 			}
-			"FullTextServiceAccount" {
+			"FullTextServiceAccountName" {
 				return "NT Service\MSSQLFDLauncher";
 			}
 			default {
@@ -150,7 +165,7 @@ filter Get-SqlServerDefaultServiceAccount {
 			"AgentServiceAccountName" {
 				return "NT SERVICE\SQLAGENT`$$($InstanceName)";
 			}
-			"FullTextServiceAccount" {
+			"FullTextServiceAccountName" {
 				return "NT Service\MSSQLFDLauncher`$$($InstanceName)";
 			}
 			default {
@@ -286,6 +301,24 @@ function Get-SqlServerInstanceDetailsFromRegistry {
 	};
 }
 
+filter Escape-PasswordCharactersForCommandLineUsage {
+	# Passwords loaded-into/specified by .config (or other means) have already been 'escaped' to make them strings. 
+	# 		specifically, they SHOULD be wrapped in 'single ticks' instead of being in "double ticks like most other strings". 
+	# 				and, if/when there is a tick in the password itself, it should be double-ticked to escape it - like so 'PasswordwithATick''InIt'.
+	# 	BUT, handling password strings within PowerShell via ticks + doubling/escaping ticks inside of the password itself is ONLY part of the equation.
+	# 		The OTHER part of the puzzle is that passwords 'written out to DOS' as command-line switches need some additional processing. 
+	# 			and this filter/func is what handles that logic. 	
+	param (
+		[Parameter(Mandatory)]
+		[string]$Password
+	);
+	
+	$escaped = $Password -replace '''', '''''';
+	$escaped = $escaped -replace '"', '\"';
+	
+	return $escaped;
+}
+
 function Install-SqlServer {
 	param (
 		[switch]$StrictInstallOnly = $false,
@@ -415,40 +448,25 @@ function Install-SqlServer {
 		}
 		
 		if ($ServiceAccounts["SqlServiceAccountName"] -notlike "NT SERVICE\*") {
-			
-			# CRITICAL: escape ' with '' and escape " with \"  (otherwise complex/high-crypto passwords FAIL and/or crash the installation process):
-			$SqlServiceAccountPassword = $ServiceAccounts["SqlServiceAccountPassword"];
-			$SqlServiceAccountPassword = $SqlServiceAccountPassword -replace '''', '''''';
-			$SqlServiceAccountPassword = $SqlServiceAccountPassword -replace '"', '\"';
-			
+			$SqlServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["SqlServiceAccountPassword"]);
 			$arguments += "/SQLSVCPASSWORD='$SqlServiceAccountPassword' ";
 		}
 		
 		if ($ServiceAccounts["AgentServiceAccountName"] -notlike "NT SERVICE\*") {
 			
-			# as above, CRITICAL to escape/replace problematic chars:
-			$AgentServiceAccountPassword = $ServiceAccounts["AgentServiceAccountPassword"];
-			$AgentServiceAccountPassword = $AgentServiceAccountPassword -replace '''', '''''';
-			$AgentServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
-			
+			$AgentServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["AgentServiceAccountPassword"]);
 			$arguments += "/AGTSVCPASSWORD='$AgentServiceAccountPassword' ";
 		}
 		
 		if ($Features -like '*FullText*') {
 			if ($ServiceAccounts["FullTextServiceAccount"] -notlike "NT SERVICE\*") {
-				
-				# as above, CRITICAL to escape/replace problematic chars:
-				$FullTextServiceAccountPassword = $ServiceAccounts["FullTextServicePassword"];
-				$FullTextServiceAccountPassword = $AgentServiceAccountPassword -replace '''', '''''';
-				$FullTextServiceAccountPassword = $AgentServiceAccountPassword -replace '"', '\"';
-				
+				$FullTextServiceAccountPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($ServiceAccounts["FullTextServicePassword"]);
 				$arguments += "/FTSVCPASSWORD='$FullTextServiceAccountPassword' ";
 			}
 		}
 		
 		if ($Settings["SQLAuthEnabled"]) {
-			# as above, CRITICAL to escape/replace problematic chars:
-			[string]$SaPassword = $Settings["SaPassword"];
+			[string]$SaPassword = Escape-PasswordCharactersForCommandLineUsage -Password ($Settings["SaPassword"]);
 			if (([string]::IsNullOrEmpty($SaPassword)) -or ($SaPassword.Length -lt 9)) {
 				throw "Sa Password specified is empty or too short (it NEEDS to be 9 or more chars in length.";
 			}
@@ -464,14 +482,22 @@ function Install-SqlServer {
 			$installCommand += $arg;
 		}
 		
+		# TODO: escape/remove the passwords... (especially SA) - otherwise, this LEAKS security info... 
+		#$PVContext.WriteLog("Installation Commands: $installCommand", "Debug");
+		
 		$outcome = Invoke-Expression $installCommand;
 		
 		$PVContext.WriteLog("Raw SQL Installation Outcome: $outcome", "Debug");
 		
 		switch ($Version) {
 			"2019" {
-				$2019 = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
-				$outcome = $outcome -replace $2019, ""
+				$2019telemetry = "SQL Server 2019 transmits information about your installation experience, as well as other usage and performance data, to Microsoft to help improve the product. To learn more about SQL Server 2019 data processing and privacy controls, please see the Privacy Statement."
+				$2019entKey = "Notice: A paid SQL Server edition product key has been provided for the current action - Enterprise. Please ensure you are entitled to this SQL Server edition with proper licensing in place for the product key (edition) supplied.";
+				$2019stdKey = "Notice: A paid SQL Server edition product key has been provided for the current action - Standard. Please ensure you are entitled to this SQL Server edition with proper licensing in place for the product key (edition) supplied.";
+				
+				$outcome = $outcome -replace $2019telemetry, "";
+				$outcome = $outcome -replace $2019entKey, "";
+				$outcome = $outcome -replace $2019stdKey, "";
 			}
 			"2017" {
 				

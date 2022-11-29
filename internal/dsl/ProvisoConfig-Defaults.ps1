@@ -2,6 +2,9 @@
 
 # NOTE: $script:be8c742fDefaultConfigData is assigned at the BOTTOM of this script... 
 
+# WARN: These are NOT 'just' defaults - they also define which keys are legit/allowed. 
+# 			And, for that purpose, NO default can ever have an empty "" or $null value. Instead, use {~EMPTY~}
+
 [hashtable]$script:ProvisoConfigDefaults = [hashtable]@{
 	
 	Host = @{
@@ -9,6 +12,15 @@
 		TargetDomain	    = "{~DEFAULT_PROHIBITED~}"
 		
 		AllowGlobalDefaults = $true
+		
+		Compute			    = @{
+			Enforce 				= $false		# probably need a better name here - strict or 'report' ... but this means: should we check (and alert) on these details or not? 
+			CoreCount 				= "{~EMPTY~}" # allow empty ... as in... if not present, then ... take whatever we're given? 
+			HyperThreadingEnabled 	= $false
+			NumaNodes 				= 1 # decent enough default... i.e., anything > 1 is going to be a custom config anyhow... 
+			RamGBs  				= 32 # again, i can just spam in some sort of default and ... if it's different... complain/alert.
+			TargetOs 				= "{~EMPTY~}"   # yeah... ignore... unless there's a specified value.
+		}
 		
 		NetworkDefinitions  = @{
 			"{~ANY~}" = @{
@@ -26,7 +38,7 @@
 			}
 		}
 		
-		LocalAdministrators = @("{~EMPTY~}")
+		LocalAdministrators = @("{~EMPTY_ARRAY~}")
 		
 		WindowsPreferences  = @{
 			DvdDriveToZ				     = $false
@@ -60,11 +72,11 @@
 				VolumeLabel		     	= "{~PARENT~}"
 				
 				PhysicalDiskIdentifiers = @{
-					DiskNumber 		= "{~DEFAULT_IGNORED~}"
-					VolumeId		= "{~DEFAULT_IGNORED~}"
-					ScsiMapping		= "{~DEFAULT_IGNORED~}"
-					DeviceId    	= "{~DEFAULT_IGNORED~}"
-					RawSize    		= "{~DEFAULT_IGNORED~}"
+					DiskNumber 		= "{~EMPTY~}"
+					VolumeId		= "{~EMPTY~}"
+					ScsiMapping		= "{~EMPTY~}"
+					DeviceId    	= "{~EMPTY~}"
+					RawSize    		= "{~EMPTY~}"
 				}
 			}
 		}
@@ -72,8 +84,8 @@
 	
 	ExpectedDirectories = @{
 		"{~SQLINSTANCE~}" = @{
-			VirtualSqlServerServiceAccessibleDirectories = @("{~EMPTY~}")
-			RawDirectories = @("{~EMPTY~}")
+			VirtualSqlServerServiceAccessibleDirectories = @("{~EMPTY_ARRAY~}")
+			RawDirectories = @("{~EMPTY_ARRAY~}")
 		}
 	}
 	
@@ -81,8 +93,8 @@
 		"{~ANY~}" = @{
 			ShareName	   		= "{~PARENT~}"
 			SourceDirectory 	= "{~DEFAULT_PROHIBITED~}"
-			ReadOnlyAccess 		= @("{~EMPTY~}")
-			ReadWriteAccess 	= @("{~EMPTY~}")
+			ReadOnlyAccess 		= @("{~EMPTY_ARRAY~}")
+			ReadWriteAccess 	= @("{~EMPTY_ARRAY~}")
 		}
 	}
 	
@@ -118,12 +130,12 @@
 			}
 			
 			ServiceAccounts   = @{
-				SqlServiceAccountName	    = "{~DYNAMIC~}"
-				SqlServiceAccountPassword   = "{~EMPTY~}"
-				AgentServiceAccountName	    = "{~DYNAMIC~}"
-				AgentServiceAccountPassword = "{~EMPTY~}"
-				FullTextServiceAccount	    = "{~DYNAMIC~}"
-				FullTextServicePassword	    = "{~EMPTY~}"
+				SqlServiceAccountName	    		= "{~DYNAMIC~}"
+				SqlServiceAccountPassword   		= "{~EMPTY~}"
+				AgentServiceAccountName	    		= "{~DYNAMIC~}"
+				AgentServiceAccountPassword 		= "{~EMPTY~}"
+				FullTextServiceAccountName	    	= "{~DYNAMIC~}"
+				FullTextServiceAccountPassword	    = "{~EMPTY~}"
 			}
 			
 			SqlServerDefaultDirectories = @{
@@ -139,7 +151,7 @@
 				EnableSqlAuth		  = $false
 				AddCurrentUserAsAdmin = $false
 				SaPassword		      = "{~DEFAULT_PROHIBITED~}"
-				MembersOfSysAdmin	  = @("{~EMPTY~}")
+				MembersOfSysAdmin	  = @("{~EMPTY_ARRAY~}")
 			}
 		}
 	}
@@ -194,8 +206,8 @@
 				SmtpPortNumber			    = "{~DEFAULT_PROHIBITED~}"
 				SmtpRequiresSSL			    = $true
 				SmtpAuthType			    = "{~DEFAULT_PROHIBITED~}"
-				SmptUserName			    = "{~DEFAULT_PROHIBITED~}"
-				SmtpPassword			    = "{~DEFAULT_PROHIBITED~}"
+				SmptUserName			    = "{~EMPTY~}"
+				SmtpPassword			    = "{~EMPTY~}"
 				SendTestEmailUponCompletion = $true
 			}
 			
@@ -316,15 +328,16 @@
 #			CreateMasterEncryptionKey    = $true
 #			MasterEncryptionKeyPassword  = "" # allow this to be empty/blank (i.e., create something dynamic)
 #			
-#			BackupSuchAndSuchCertificate = @{
-#				#					# 0 - N certs go here - where each entry is the NAME of the cert to deploy... 
-#				#					CertXyzPath							       = "so on"
-#				#					XyzOtherDetail							   = "blah"
-#				#					BackupPathToShoveTheTHingIntoAfterCreation = "etc"
+#			BackupSuchAndSuchCertificate = @{ # 0 - N certs go here - where each entry is the NAME of the cert to deploy... 
+# 				# could also be a STREAM of data here instead of file paths and stuff... 
+#				# CertXyzPath							       = "so on"
+#				# XyzOtherDetail							   = "blah"
+#				# BackupPathToShoveTheTHingIntoAfterCreation = "etc"
 #			}
 #			
 #			TDECertificateOrAnotherCertificateHere = @{
-#				#					InfoHereToCreateFromScratch = "or whatever"
+#				# InfoHereToCreateFromScratch = "or whatever"
+# 				# could also be a STREAM of bytes (pulled from a security service/promise/lookup/whatever) that creates the cert as well... 
 #			}
 #		}
 #	}
@@ -332,6 +345,7 @@
 	
 	DataCollectorSets = @{
 		"{~ANY~}" = @{
+			Name 				  = "{~DYNAMIC~}"
 			Enabled			      = $false
 			XmlDefinition		  = "{~DYNAMIC~}"
 			EnableStartWithOS	  = $false
@@ -346,17 +360,19 @@
 			
 			BlockedProcessThreshold = 0  # can be set to 2 or whatever... as a default
 			
-			"{~ANY~}"	     = @{
-				SessionName	    	= "{~PARENT~}"
-				Enabled 			= $false
-				
-				DefinitionFile 		= "{~DYNAMIC~}"  # defaults, by convention, to [SessionName].sql - but CAN, obviously, be overridden
-				StartWithSystem 	= $false
-				
-				# 'advanced' defaults: 
-				XelFileSizeMb 		= 100
-				XelFileCount		= 6
-				XelFilePath 		= "D:\Traces"
+			Sessions = @{
+				"{~ANY~}" = @{
+					SessionName	    = "{~PARENT~}"
+					Enabled		    = $true
+					
+					DefinitionFile  = "{~DYNAMIC~}" # defaults, by convention, to [SessionName].sql - but CAN, obviously, be overridden
+					StartWithSystem = $false
+					
+					# 'advanced' defaults: 
+					XelFileSizeMb   = 100
+					XelFileCount    = 6
+					XelFilePath	    = ""
+				}
 			}
 		}
 	}
@@ -369,91 +385,76 @@
 	}
 	
 	ClusterConfiguration = @{
-		ClusterType = "NONE" # Options: AG, AGx (scale-out/workgroup/etc.), FCI, NONE
-		
-		PrimaryNode = "{~DEFAULT_PROHIBITED~}"
-		EvictionBehavior = "WARN"    # if part of cluster and name <> ClusterName or ClusterType = "NONE"... then warn (by default)
-		
-		ClusterName 		= "{~DEFAULT_PROHIBITED~}"
-		ClusterNodes		= @("{~EMPTY~}")
-		ClusterIPs			= @("{~EMPTY~}")
-		
-		ClusterDisks	 	= @("{~EMPTY~}")  # not implemented yet... 
-		
-		Witness   = @{
-			FileShareWitness = "{~DEFAULT_PROHIBITED~}"
+		"{~SQLINSTANCE~}" = @{
+			ClusterType	     = "NONE" # OPTIONS: [ NONE | AG | FCI | WORKGROUP-AG | SCALEOUT-AG | MULTINODE-FCI ]
+			EvictionBehavior = "WARN" # If ALREADY part of a cluster but ClusterType = "NONE". Options: [ NONE | WARN | ABORT | FORCE-EVICTION]
+			
+			ClusterName	     = "{~DEFAULT_PROHIBITED~}"
+			ClusterNodes	 = @("{~EMPTY_ARRAY~}") # each 'node' will only attempt to a) create cluster (with itself if no cluster exists) OR b) add itself to cluster if should be part of node. 
+			ClusterIPs	     = @("{~EMPTY_ARRAY~}") # IPs behave like nodes (i.e., same behavior as above)
+			
+			ClusterDisks	 = @("{~EMPTY_ARRAY~}") # ONLY for FCIs - and not implemented yet... 
+			
+			Witness		     = @{
+				# will check for whichever ONE of the following is NOT empty (or, if they're all empty, no witness).
+				FileShareWitness  = "{~EMPTY~}"
+				DiskWitness	      = "{~EMPTY~}"
+				AzureCloudWitness = "{~EMPTY~}" # hmmm. I need an accountNAME and an accountKey here... so... just need to sort that out... 
+				Quorum		      = $false # Refactor, this should probably be QuorumMajority vs 'just' Quorum
+			}
+			
+			GenerateClusterSpns = $false
 		}
-		
-		GenerateClusterSpns = $false
-		
-# 		SomethingSomethingPreferedConfigurationHost = "PRO197"  # i.e., an OPTION to determine WHICH instance should do the cluster creation, etc. 
-# 	couldbe: ClusterPrimaryNode = "PRO197"
-#
-#		EvictionBehavior = "NONE | WARN | ABORT | FORCE-EVICTION"; # what to do if current machine is PART of a cluster, but ClusterType = "NONE"
-#		
-#		ClusterName	     = "AWS2-CLUSTER-SQLX"
-#		ClusterNodes	 = @(
-#			"AWS-SQL-1A"
-#			"AWS-SQL-1B" # will attempt to JOIN/ADD other nodes ... unless they're not present... then it will just add what's possible/available/present
-#		)
-#		
-#		ClusterIPs	     = @(
-#			"10.10.31.120"
-#			"10.20.31.120"
-#		)
-#		
-#		ClusterDisks = @{
-#			???? 
-#		}
-#		
-#		Witness		     = @{
-#			FileShareWitness = "\\aws2-dc\clusters\"
-#			DiskWitness
-#			AzureWhatzItWitness		
-#		}
 	}
 	
 	AvailabilityGroups = @{
 		"{~SQLINSTANCE~}" = @{
-			EnabledOrStrictEnabled = "probably need 2x keys/entries here... but idea is a) configure AG membership or not? and b) what if ... we find the server as PART of an AG that's NOT defined below?"
+			#EnabledOrStrictEnabled = "probably need 2x keys/entries here... but idea is a) configure AG membership or not? and b) what if ... we find the server as PART of an AG that's NOT defined below?"
+			Enabled			        = $true
+			EvictionBehavior  = "WARN"
+			
+			AlwaysOnXeHealthEnabled = $true;
 			
 			MirroringEndpoint	   = @{
-				Enabled						    = $false
-				PortNumber					    = 5022
-				Name						    = ""
-				AllowedOwnersConnectingAccounts = @("{~EMPTY~}")  # e.g., xyZAdmin, sa, etc... 
+				Enabled					= $false
+				Name			    	= "HADR"
+				PortNumber				= 5022
+				EncryptionAlgorithm   	= "AES"
+				EndpointOwner	    	= "sa"
+				GrantConnect 			= @("{~EMPTY_ARRAY~}")
 			}
 			
 			SynchronizationChecks  = @{
-				AdminDbStuffHere = @{
-					AddPartners		       = ""
-					SyncCheckJobs		   = ""
-					AddFailoverProcessing  = ""
-					CreateDisabledJobCategory = ""
-				}
+				DefinePartnerLinkedServer	= $false
+				SyncCheckJobs		   		= $false
+				AddFailoverProcessing  		= $true
+				CreateDisabledJobCategory 	= $false
 			}
 			
-			# TODO: need to create a wrapper here for ... AGs ... which is odd/problematic because that's what I already called the parent wrapper for ALL ag stuff. 
-			# 		but... point is, this needs to be modeled similar to expected disks/nics - where there's a 'wrapper'/key to pull from ... 
-			"{~ANY~}"			   = @{
-				Action   = "NONE"
-				
-				Replicas = @("{~EMPTY~}")
-				
-				Seeding  = @{
+			Groups = @{
+				"{~ANY~}" = @{
+					ConfigurationAction   = "NONE" # Options would be ??? NONE, ADD, EXTEND? , REMOVE? ... need to give this a bit more thought. And, might not even WANT an 'action' option. which... is a problem cuz i'm trying to key a bunch of "is key valid" stuff off of whether this exists or not... '
 					
-				}
-				
-				Databases = @("{~EMPTY~}")
-				
-				Listener = @{
-					Name			    = "{~DEFAULT_PROHIBITED~}"
-					PortNumber		    = 1433
-					IPs				    = @("{~EMPTY~}")
+					# TODO: need a bit more thought on this particular node (ReplicaType) name... 
+					ReplicaType = "READ_WRITE" # could be READONLY? 					
 					
-					ReadOnlyRounting    = @("{~EMPTY~}")
+					ReplicaNodes = @("{~EMPTY~}")
 					
-					GenerateClusterSPNs = $false
+					Seeding  = @{
+						# Hmmm... options would somewhat include: Auto, some sort of file path, or backups/restore + ... file-path... 
+					}
+					
+					ExpectedDatabases = @("{~EMPTY_ARRAY~}")
+					
+					Listener = @{
+						Name			    = "{~DEFAULT_PROHIBITED~}"
+						PortNumber		    = 1433
+						IPs				    = @("{~EMPTY_ARRAY~}")
+						
+						ReadOnlyRounting    = @("{~EMPTY_ARRAY~}")
+						
+						GenerateListenerSPN = $false
+					}
 				}
 			}
 		}
@@ -465,14 +466,16 @@
 			
 			# actually, might need ... thingies AND pools? i.e., might need 2x different collections of thingies - which could have ~ANY~ names... 
 			
-			"{~ANY~}" = @{
-				
-				PoolNameOrWhatever = "{~PARENT~}"
+			Pools = @{
+				"{~ANY~}" = @{
+					
+					PoolNameOrWhatever = "{~PARENT~}"
+				}
 			}
 		}
 	}
 	
-#	CustomScripts {
+	#	CustomScripts {
 #		# Custom powershell scripts... in various groups. 
 #	}
 	

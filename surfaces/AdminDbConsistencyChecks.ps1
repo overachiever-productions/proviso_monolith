@@ -11,6 +11,9 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 		Facet "ConsistencyCheckJobEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Database Consistency Checks";
 				$start = Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
@@ -30,6 +33,9 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Database Consistency Checks";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
@@ -39,6 +45,9 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 		Facet "Targets" -Key "Targets" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Database Consistency Checks";
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob $jobName -JobStepName "Check Database Consistency" -SqlServerInstanceName $instanceName;
@@ -59,6 +68,9 @@ Surface AdminDbConsistencyChecks -Target "AdminDb" {
 		Facet "StartTime" -Key "StartTime" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Database Consistency Checks";
 				return Get-AgentJobStartTime -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;

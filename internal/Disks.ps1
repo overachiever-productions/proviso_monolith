@@ -1,5 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE: 
+# 		leave the following in Proviso:
+# 		- Convert-SCSITargetIdToDeviceName  (may end up moving this to Premise but really doubt it. pretty sure it'll need major CONFIG inputs to get the info out of this I want)
+# 		- Match-NonInitializedDisksWithTargetDisk  (this is CORE proviso logic... )
+
 filter Convert-SCSITargetIdToDeviceName {
 	<#
 	function Convert-SCSITargetIdToDeviceName
@@ -117,10 +122,19 @@ function Initialize-TargetDisk {
 	};
 	
 	process {
+		$targetDisk = Get-Disk | Where-Object -Property Number -eq $DiskNumber;
+		if ($targetDisk.OperationalStatus -ne "Online") {
+			try {
+				$targetDisk | Set-Disk -IsOffline $false;
+			}
+			catch {
+				throw "Failure to bring Disk [$DiskName] (Host Disk #[$DiskNumber]) Online: $_  `r`t$($_.ScriptStackTrace)";
+			}
+		}
 		
-		$targetDisk = Get-Disk | Where-Object -Property Number -EQ $DiskNumber;
-		
-		if (($targetDisk.PartitionStyle -eq "raw") -or ($targetDisk.OperationalStatus -ne "Online")) {
+		# reload:
+		$targetDisk = Get-Disk | Where-Object -Property Number -eq $DiskNumber;
+		if ($targetDisk.PartitionStyle -eq "RAW") {
 			try {
 				Initialize-Disk -Number $DiskNumber -PartitionStyle GPT -Confirm:$false;
 			}

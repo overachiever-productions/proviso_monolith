@@ -80,6 +80,8 @@ Surface "ServerName" -Target "Host" {
 					try {
 						$credentials = $PVDomainCreds.GetCredential();
 						
+						# https://docs.microsoft.com/en-us/powershell/module/Microsoft.PowerShell.Core/About/about_windows_powershell_compatibility?view=powershell-7.1
+						# https://docs.microsoft.com/en-us/answers/questions/382685/powershell-7-unjoin-computer-from-domain.html
 						Import-Module Microsoft.PowerShell.Management -UseWindowsPowerShell -WarningAction SilentlyContinue | Out-Null;
 						Add-Computer -DomainName $targetDomainName -NewName $targetMachineName -Credential $credentials -Restart:$false | Out-Null;
 					}

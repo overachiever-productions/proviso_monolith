@@ -11,9 +11,11 @@ Surface AdminDbDiskMonitoring -Target "AdminDb" {
 		Facet "DiskMonitoringEnabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
-				$state = Get-AgentJobStartTime -SqlServerInstanceName $instanceName -SqlServerAgentJob "Regular Drive Space Checks";
-				
+				$state = Get-AgentJobStartTime -SqlServerInstanceName $instanceName -SqlServerAgentJob "Regular Drive Space Checks";				
 				if ($state -like "<*") {
 					return $state;
 				}
@@ -35,8 +37,11 @@ Surface AdminDbDiskMonitoring -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;				
 				$jobStepBody = Get-AgentJobStepBody -SqlServerAgentJob "Regular Drive Space Checks" -JobStepName "Check on Disk Space and Send Alerts" -SqlServerInstanceName $instanceName;
 				if ($jobStepBody -like "<*") {
 					return $jobStepBody;

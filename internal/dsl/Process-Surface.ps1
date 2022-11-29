@@ -2,9 +2,12 @@
 
 <#
 
+	Import-Module -Name "D:\Dropbox\Repositories\premise\" -Force;
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
+
+	Validate-WindowsPreferences;
 
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\SQL-150-AG01A.psd1" -Strict:$false;
 	#Target -ConfigFile "\\storage\lab\proviso\definitions\MeM\mempdb1b.psd1" -Strict:$false;
@@ -24,7 +27,7 @@
 	#Validate-AdminDbInstanceSettings;
 	#Validate-AdminDbDiskMonitoring;
 
-	Validate-ExtendedEvents;
+	#Validate-ExtendedEvents;
 	#Validate-SqlVersion;	
 	
 	Validate-ClusterConfiguration;
@@ -116,6 +119,74 @@ filter New-DynamicFacet {
 	}
 	
 	return $newFacet;
+}
+
+function Compare-ExpectedWithActual {
+	param (
+		$Expected,
+		# This is actually NULLable...
+		[Parameter(Mandatory)]
+		[ScriptBlock]$TestBlock
+	);
+	
+	begin {
+		
+	};
+	
+	process {
+		
+		#region vNEXT
+		# vNEXT: Look into using Compare-Object. 
+		# 		it's super powerful/complex  ... but, might make sense to verify that 'all' details/outputs were == 
+		# 		and potentially capture those that don't ==.
+		#endregion	
+		
+		$actualResult = $null;
+		$actualException = $null;
+		try {
+			$actualResult = & $TestBlock;
+		}
+		catch {
+			$actualException = $_;
+		}
+		
+		[bool]$comparedValuesMatch = $false;
+		
+		[System.Management.Automation.ErrorRecord]$comparisonError = $null;
+		if ($null -eq $actualException) {
+			
+			try {
+				if ($Expected -is [bool]) {
+					if ($Expected) {
+						# sigh. have to flip this around, cuz if(<somethingThatEvaluatesToTrue> -etc) is evaluated, we'll 100% short circuit if the data types are the exact same/etc. 
+						$comparedValuesMatch = ($actualResult -eq $Expected);
+					}
+					else {
+						if ((-not ($Expected)) -and (-not ($actualResult))) {
+							$comparedValuesMatch = $true; # Honestly, this is super lame... 
+						}
+					}
+				}
+				else {
+					$comparedValuesMatch = ($Expected -eq $actualResult);
+				}
+			}
+			catch {
+				$comparisonError = $_;
+			}
+		}
+	};
+	
+	end {
+		$output = [PSCustomObject]@{
+			'ActualResult'    = $actualResult
+			'ActualError'	  = $actualException
+			'Matched'		  = $comparedValuesMatch
+			'ComparisonError' = $comparisonError
+		};
+		
+		return $output;
+	};
 }
 
 function Process-Surface {
@@ -238,14 +309,14 @@ function Process-Surface {
 		
 		$simpleFacets = $surface.GetSimpleFacets();
 		foreach ($simpleFacet in $simpleFacets) {
+			$simpleFacet.CurrentKey = $simpleFacet.Key;
+			$simpleFacet.CurrentKeyValue = $PVConfig.GetValue($simpleFacet.Key);
+			
 			if ($simpleFacet.ExpectsKeyValue) {
 				
 				$script = "return `$PVConfig.GetValue(`"$($simpleFacet.Key)`");";
 				$expectedBlock = [ScriptBlock]::Create($script);
 				$simpleFacet.SetExpect($expectedBlock);
-				
-				$simpleFacet.CurrentKey = $simpleFacet.Key;
-				$simpleFacet.CurrentKeyValue = $PVConfig.GetValue($simpleFacet.Key);
 			}
 			
 			$facets += $simpleFacet;
@@ -264,7 +335,8 @@ function Process-Surface {
 		$objectFacets = $surface.GetObjectFacets();
 		if ($objectFacets) {
 			foreach ($objectFacet in $objectFacets) {
-				$objects = @($PVConfig.GetObjects($objectFacet.Key));
+
+				$objects = @($PVConfig.GetObjectInstanceNames($objectFacet.Key));
 				
 				# TODO: implement sort-order stuff... (might need to actually 'move' this logic up into the call to $PVConfig.GetObjects ... as that might make more sense as a place to do the sort by CHILD key stuff.	
 				#$descending = $false;
@@ -313,44 +385,37 @@ function Process-Surface {
 		$compoundFacets = $surface.GetCompoundFacets();
 		if ($compoundFacets) {
 			foreach ($compoundFacet in $compoundFacets) {
+#Write-Host "compound: $($compoundFacet.Name)  => Key: $($compoundFacet.Key)"
 				$sqlInstances = @(($PVConfig.GetSqlInstanceNames($compoundFacet.Key)));
 				foreach ($sqlInstance in $sqlInstances) {
+#Write-Host "	sqlInstance: $sqlInstance "
 					$instanceName = Get-SqlInstanceNameForDynamicFacets -CurrentInstanceName $sqlInstance -TargetInstances $sqlInstances;
 					
-					if (Is-InstanceGlobalComplexKey -Key $compoundFacet.Key) {
-						if ($compoundFacet.FacetType -eq "Compound") {
-							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName;
-						}
-						else {
-							$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
-							foreach ($arrayValue in $arrayValues) {
-								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -SubChildName $arrayValue;
-							}
+					$token = Validate-ConfigurationEntry -Key $compoundFacet.Key;
+					if (-not ($token.IsValid)) {
+						throw "Invalid";
+					}
+					$tokenizedKey = $token.TokenizedKey;
+					
+					if ($tokenizedKey -like "*{~ANY~}*") {
+						$objectNames = @($PVConfig.GetObjectInstanceNames($tokenizedKey, $sqlInstance));
+						foreach ($objectName in $objectNames) {
+							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -ObjectName $objectName -SubChildName $objectName;
 						}
 					}
 					else {
-#Write-Host "Compound Key: $($compoundFacet.Key) "
+						# effectively just the same as a new SqlInstanceFacet (i.e., there's no 'complex' object to complicate things... )
 						
-	# call to objects is busted. the compound key above is perfect. 
-	#   but the call into GetObjects is returning SQL Server instances - not objects... 					
-						$objects = @($PVConfig.GetObjects($compoundFacet.Key));
+						$facetType = Get-FacetTypeByKey -Key $token.NormalizedKey;
 						
-						if ("Compound" -eq $compoundFacet.FacetType) {
-							foreach ($objectName in $objects) {
-#		Write-Host "	Object: $objectName"						
-								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $objectName;
+						if ("CompoundArray" -eq $facetType) {
+							$arrayValues = @($PVConfig.GetValue($token.NormalizedKey));
+							foreach ($aValue in $arrayValues) {
+								$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName -ObjectName $aValue -SubChildName $aValue;
 							}
 						}
 						else {
-							# CompoundArray
-							foreach ($objectName in $objects) {
-								$arrayValues = @($PVConfig.GetValues($compoundFacet.Key));
-								foreach ($arrayValue in $arrayValues) {
-									# Hmmm... I THINK this'll work?'
-									$subChildName = "$($objectName)>>$($arrayValue)";
-									$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ObjectName $objectName -ChildName $instanceName -SubChildName $subChildName;
-								}
-							}
+							$facets += New-DynamicFacet -BaseFacet $compoundFacet -SqlInstanceName $sqlInstance -ChildName $instanceName;
 						}
 					}
 				}
@@ -380,12 +445,13 @@ function Process-Surface {
 		$validationsOutcome = [Proviso.Enums.ValidationsOutcome]::Completed;
 		
 		foreach ($facet in $facets) {
+			$PVContext.WriteLog("Starting Validation of Facet [$($facet.Name)].", "Debug");
 			$validationResult = New-Object Proviso.Processing.ValidationResult($facet, $processingGuid); 
 			$validations += $validationResult;
 			
 			[ScriptBlock]$expectedBlock = $facet.Expect;
 			if ($null -eq $expectedBlock) {
-				throw "Proviso Framework Error. Expect block should be loaded - but is NOT.";	
+				throw "Proviso Framework Error. Expect block for Facet [$($facet.Name)] is NOT set.";	
 			}
 			
 			$expectedResult = $null;
@@ -481,6 +547,7 @@ function Process-Surface {
 		# --------------------------------------------------------------------------------------
 		# Configuration
 		# --------------------------------------------------------------------------------------		
+		$PVContext.WriteLog("Count of NON-matched Validations for Current Surface: $($surfaceProcessingResult.NonMatchedValidationsCount())", "Debug");
 		if ("Configure" -eq $Operation) {
 			
 			$surfaceProcessingResult.StartConfigurations();
@@ -512,6 +579,7 @@ function Process-Surface {
 				}
 				else {
 					$PVContext.SetConfigurationState($validation);
+					$PVContext.WriteLog("Starting Configuration for Facet $($validation.Name)", "Debug");
 					
 					try {
 						[ScriptBlock]$configureBlock = $null;
@@ -528,13 +596,17 @@ function Process-Surface {
 						$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
 						$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 						$configurationResult.AddConfigurationError($configurationError);
+						
+						$PVContext.WriteLog("Configuration Exception: $_  `r$($_.ScriptStackTrace) ", "Debug");
 					}
 					
 					$PVContext.ClearSurfaceState();
 				}
 			}
 			
-			if ($surface.UsesBuild) {
+			if ($surface.UsesBuild -and ($surfaceProcessingResult.NonMatchedValidationsCount()) -gt 0) {
+				$PVContext.WriteLog("Starting BUILD process for Surface: $($surface.Name)", "Debug");
+				
 				# NOTE: there's no 'state' within a Deploy operation... (e.g., Configure operations use .SetConfigurationState(), validations use .SetValidationState(), but ... there's NO state here.)
 				try {
 					[ScriptBlock]$deployBlock = $surface.Deploy.DeployBlock;
@@ -546,9 +618,12 @@ function Process-Surface {
 					$configurationsOutcome = [Proviso.Enums.ConfigurationsOutcome]::Failed;
 					$configurationError = New-Object Proviso.Processing.ConfigurationError($_);
 					$configurationResult.AddConfigurationError($configurationError);
+					
+					$PVContext.WriteLog("Exception in BUILD: ", "Debug");
 				}
 			}
 			
+			$PVContext.WriteLog("Starting Re-Validation/Re-Compare Process.", "Debug");
 			# Now that we're done running configuration operations, time to execute Re-Compare operations:
 			$targets = $configurations | Where-Object { ($_.ConfigurationBypassed -eq $false) -and ($_.ConfigurationFailed -eq $false);	};
 			foreach ($configurationResult in $targets) {

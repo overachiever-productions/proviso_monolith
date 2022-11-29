@@ -1,5 +1,6 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# Refactor: this should probably be $PVFormatter
 $script:Formatter = [Proviso.Formatter]::Instance;
 
 # Each call to Summarize (func) sets this value to 0. 

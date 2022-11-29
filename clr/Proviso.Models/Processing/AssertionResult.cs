@@ -51,8 +51,10 @@ namespace Proviso.Processing
 
                 return this.AssertionError.Exception.Message;
             }
-
-            return this.Assertion.FailureMessage ?? "Unknown Error.";
+            else
+            {
+                return "Assertion Passed."; // there was no error or problem - i.e., the assertion passed. 
+            }
         }
 
         public string GetOutcomeState()

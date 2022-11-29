@@ -6,40 +6,9 @@ $global:PVRunBookActive = $false;
 
 $script:be8c742fDefaultConfigData = $null;
 
-# 1. Import (.NET) classes (ordered to address dependency chains)
-$classFiles = @(
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\AssertionsOutcome.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\ConfigurationsOutcome.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\FacetType.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\CredentialsType.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\SurfaceProcessingState.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\RebaseOutcome.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\ValidationErrorType.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Enums\ValidationsOutcome.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Assertion.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Facet.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Rebase.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Setup.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Build.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Deploy.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Surface.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Models\Runbook.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\DomainModels\Partition.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\DomainModels\Disk.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\AssertionResult.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\ConfigurationError.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\ConfigurationResult.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\RebaseResult.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\ValidationError.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\ValidationResult.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Processing\SurfaceProcessingResult.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\ProvisoCatalog.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Orthography.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\DomainCredential.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\ProcessingContext.cs"
-	"$ProvisoScriptRoot\clr\Proviso.Models\Formatter.cs"
-);
-Add-Type -Path $classFiles;
+# 1. Import (.NET) classes
+. "$PSScriptRoot\proviso.meta.ps1"
+Import-ProvisoTypes;
 
 # 2. Internal Functions 
 foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -ChildPath 'internal/*.ps1') -Recurse -ErrorAction Stop))) {
@@ -50,8 +19,6 @@ foreach ($file in (@(Get-ChildItem -Path (Join-Path -Path $ProvisoScriptRoot -Ch
 		throw "Unable to dot source Internal Function: [$($file.FullName)]`rEXCEPTION: $_  `r$($_.ScriptStackTrace) ";
 	}
 }
-
-
 
 # 3. Public Functions 
 [string[]]$provisoPublicModuleMembers = @();

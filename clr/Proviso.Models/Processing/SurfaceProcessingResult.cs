@@ -46,6 +46,16 @@ namespace Proviso.Processing
         public List<ValidationResult> ValidationResults { get; private set; }
         public bool ValidationsFailed { get; private set; }
 
+        public int NonMatchedValidationsCount()
+        {
+            return this.ValidationResults.Count(v => !v.Matched);
+        }
+
+        //public bool AllValidationsMatched()
+        //{
+        //    return !this.ValidationResults.Any(a => a.Failed);
+        //}
+        
         public RebaseOutcome RebaseOutcome { get; private set; }
         public RebaseResult RebaseResult { get; private set; }
         public bool RebaseFailed => this.ProcessingState.HasFlag(SurfaceProcessingState.RebaseFailed);

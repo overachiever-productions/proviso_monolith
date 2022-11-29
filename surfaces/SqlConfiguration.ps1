@@ -4,7 +4,7 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 	
 	Assertions  {
 		Assert-UserIsAdministrator; # can't set user rights otherwise... 
-		Assert-SqlServerIsInstalled -SurfaceTarget "SqlServerConfiguration" -AssertOnConfigureOnly;
+		Assert-SqlServerIsInstalled -SurfaceTarget "SqlServerConfiguration" -AssertOnConfigureOnly -FailureMessage "SqlConfiguration can NOT be Configured until target SQL Server Instances have been installed.";
 	}
 	
 	Aspect {
@@ -53,6 +53,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "DisableSa" -Key "DisableSaLogin" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "<EMPTY>";
+				}
 				
 				$result = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [is_disabled] FROM master.sys.[server_principals] WHERE [name] = 'sa';").is_disabled;
 				
@@ -78,6 +81,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "ContingencySpace" -Key "DeployContingencySpace" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				$sqlDirectories = @{};
 				$sqlDirectories["InstallSqlDataPath"] = $PVConfig.GetValue("SqlServerInstallation.$instanceName.SqlServerDefaultDirectories.InstallSqlDataDir");
@@ -179,6 +185,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "UserRight:LPIM" -Key "EnabledUserRights.LockPagesInMemory" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight LPIM;
 			}
@@ -205,6 +214,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "UserRight:PVMT" -Key "EnabledUserRights.PerformVolumeMaintenanceTasks" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
 				return Get-UserRightForSqlServer -InstanceName $instanceName -UserRight PVMT;
 			}
@@ -228,7 +240,26 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 			}
 		}
 		
-		# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
+		# TODO: make sure this works... 
+		# Hmmm. This needs to execute per iterator (i.e., per each SQL Instance)... 
+#		Facet "SQLHostNameMatchesMachineName" {
+#			Expect {
+#				# TODO: account for named instances... 
+#			}
+#			Test {
+#				$instanceName = $PVContext.CurrentSqlInstance;
+#				
+#				# open a query and get the current 'server name'... 
+#			}
+#			Configure {
+#				
+#				# TODO: account for named instances.
+#				#Invoke-SqlCmd -Query "EXEC admindb.dbo.update_server_name @PrintOnly = 0;";
+#			}
+#		}
+	
+	
+	# vNEXT: https://overachieverllc.atlassian.net/browse/PRO-43
 		# and... not sure if that means we HAVE to have domain creds (or not).
 		#Facet "SPNExists" -ExpectValueForChildKey "GenerateSPN" {
 		#	Test {
@@ -242,8 +273,11 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 		Facet "TraceFlag" -Key "TraceFlags" -Expect $true {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$traceFlag = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return $false;
+				}
 				
+				$traceFlag = $PVContext.CurrentConfigKeyValue;
 				$enabled = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "DBCC TRACESTATUS(`$(FLAG));" -Variable "FLAG=$traceFlag").Global;
 				
 				if ($enabled -eq 0) {

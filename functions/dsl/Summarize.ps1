@@ -4,14 +4,15 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
-	Target "\\storage\lab\proviso\definitions\servers\PRO\PRO-197.psd1";
+	Map -ProvisoRoot "\\storage\Lab\proviso\";
+	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;
 
 	Validate-TestingSurface;
 	Configure-TestingSurface;
 	Validate-WindowsPreferences;
 
-	Summarize -Last 3;
+	#Summarize -Last 3;
+	Summarize -All;
 
 #>
 
@@ -37,13 +38,12 @@ function Summarize {
 			if ($All) {
 				$targets = $PVContext.GetAllResults();
 			}
+			elseif ($Last) {
+				$targets = $PVContext.GetLatestResults($Last);
+			}
+			
 			if ($LatestRunbook) {
 				$targets = $PVContext.GetLatestRunbookResults();
-			}
-			else {
-				if ($Last) {
-					$targets = $PVContext.GetLatestResults($Last);
-				}
 			}
 		}
 		
@@ -62,7 +62,6 @@ function Summarize {
 		
 		$Formatter.ResetSurfaceIds(); # resets SurfaceID functionality for this 'batch' of Summarize results... 
 		foreach ($result in ($targets | Sort-Object -Property ProcessingStart )) {
-			
 			if ($IncludeAssertions -or ($result.AssertionsFailed)) {
 				foreach ($assert in $result.AssertionResults) {
 					$asserts += $assert;

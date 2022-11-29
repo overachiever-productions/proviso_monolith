@@ -8,7 +8,7 @@ Surface "NetworkAdapters" -Target "Host" {
 		Assert-HostIsWindows;
 	}
 	
-	Aspect -Scope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
+	Aspect -IterateForScope "NetworkDefinitions" -OrderByChildKey "ProvisioningPriority" {
 		Facet "Interface.Exists" -Expect $true -NoKey {
 		# TODO: this facet should work with the definition below... 
 		#Facet "Interface.Exists" -ExpectIteratorValue {
@@ -16,7 +16,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object { $_.Name -eq $expectedInterfaceName };
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object { $_.Name -eq $expectedInterfaceName };
 				
 				if ($matchedAdapter -and ($matchedAdapter.Status -eq "Up")) {
 					return $true;
@@ -28,7 +28,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				$assumableAdapters = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.AssumableIfNames");
-				$availableAdapters = Get-ExistingNetAdapters;
+				$availableAdapters = Get-PrmNetworkAdapters;
 				
 				$matchedAdapter = $null;
 				foreach ($assumableTarget in $assumableAdapters) {
@@ -63,7 +63,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -71,7 +71,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					return ""; 
 				}
 				
-				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
@@ -83,7 +83,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
+				$targetAdapterToConfigure = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -91,7 +91,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					throw "Expected Adapter [$expectedAdapterKey] was NOT FOUND and/or failed to be configured as expected. Unable to Set IP Address.";
 				}
 				
-				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetIpConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($targetAdapterToConfigure.Index);
 				};
 				
@@ -107,12 +107,12 @@ Surface "NetworkAdapters" -Target "Host" {
 										
 					$PVContext.WriteLog("Changing [$expectedInterfaceName] IP to [$configSpecifiedIp] with gateway of [$configSpecifiedGateway]." , "Important");
 					try {
-						Set-AdapterIpAddressAndGateway -AdapterIndex ($targetAdapterToConfigure.Index) -CidrIpAddress $configSpecifiedIp -GatewayIpAddress $configSpecifiedGateway;
+						Set-PrmNetworkAdapterAddress -AdapterIndex ($targetAdapterToConfigure.Index) -CidrIpAddress $configSpecifiedIp -GatewayIpAddress $configSpecifiedGateway;
 						
 						# sadly, IF we happened to change from dynamic to STATIC IPs (within the same subnet), DNS entries will have been nuked/removed, so: 
 						$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
 						$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
-						Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+						Set-PrmNetworkAdapterDns -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
 						
 						Start-Sleep -Milliseconds 1200; # Let network settings 'take' (especially for domain joins) before continuing... 
 					}
@@ -129,7 +129,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -137,7 +137,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					return "";
 				}
 				
-				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
@@ -153,7 +153,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
+				$targetAdapterToConfigure = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -162,7 +162,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				}
 				
 				# start by rechecking the gateway 'now' - i.e., if there have been Interface or IP changes, the gateway is LIKELY correct/already set. 
-				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetIpConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($targetAdapterToConfigure.Index);
 				};
 				
@@ -174,12 +174,12 @@ Surface "NetworkAdapters" -Target "Host" {
 					
 					$PVContext.WriteLog("Changing [$expectedInterfaceName] Gateway to [$configSpecifiedGateway].", "Important");
 					try {
-						Set-AdapterIpAddressAndGateway -AdapterIndex ($targetAdapterToConfigure.Index) -CidrIpAddress $configSpecifiedIp -GatewayIpAddress $realTimeCurrentGateway;
+						Set-PrmNetworkAdapterAddress -AdapterIndex ($targetAdapterToConfigure.Index) -CidrIpAddress $configSpecifiedIp -GatewayIpAddress $realTimeCurrentGateway;
 						
 						# sadly, IF we happened to change from dynamic to STATIC IPs (within the same subnet), DNS entries will have been nuked/removed, so: 
 						$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
 						$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
-						Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+						Set-PrmNetworkAdapterDns -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
 						
 						Start-Sleep -Milliseconds 1200; # Let network settings 'take' (especially for domain joins) before continuing... 
 					}
@@ -198,11 +198,11 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
-				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
@@ -219,7 +219,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$targetAdapterToConfigure = Get-ExistingNetAdapters | Where-Object {
+				$targetAdapterToConfigure = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -227,7 +227,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					throw "Expected Adapter [$expectedAdapterKey] was NOT FOUND and/or failed to be configured as expected. Unable to Set Primary DNS.";
 				}
 				
-				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetIpConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($targetAdapterToConfigure.Index);
 				};
 				
@@ -241,7 +241,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					$PVContext.WriteLog("Changing Primary DNS to [$configSpecifiedPrimaryDns] on [$expectedInterfaceName].", "Important");
 					
 					$configSpecifiedSecondaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.SecondaryDns");;
-					Set-AdapterDnsAddresses -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+					Set-PrmNetworkAdapterDns -AdapterIndex ($targetAdapterToConfigure.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
 				}
 			}
 		}
@@ -251,11 +251,11 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
-				$targetConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($matchedAdapter.Index)
 				};
 				
@@ -271,7 +271,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				$expectedAdapterKey = $PVContext.CurrentObjectName;
 				$expectedInterfaceName = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.InterfaceAlias");
 				
-				$matchedAdapter = Get-ExistingNetAdapters | Where-Object {
+				$matchedAdapter = Get-PrmNetworkAdapters | Where-Object {
 					$_.Name -eq $expectedInterfaceName
 				};
 				
@@ -280,7 +280,7 @@ Surface "NetworkAdapters" -Target "Host" {
 				}
 				
 				# NOTE: Set-AdapterDnsAddresses will REMOVE the secondary DNS if it's "" (or change it to whaver is specified in the config if not empty):
-				$targetIpConfig = Get-ExistingIpConfigurations | Where-Object {
+				$targetIpConfig = Get-PrmNetworkIpConfigurations | Where-Object {
 					$_.Index -eq ($matchedAdapter.Index);
 				};
 				
@@ -294,7 +294,7 @@ Surface "NetworkAdapters" -Target "Host" {
 					$PVContext.WriteLog("Changing Secondary DNS to [$configSpecifiedSecondaryDns] on [$expectedInterfaceName].", "Important");
 					
 					$configSpecifiedPrimaryDns = $PVConfig.GetValue("Host.NetworkDefinitions.$expectedAdapterKey.PrimaryDns");
-					Set-AdapterDnsAddresses -AdapterIndex ($matchedAdapter.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
+					Set-PrmNetworkAdapterDns -AdapterIndex ($matchedAdapter.Index) -PrimaryDnsAddress $configSpecifiedPrimaryDns -SecondaryDnsAddress $configSpecifiedSecondaryDns;
 				}
 			}
 		}

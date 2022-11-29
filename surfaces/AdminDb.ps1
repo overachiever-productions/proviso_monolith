@@ -10,6 +10,9 @@ Surface AdminDb -Target "AdminDb" {
 		Facet "Deployed" -Key "Deploy" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {
@@ -27,8 +30,8 @@ Surface AdminDb -Target "AdminDb" {
 					
 					$latestAdminDbSqlFile = $PVResources.GetAdminDbPath($instanceName, $adminDbOverridePath);
 					
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables;
-					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC [admindb].dbo.[enable_advanced_capabilities]; ";
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables | Out-Null;
+					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "EXEC [admindb].dbo.[enable_advanced_capabilities]; " | Out-Null;
 					
 					$PVContext.SetSurfaceState("$instanceName.AdminDb.JustInstalled", $true);
 					$PVContext.WriteLog("AdminDb installed (not found previously).", "Verbose");
@@ -82,6 +85,9 @@ Surface AdminDb -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$exists = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM sys.databases WHERE [name] = 'admindb'; ").name;
 				if ($exists) {

@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# Premise: leave this func in Proviso - it's too heavily bound to Proviso conventions/etc. 
+
 filter Install-SqlServerManagementStudio {
 	param (
 		[string]$Binaries,

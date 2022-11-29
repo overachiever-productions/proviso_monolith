@@ -32,7 +32,7 @@ Surface "ExpectedDisks" -Target "Host" {
 		#endregion
 	}
 	
-	Aspect -Scope "ExpectedDisks" -OrderByChildKey "ProvisioningPriority"	{
+	Aspect -IterateForScope "ExpectedDisks" -OrderByChildKey "ProvisioningPriority"	{
 		Facet "PhysicalDiskExists" -Expect $true -NoKey {
 			Test {
 				$expectedDiskKey = $PVContext.CurrentObjectName;

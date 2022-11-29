@@ -37,6 +37,9 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$weekDayStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - WeekDay" -SqlServerInstanceName $instanceName;
 				$weekendStart = Get-AgentJobStartTime -SqlServerAgentJob "Index Maintenance - Weekend" -SqlServerInstanceName $instanceName;
@@ -80,6 +83,9 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$count = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query "SELECT COUNT(*) [count] FROM master.sys.[objects] WHERE [name] IN (N'CommandLog', N'CommandExecute', N'IndexOptimize'); ").count;
 				if ($count -eq 3) {
@@ -117,6 +123,9 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Index Maintenance - WeekDay";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;
@@ -132,6 +141,9 @@ Surface AdminDbIndexMaintenance -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$jobName = "Index Maintenance - Weekend";
 				return Get-AgentJobDaysSchedule -SqlServerAgentJob $jobName -SqlServerInstanceName $instanceName;

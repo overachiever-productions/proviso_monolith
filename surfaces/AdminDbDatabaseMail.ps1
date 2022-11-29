@@ -11,6 +11,9 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "DatabaseMail Enabled" -Key "Enabled" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$mailXps = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'Database Mail XPs'; ").current;
 				if ($mailXps -eq 0) {
@@ -30,8 +33,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "SmtpAccountName" -Key "SmtpAccountName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [name] FROM msdb.dbo.[sysmail_account] WHERE [name] = N'$expectedSetting'; ").name;
 				
 				return $accountName;
@@ -41,8 +47,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "OperatorEmail" -Key "OperatorEmail" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
+								
 				$expectedSetting = $PVContext.CurrentConfigKeyValue;
-				
 				# NOTE: this is hard-coded to check the email_address for the ALERTS operator.
 				$emailAddress = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [email_address] FROM msdb.dbo.[sysoperators] WHERE [name] = 'Alerts' AND [email_address] = N'$expectedSetting'; ").email_address;
 				
@@ -53,8 +62,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "SmtpServerName" -Key "SmtpServerName" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$serverName = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [servername] [server] FROM msdb.dbo.[sysmail_server] WHERE [servername] = N'$expectedSetting'; ").server;
 				
 				return $serverName;
@@ -64,8 +76,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "OutgoingSmtpAddress" -Key "SmtpOutgoingEmailAddress" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$outgoingAddress = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT [email_address] FROM msdb.dbo.[sysmail_account] WHERE [name] = N'$accountName' AND [email_address] = N'$expectedSetting'; ").email_address;
 				
@@ -76,8 +91,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "SmtpPortNumber" -Key "SmtpPortNumber" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$port = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[port] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName' AND s.[port] = $expectedSetting; ").port;
 				
@@ -88,8 +106,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "RequireSSL" -Key "SmtpRequiresSSL" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$ssl = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[enable_ssl] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName'; ").enable_ssl;
 				
@@ -104,8 +125,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 		Facet "SmtpAuthType" -Key "SmtpAuthType" -ExpectKeyValue -UsesBuild {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$authType = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT CASE WHEN s.[use_default_credentials] = 1 THEN N'WINDOWS' WHEN s.[use_default_credentials] = 0 AND s.[credential_id] IS NOT NULL THEN N'BASIC' ELSE N'ANONYMOUS'	END [auth_type] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName'; ").auth_type;
 				
@@ -122,8 +146,11 @@ Surface AdminDbDatabaseMail -Target "AdminDb" {
 			#       else, if auth-type = basic ... then "username"(from the config)			
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$expectedSetting = $PVContext.CurrentConfigKeyValue;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
+				$expectedSetting = $PVContext.CurrentConfigKeyValue;
 				$accountName = $PVConfig.GetValue("AdminDb.$instanceName.DatabaseMail.SmtpAccountName");
 				$username = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT s.[username] FROM msdb.dbo.[sysmail_server] s INNER JOIN [msdb].dbo.[sysmail_account] a ON [s].[account_id] = [a].[account_id] WHERE a.[name] = N'$accountName' AND s.[username] = N'$expectedSetting'; ").username;
 				

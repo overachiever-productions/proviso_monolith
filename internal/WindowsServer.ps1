@@ -1,5 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE:
+# 	Need to leave the following funcs within proviso: 
+# 		- Get-ResumeFromRestartScript
+# 		- Restart-Server
+
 filter ConvertTo-WindowsSecurityIdentifier {
 	<# 
 		I MAY end up needing to be able to pull SIDs out of AD. 
@@ -117,7 +122,6 @@ filter Restart-Server {
 		[string]$RestartRunbookTarget = $null,
 		[int]$WaitSeconds = 0,
 		[switch]$PreserveDomainCreds = $false   # TODO: look at a way to serialize these... (safely) and so on... 
-		#[switch]$DoNotTemporarilyPreserveDomainCredsToFile = $true # i.e., don't allow them to be temporarily stored...  ALSO: REFACTOR...
 	);
 		
 	if ($WaitSeconds -gt 0) {
@@ -235,12 +239,37 @@ filter Install-WsfcComponents {
 
 filter Validate-WindowsCredentials {
 	param (
-		[Parameter(Mandatory)]
-		[PSCredential]$Credentials
+		[PSCredential]$Credentials,
+		[string]$UserName,
+		[string]$Password
 	);
 	
+	if ($null -eq $Credentials) {
+		try {
+			[securestring]$secStringPassword = ConvertTo-SecureString $Password -AsPlainText -Force;
+			$Credentials = New-Object System.Management.Automation.PSCredential($UserName, $secStringPassword);
+		}
+		catch {
+			throw "huh $_ "
+			return $false;
+		}
+	}
+	
+	# if we're in a workgroup, can ONLY validate against local authority: 
 	if ("WORKGROUP" -eq ((Get-CimInstance Win32_ComputerSystem).Domain)) {
 		return Test-LocalAuthorityCredentials -LocalCreds $Credentials;
+	}
+	
+	# otherwise, ASSUME creds without an authority specified are DOMAIN, but account for explicit 'local' authority:
+	$isDomainCred = $false;
+	$credsUserName = $Credentials.UserName;
+	$indexOf = $credsUserName.IndexOf("\");
+	if ($indexOf -gt 0) {
+		$principal = $credsUserName.Substring(0, $indexOf);
+		
+		if ([System.Net.Dns]::GetHostName() -eq $principal) {
+			return Test-LocalAuthorityCredentials -LocalCreds $Credentials;
+		}
 	}
 	
 	return Test-DomainCredentials -DomainCreds $Credentials;
@@ -272,19 +301,27 @@ filter Test-DomainCredentials {
 		[PSCredential]$DomainCreds
 	);
 	
-	try {
-		$username = $DomainCreds.UserName;
-		$password = $DomainCreds.GetNetworkCredential().Password;
-		
-		$CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName;
-		$test = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain, $username, $password);
-		
-		return ($null -ne $test);
+	# nice: https://stackoverflow.com/questions/67631397/validate-credentials-for-remote-domain
+	Add-Type -AssemblyName System.DirectoryServices.AccountManagement;
+	$contextType = [System.DirectoryServices.AccountManagement.ContextType]::Domain;
+	$contextName = (Get-CimInstance Win32_ComputerSystem).Domain;
+	
+	$validation = New-Object -TypeName System.DirectoryServices.AccountManagement.PrincipalContext -ArgumentList $contextType, $contextName, $($DomainCreds.UserName), $($DomainCreds.GetNetworkCredential().Password);
+	
+	if ($validation.ConnectedServer) {
+		return $true;
 	}
-	catch {
-		return $false;
-	}
+	
+	return $false;
 }
+
+#filter Get-DirectoryPermissionsSummary {
+#	param (
+#		[string]$Directory
+#	);
+#	
+#	Get-Acl $Directory | Select-Object AccessToString | Format-List;
+#}
 
 filter Grant-PermissionsToDirectory {
 	param (
@@ -302,3 +339,74 @@ filter Grant-PermissionsToDirectory {
 	$acl.SetAccessRule($rule);
 	Set-Acl -Path $TargetDirectory -AclObject $acl;
 }
+
+filter Revoke-UserPermissionsFromDirectory {
+	# NOTE: this is just a copy/paste from Proviso_OLD.. 
+	
+#	param (
+#		[string]$TargetDirectory,
+#		[string]$UserToRemove
+#	);
+#	
+#	# fodder/source: https://stackoverflow.com/questions/13513863/powershell-remove-all-permissions-on-a-folder-for-a-specific-user
+#	
+#	# TODO: validate that the sid is valid before processing... 
+#	#$sid = ConvertTo-WindowsSecurityIdentifier -DomainUser $UserToRemove;
+#	
+#	# TODO: validate that the directory exists... 
+#	
+#	$rule = New-Object System.Security.AccessControl.FileSystemAccessRule($TargetDirectory, "Read",,, "Allow");
+#	$acl = Get-Acl $TargetDirectory;
+#	
+#	$acl.RemoveAccessRuleAll($rule);
+#	
+#	Set-Acl -Path $TargetDirectory -AclObject $acl
+}
+
+# Interestingly enough, this works in Posh 7: 
+filter Test-IsUserInAdministratorsRole {
+	$currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent();
+	$principal = New-Object System.Security.Principal.WindowsPrincipal($currentIdentity);
+	
+	if ($principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+		return $true;
+	}
+	
+	return $false;
+}
+
+#$clrCode = @"
+#using System.Security.Principal; 
+#
+#public class SecurityHelpers
+#{
+#    public static bool IsUserInGroup(string user, string group)
+#    {
+#        using (WindowsIdentity identity = new WindowsIdentity(user))
+#        {
+#            WindowsPrincipal principal = new WindowsPrincipal(identity);
+#            return principal.IsInRole(group);
+#        }
+#    }
+#}
+#"@;
+#Add-Type -TypeDefinition $clrCode;
+#filter Test-IsUserMemberOfGroup {
+#	param (
+#		[Parameter(Mandatory)]
+#		[string]$User,
+#		[Parameter(Mandatory)]
+#		[string]$Group
+#	);
+#	
+#	try {
+#		if ($User.Contains('\')) {
+#			$User = ($User -split '\\')[1];
+#		}
+#		
+#		return [SecurityHelpers]::IsUserInGroup($User, $Group);
+#	}
+#	catch {
+#		throw "Fatal exception evaluating group membership: $_ `r`t$($_.ScriptStackTrace)";
+#	}
+#}

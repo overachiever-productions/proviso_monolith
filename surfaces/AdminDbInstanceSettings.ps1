@@ -10,6 +10,9 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 		Facet "MAXDOP" -Key "MAXDOP" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$maxdop = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'max degree of parallelism'; ").current;
 				
@@ -38,6 +41,9 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 			}
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$maxMem = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT CAST(CAST(value_in_use AS int) / 1024.0 AS decimal(8,1)) [current] FROM sys.[configurations] WHERE [name] = N'max server memory (MB)'; ").current;
 				if ($maxMem -eq 2097152.0) {
@@ -64,6 +70,9 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 		Facet "CTFP" -Key "CostThresholdForParallelism" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$ctfp = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'cost threshold for parallelism'; ").current;
 				
@@ -80,6 +89,9 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 		Facet "OptimizeForAdHoc" -Key "OptimizeForAdHocQueries" -ExpectKeyValue {
 			Test {
 				$instanceName = $PVContext.CurrentSqlInstance;
+				if ($instanceName -notin (Get-ExistingSqlServerInstanceNames)) {
+					return "";
+				}
 				
 				$optimizeForAdhoc = (Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) "SELECT value_in_use [current] FROM sys.[configurations] WHERE [name] = N'optimize for ad hoc workloads'; ").current;
 				

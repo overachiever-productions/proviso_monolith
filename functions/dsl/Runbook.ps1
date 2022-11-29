@@ -41,7 +41,8 @@ function Runbook {
 		[Parameter(Mandatory, Position = 1, ParameterSetName = "default")]
 		[ScriptBlock]$RunbookBlock,
 		[switch]$RequiresDomainCredentials = $false,
-		[ValidateSet("5Seconds", "10Seconds", "30Seconds", "60Seconds", "90Seconds")]
+		[switch]$RequiresDomainCredsConfigureOnly = $false,
+		[ValidateSet("5Seconds", "10Seconds", "20Seconds", "30Seconds", "60Seconds", "90Seconds")]
 		[string]$WaitBeforeRebootFor,
 		[switch]$DeferRebootUntilRunbookEnd = $false,
 		[switch]$SkipSummary = $false,
@@ -65,7 +66,7 @@ function Runbook {
 	
 	process {
 		$runbook.AddScriptBlock($RunbookBlock);
-		$runbook.SetOptions($RequiresDomainCredentials, $DeferRebootUntilRunbookEnd, $SkipSummary, $SummarizeProblemsOnly, $WaitBeforeRebootFor);
+		$runbook.SetOptions($RequiresDomainCredentials, $RequiresDomainCredsConfigureOnly, $DeferRebootUntilRunbookEnd, $SkipSummary, $SummarizeProblemsOnly, $WaitBeforeRebootFor);
 	};
 	
 	end {

@@ -1,6 +1,17 @@
 
 # Change Log
 
+## [0.7.9] - 2022-11-29
+Ridiculous number of changes - too many to document.
+
+### Known Issues 
+- Still in an Alpha Stage. 
+
+### Main Changes
+- Full Rewrite of CONFIG functionality (2x  different times) - more object oriented. 
+- Standardization of Iterators for Surface/Facet processing. 
+- Extraction of core 'helper' logic out into Premise - new project/library. This'll allow better re-architecture of what Proviso is (effectively just a provisioning/validation tool/framework - vs provisioning/validation tool + huge library of 'helper' funcs). It'll also allow eventual integration (dependency upon) DbaTools - so that Proviso isn't bogged-down with implementation details and, again/instead: focuses more or IaC/compliance and evaluation. 
+
 ## [0.7] - 2022-05-03
 Major Overhaul of previous code.
 

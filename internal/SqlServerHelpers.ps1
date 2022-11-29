@@ -10,6 +10,21 @@
 
 #>
 
+# Premise:
+# 		need to leave the following inside of Proviso as they're bridges/wrappers only:
+
+
+# 		ACTUALLY: the following 3 funcs COULD be moved into Premise:
+# 				- Get-SqlServerDefaultInstallationPath
+# 				- Get-SqlServerDefaultDirectoryLocation
+# 				- Get-SqlServerDefaultServiceAccount
+
+
+# 		- Escape-PasswordCharactersForCommandLineUsage  really only care about this within proviso... 
+# 		- Install-SqlServer - too complex for stand-alone. 
+# 		- Install-SqlServerPatch - ditto-ish to above (too many dependencies/etc.)
+
+
 filter Get-ExistingSqlServerInstanceNames {
 	
 	[string[]]$output = @();

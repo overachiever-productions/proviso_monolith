@@ -1,5 +1,9 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE WARNING: 
+# 		Need to leave Get-ProvisoDefinedNetworkAddresses in here or ... somewhere else... 
+
+
 filter Get-ExistingNetAdapters {
 	<#
 		NOTE: without explicitly casting the output to [PSCustomObject], the following: 

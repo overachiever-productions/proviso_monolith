@@ -10,7 +10,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 		Facet "Exists" -Key "Name" -ExpectKeyValue {
 			Test {
 				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
-				$status = Get-DataCollectorSetStatus -Name ($PVContext.CurrentObjectName);
+				$status = Get-PrmDataCollectorStatus -Name ($PVContext.CurrentObjectName);
 				if ("<EMPTY>" -eq $status) {
 					return "<EMPTY>";
 				}
@@ -36,7 +36,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 					Copy-Item $xmlDefinition -Destination "C:\PerfLogs" -Force;
 					
 					$localDefinitionPath = Join-Path "C:\PerfLogs" -ChildPath (Split-Path -Path $xmlDefinition -Leaf);
-					New-DataCollectorSetFromConfigFile -Name $collectorSetName -ConfigFilePath $localDefinitionPath;
+					New-PrmDataCollectorFromFile -Name $collectorSetName -ConfigFilePath $localDefinitionPath;
 				}
 				else {
 					$PVContext.WriteLog("Config setting for [DataCollectorSets.$collectorSetName.Enabled] is set to `$false - but a Data Collector Set with the name of [$collectorSetName] already exists. Proviso will NOT drop this Data Collector Set. Please make changes manually.", "Critical");
@@ -47,7 +47,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 		Facet "IsEnabled" -Key "Enabled" -ExpectKeyValue {
 			Test {
 				#TODO: this isn't the actual name (i..e, $PVContext.CurrentObjectName is the KEY ... not the name)
-				$status = Get-DataCollectorSetStatus -Name ($PVContext.CurrentObjectName);
+				$status = Get-PrmDataCollectorStatus -Name ($PVContext.CurrentObjectName);
 				
 				if ($status -like "<*") {
 					return "<EMPTY>";  # emtpy... 
@@ -68,10 +68,10 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 				
 				# NOTE: if we're 'in here' it's because ACTUAL <> expected - so, set expected:
 				if ($expected) {
-					Start-DataCollector -Name $collectorSetName;
+					Start-PrmDataCollector -Name $collectorSetName;
 				}
 				else {
-					Stop-DataCollector -Name $collectorSetName;
+					Stop-PrmDataCollector -Name $collectorSetName;
 				}
 			}
 		}
@@ -80,37 +80,13 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 			Test {
 				# TODO: this isn't the name, it's the key... 
 				$collectorSetName = $PVContext.CurrentObjectName;
-				
-				# Since TaskScheduler tasks SUCK so much AND since Posh sucks in terms of support, it's EASIER to simply extract the XML for tasks and 'go that route'... 
-				$path = "C:\Windows\System32\Tasks\Microsoft\Windows\PLA\$collectorSetName";
-				if (-not (Test-Path $path)) {
-					return "<EMPTY>";
-				}
-				
-				$xmlTask = New-Object System.Xml.XmlDocument;
-				$xmlTask.Load($path);
-				$bootTrigger = ($xmlTask).Task.Triggers.BootTrigger.Enabled; 
-				
-				[bool]$startWithOs = $bootTrigger;
-				if ($startWithOs) {
-					$command = ($xmlTask).Task.Actions.Exec.Command;
-					$arguments = ($xmlTask).Task.Actions.Exec.Arguments;
-					
-					# TODO: potentially have to check/validate this info AGAINST the current OS? 
-					$argValue = [string]::Format('C:\windows\system32\pla.dll,PlaHost "{0}" "$(Arg0)"', $collectorSetName);
-					
-					if (("C:\windows\system32\rundll32.exe" -eq $command) -and ($argValue -eq $arguments)) {
-						return $true;
-					}
-				}
-				
-				return $false;
+				return Get-PrmDataCollectorAutoStart -Name $collectorSetName;				
 			}
 			Configure {
 				$collectorSetName = $PVContext.CurrentObjectName;
 				[bool]$expected = $PVContext.Expected;
 				
-				Enable-DataCollectorSetForAutoStart -Name $collectorSetName -Disable:(-not ($expected));
+				Enable-PrmDataCollectorAutoStart -Name $collectorSetName -Disable:(-not ($expected));
 			}
 		}
 		
@@ -118,27 +94,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 			Test {
 				# TODO: this isn't the name, it's the key... 
 				$collectorSetName = $PVContext.CurrentObjectName;
-								
-				# Ditto on scheduled tasks sucking - i.e., using xml instead: 
-				$path = "C:\Windows\System32\Tasks\$collectorSetName - Cleanup Older Files";
-				if (-not (Test-Path $path)) {
-					return "<EMPTY>";
-				}
-				
-				$xmlTask = New-Object System.Xml.XmlDocument;
-				$xmlTask.Load($path);
-				
-				$arguments = ($xmlTask).Task.Actions.Exec.Arguments;
-				if ($arguments) {
-					
-					$regex = New-Object System.Text.RegularExpressions.Regex('-RetentionDays (?<days>[0-9]+)', [System.Text.RegularExpressions.RegexOptions]::Singleline);
-					$matches = $regex.Match($arguments);
-					if ($matches) {
-						$days = $matches.Groups[1].Value;
-						
-						return $days;
-					}
-				}
+				return Get-PrmDataCollectorRetentionDays -Name $collectorSetName;
 			}
 			Configure {
 				$collectorSetName = $PVContext.CurrentObjectName;
@@ -151,7 +107,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 				}
 				
 				Copy-Item $cleanupScript -Destination "C:\PerfLogs" -Force;
-				New-DataCollectorSetFileCleanupJob -Name $collectorSetName -RetentionDays $daysToRetain;
+				Enable-PrmDataCollectorCleanup -Name $collectorSetName -RetentionDays $daysToRetain;
 			}
 		}
 	}

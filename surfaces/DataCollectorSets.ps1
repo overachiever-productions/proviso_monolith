@@ -36,7 +36,7 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 					Copy-Item $xmlDefinition -Destination "C:\PerfLogs" -Force;
 					
 					$localDefinitionPath = Join-Path "C:\PerfLogs" -ChildPath (Split-Path -Path $xmlDefinition -Leaf);
-					New-PrmDataCollectorFromFile -Name $collectorSetName -ConfigFilePath $localDefinitionPath;
+					New-PrmDataCollectorFromFile -Name $collectorSetName -ConfigFile $localDefinitionPath;
 				}
 				else {
 					$PVContext.WriteLog("Config setting for [DataCollectorSets.$collectorSetName.Enabled] is set to `$false - but a Data Collector Set with the name of [$collectorSetName] already exists. Proviso will NOT drop this Data Collector Set. Please make changes manually.", "Critical");
@@ -86,7 +86,13 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 				$collectorSetName = $PVContext.CurrentObjectName;
 				[bool]$expected = $PVContext.Expected;
 				
-				Enable-PrmDataCollectorAutoStart -Name $collectorSetName -Disable:(-not ($expected));
+				if ($expected) {
+					Enable-PrmDataCollectorAutoStart -Name $collectorSetName;
+				}
+				else {
+					# TODO: disable ... 
+					$PVContext.WriteLog("Config setyting for [DataCollectorSets.$collectorSetName.EnableStartWithOS] is set to `$false. Disabling AutoStart is not YET implemented by Proviso.", "Critical");
+				}
 			}
 		}
 		

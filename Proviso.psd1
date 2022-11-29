@@ -4,7 +4,7 @@
 	RootModule = 'proviso.psm1'
 	
 	# Version number of this module.
-	ModuleVersion = '0.7.8'
+	ModuleVersion = '0.7.9'
 	
 	# ID used to uniquely identify this module
 	GUID = '351B7A89-B236-48E4-A044-A8A2EC7E9F67'
@@ -35,6 +35,7 @@
 	
 	# Modules that must be imported into the global environment prior to importing this module
 	RequiredModules	       = @(
+		@{ModuleName = "Premise"; RequiredVersion = "0.1.0";}	
 		@{ModuleName = "PSFramework"; RequiredVersion = "1.0.19";}	
 		@{ModuleName = "SQLServer"; RequiredVersion = "21.1.18256";}
 	)

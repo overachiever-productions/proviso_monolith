@@ -3,13 +3,12 @@
 <#
 
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
-	Assign -ProvisoRoot "\\storage\Lab\proviso\";
+	Map -ProvisoRoot "\\storage\Lab\proviso\";
 
 	$PVResources.GetSqlSpOrCu("SQLServer2019-KB4552255-x64-cu5.exe");
+	$PVResources.GetDataCollectorSetDefinitionFile("SQLCore");
 
-
-
-	-- Methods: 
+	-- Members: 
 		.RootSet  defaults to false... (though... maybe check and see if C:\Scripts\proviso would work - via SetRoot() functionality?
 		.GetRoot() 
 			spits out the root path or whatever was set ...  as the root path. 

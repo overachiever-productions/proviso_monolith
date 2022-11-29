@@ -29,7 +29,6 @@ filter Enable-AlwaysOnAccessForSqlServerInstance {
 	
 }
 
-
 filter New-AvailabilityGroup {
 	
 }

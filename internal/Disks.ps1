@@ -1,5 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE: 
+# 		leave the following in Proviso:
+# 		- Convert-SCSITargetIdToDeviceName  (may end up moving this to Premise but really doubt it. pretty sure it'll need major CONFIG inputs to get the info out of this I want)
+# 		- Match-NonInitializedDisksWithTargetDisk  (this is CORE proviso logic... )
+
 filter Convert-SCSITargetIdToDeviceName {
 	<#
 	function Convert-SCSITargetIdToDeviceName

@@ -1,5 +1,7 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE: these can/should stay in Provio (they're just 'bridging' methods... )
+
 filter Translate-AdminDbVectorFromDays {
 	param (
 		[Parameter(Mandatory)]

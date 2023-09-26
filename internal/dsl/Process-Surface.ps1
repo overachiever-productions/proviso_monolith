@@ -2,6 +2,7 @@
 
 <#
 
+	Import-Module -Name "D:\Dropbox\Repositories\premise\" -Force;
 	Import-Module -Name "D:\Dropbox\Repositories\proviso\" -DisableNameChecking -Force;
 	Map -ProvisoRoot "\\storage\Lab\proviso\";
 	Target -ConfigFile "\\storage\lab\proviso\definitions\PRO\PRO-197.psd1" -Strict:$false;

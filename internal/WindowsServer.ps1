@@ -1,5 +1,10 @@
 ﻿Set-StrictMode -Version 1.0;
 
+# PREMISE:
+# 	Need to leave the following funcs within proviso: 
+# 		- Get-ResumeFromRestartScript
+# 		- Restart-Server
+
 filter ConvertTo-WindowsSecurityIdentifier {
 	<# 
 		I MAY end up needing to be able to pull SIDs out of AD. 

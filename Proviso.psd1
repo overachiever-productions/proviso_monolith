@@ -35,6 +35,7 @@
 	
 	# Modules that must be imported into the global environment prior to importing this module
 	RequiredModules	       = @(
+		@{ModuleName = "premise"; RequiredVersion = "0.1.0"; }	
 		@{ModuleName = "PSFramework"; RequiredVersion = "1.0.19";}	
 		@{ModuleName = "SQLServer"; RequiredVersion = "21.1.18256";}
 	)

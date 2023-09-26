@@ -405,3 +405,4 @@ filter Test-IsUserInAdministratorsRole {
 #		throw "Fatal exception evaluating group membership: $_ `r`t$($_.ScriptStackTrace)";
 #	}
 #}
+

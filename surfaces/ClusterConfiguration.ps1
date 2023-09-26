@@ -151,6 +151,8 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 						{ $_ -in @("AG", "SCALEOUT-AG") } {
 							
 							$PVContext.SetSurfaceState("$instanceName.SingleNodeClusterCreated", $true);
+							
+							# TODO: Somehow $clusterName isn't getting populated here - so it's causing cluster creation to fail.
 							New-SingleNodeAgCluster -ClusterName $clusterName -InitialNodeClusterIp $initialNodeClusterIp;
 						}
 						"WORGROUP" {
@@ -378,6 +380,7 @@ Surface ClusterConfiguration -Target "ClusterConfiguration" {
 					Validate-ClusterWitnessFileSharePath -Path $expectedPath;
 					
 					$PVContext.WriteLog("Setting Cluster Quorum for Cluster [$clusterName] to FileShareWitness -> [$expectedPath].", "Important");
+					# TODO: make sure that $expectedPath does NOT terminate with a \ - i.e., \\labdc\clusters works but \\labdc\clusters\ will NOT work. 
 					Set-ClusterQuorum -FileShareWitness $expectedPath | Out-Null;
 				}
 				elseif (("FILESHARE" -eq $actualWitnessType) -and ("FILESHARE" -eq $targetWitnessType)) {

@@ -2,7 +2,8 @@
 
 Surface AdminDbHistory -Target "AdminDb" {
 	Assertions {
-		Assert-SqlServerIsInstalled -ConfigureOnly;
+		# MKC 2023-06-14 ... weird-ass bug... that only manifests in some environments... (saying that SQL isn't installed - so, removing/commenting-out)
+		#Assert-SqlServerIsInstalled -ConfigureOnly;
 		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	

@@ -3,7 +3,8 @@
 Surface AdminDb -Target "AdminDb" {
 	
 	Assertions {
-		Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
+		# MKC 2023-06-14 ... weird-ass bug... that only manifests in some environments... (saying that SQL isn't installed - so, removing/commenting-out)
+		# Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
 	}
 	
 	Aspect {

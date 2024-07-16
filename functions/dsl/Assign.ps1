@@ -28,6 +28,7 @@ function Assign {
 	begin {
 		Validate-MethodUsage -MethodName "Assign";
 		
+		# TODO: simplify this logic - i.e., use the approach I'm using in Psi -> Invoke-PsiCommand ... 
 		$count = 0;
 		foreach ($x in @($SecurityProvider, $Secret, $PasswordForReboot, $RebootCredential, $DomainCredential, $DomainCredsFromFile, $DomainCredsLookup)) {
 			if ($x) {

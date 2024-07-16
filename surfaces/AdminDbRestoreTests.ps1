@@ -3,8 +3,7 @@
 Surface AdminDbRestoreTests -Target "AdminDb" {
 	
 	Assertions {
-		# MKC 2023-06-14 ... weird-ass bug... that only manifests in some environments... (saying that SQL isn't installed - so, removing/commenting-out)
-		#Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
 		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	

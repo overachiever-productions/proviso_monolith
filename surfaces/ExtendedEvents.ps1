@@ -131,6 +131,8 @@ Surface ExtendedEvents -Target "ExtendedEvents" {
 				$xeBody = $xeBody -replace "{startupState}", $startupState;
 				$xeBody = $xeBody -replace "{isEnabled}", $isEnabled;
 				
+				# NOTE: something 'inside' Invoke-SqlCmd is stripping out white-space (carriage returns) from $xeBody:
+				# 		https://overachieverllc.atlassian.net/browse/PRO-358
 				Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -Query $xeBody;
 			}
 		}

@@ -146,7 +146,7 @@ Surface ExpectedShares -Target "ExpectedShares" {
 					($_.AccessRight -eq "Full") -and ($_.AccessControlType -eq "Allow");
 				} | Select-Object -Property AccountName;
 				
-				foreach($readWriter in $readWriteUsers) {
+				foreach ($readWriter in $readWriteUsers) {
 					if ($readWriter -notin $fullPerms.AccountName) {
 						return $false;
 					}

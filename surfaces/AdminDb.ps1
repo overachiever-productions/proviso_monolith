@@ -3,8 +3,7 @@
 Surface AdminDb -Target "AdminDb" {
 	
 	Assertions {
-		# MKC 2023-06-14 ... weird-ass bug... that only manifests in some environments... (saying that SQL isn't installed - so, removing/commenting-out)
-		# Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
+		Assert-SqlServerIsInstalled -SurfaceTarget "AdminDb" -ConfigureOnly;
 	}
 	
 	Aspect {
@@ -104,13 +103,12 @@ Surface AdminDb -Target "AdminDb" {
 				#  	that SHOULD fix it unless there's a hard-coded copy of an older version somewhere... but that's a config issue not a framework problem.
 				# and... don't install if we JUST installed: 
 				if (-not ($PVContext.GetSurfaceState("$instanceName.AdminDb.JustInstalled"))) {
-					$PVContext.WriteLog("Installing AdminDb because expected version and actual version did not match.", "Verbose");
+					$PVContext.WriteLog("(Re)Installing AdminDb because expected version and actual version did not match.", "Verbose");
 					$adminDbOverridePath = $PVConfig.GetValue("AdminDb.$instanceName.OverrideSource");
 					$latestAdminDbSqlFile = $PVResources.GetAdminDbPath($instanceName, $adminDbOverridePath);
 					
 					Invoke-SqlCmd -ServerInstance (Get-ConnectionInstance $instanceName) -InputFile $latestAdminDbSqlFile -DisableVariables;
 				}
-				
 			}
 		}
 	}

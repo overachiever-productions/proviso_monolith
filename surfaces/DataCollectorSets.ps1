@@ -107,12 +107,6 @@ Surface "DataCollectorSets" -Target "DataCollectorSets" {
 				$daysToRetain = $PVContext.Expected;
 				
 				# Ultimately, there will ALWAYS (effectively) be a cleanup - the default (i.e., if a value isn't specified) is 180 days...  
-				$cleanupScript = $PVResources.GetAsset("Remove-OldCollectorSetFiles", "ps1");
-				if (-not (Test-Path $cleanupScript)) {
-					throw "PowerShell Script for Collector-Set File Cleanup NOT found at path [$cleanupScript]. Cannot continue with setup of cleanup tasks.";
-				}
-				
-				Copy-Item $cleanupScript -Destination "C:\PerfLogs" -Force;
 				Enable-PrmDataCollectorCleanup -Name $collectorSetName -RetentionDays $daysToRetain;
 			}
 		}

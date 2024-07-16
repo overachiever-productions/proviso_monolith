@@ -1,6 +1,12 @@
 
 # Change Log
 
+## [0.8.0] - 2023-04-19 
+Started on this 'branch' around September 15 of 2022 - by moving gobs of logic/etc. into Premise and PSI. 
+Fast forward a few months and ... Proviso.Core is/was the new approach. 
+AND, ultimately, I opted to 'revert' back to the branch from September 15, 2022- as a way of KEEPING a buggy/non-perfect but FUNCTIONAL version of Proviso (old) running in lab. 
+i.e., v0.8.0 doesn't really 'exist'. 
+
 ## [0.7.9] - 2022-11-29
 Ridiculous number of changes - too many to document.
 

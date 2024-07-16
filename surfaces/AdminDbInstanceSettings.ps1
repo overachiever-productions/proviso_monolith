@@ -1,9 +1,9 @@
 ﻿Set-StrictMode -Version 1.0;
 
 Surface AdminDbInstanceSettings -Target "AdminDb" {
+	
 	Assertions {
-		# MKC 2023-06-14 ... weird-ass bug... that only manifests in some environments... (saying that SQL isn't installed - so, removing/commenting-out)
-		#Assert-SqlServerIsInstalled -ConfigureOnly;
+		Assert-SqlServerIsInstalled -ConfigureOnly;
 		Assert-AdminDbInstalled -ConfigureOnly;
 	}
 	
@@ -33,7 +33,7 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 		Facet "MaxServerMemory" -Key "MaxServerMemoryGBs" {
 			Expect {
 				$instanceName = $PVContext.CurrentSqlInstance;
-				$nonDefaultValue = $PVConfig.CurrentConfigKeyValue;
+				$nonDefaultValue = $PVContext.CurrentConfigKeyValue;
 				if ($nonDefaultValue) {
 					return $nonDefaultValue;
 				}
@@ -52,14 +52,13 @@ Surface AdminDbInstanceSettings -Target "AdminDb" {
 				}
 				
 				return $maxMem;
-				
 			}
 			Configure {
 				$instanceName = $PVContext.CurrentSqlInstance;
 				
 				# Pull from config
 				$expectedSetting = 2097152.0; # unlimited... 
-				$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.ConfigureInstance.MaxServerMemoryGBs");
+				$nonDefaultValue = $PVConfig.GetValue("AdminDb.$instanceName.InstanceSettings.MaxServerMemoryGBs");
 				if ($nonDefaultValue) {
 					$expectedSetting = $nonDefaultValue;
 				}

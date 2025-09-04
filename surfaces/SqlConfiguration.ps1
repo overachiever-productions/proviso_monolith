@@ -152,7 +152,8 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 					
 					# TODO: refactor to use just a single loop (i.e., the one above... )
 					foreach ($drive in $drives) {
-						$contingencyPath = "$($drive):\ContingencySpace"
+						$contingencyPath = "$($drive):\ContingencySpace";
+						Mount-PrmDirectory -Path $contingencyPath;
 						$deployed = $false;
 						
 						if (Test-Path $contingencyPath) {
@@ -170,8 +171,9 @@ Surface SqlConfiguration -Target "SqlServerConfiguration" {
 						
 						if (-not ($deployed)) {
 							$targetPath = "$($drive):\";
-							Expand-Archive -Path $contingencyZipSource -DestinationPath $targetPath -Force;
-							Copy-Item -Path $contingencyZipSource -Destination "$($targetPath)ContingencySpace\" -Force;
+							
+							Expand-Archive -Path $contingencyZipSource -DestinationPath $contingencyPath -Force;
+							Copy-Item -Path $contingencyZipSource -Destination $contingencyPath -Force;
 						}
 					}
 				}

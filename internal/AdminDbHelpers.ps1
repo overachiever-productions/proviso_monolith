@@ -11,24 +11,16 @@ filter Translate-AdminDbVectorFromDays {
 	);
 	
 	switch ($ComparisonVectorFormat) {
-		{
-			$_ -like '*day*'
-		} {
+		{ $_ -like '*day*' } {
 			return Pluralize-Vector -Unit $Days -UnitType "day";
 		}
-		{
-			$_ -like '*week*'
-		} {
+		{ $_ -like '*week*'	} {
 			return Pluralize-Vector -Unit ([int]($Days / 7)) -UnitType "week";
 		}
-		{
-			$_ -like '*month*'
-		} {
+		{ $_ -like '*month*' } {
 			return Pluralize-Vector -Unit ([int]($Days / 30)) -UnitType "month";
 		}
-		{
-			$_ -like '*year*'
-		} {
+		{ $_ -like '*year*'	} {
 			return Pluralize-Vector -Unit ([int]($Days / 365)) -UnitType "year";
 		}
 	}

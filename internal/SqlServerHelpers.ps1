@@ -207,7 +207,6 @@ filter Get-SqlServerInstanceCurrentVersion {
 }
 
 function Get-SqlServerInstanceDetailsFromRegistry {
-	
 	param (
 		[Parameter(Mandatory)]
 		[string]$InstanceName,

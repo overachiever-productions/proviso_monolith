@@ -8,7 +8,7 @@ $global:PVDomainCreds = [Proviso.DomainCredential]::Instance;
 		[string]$FilePath
 	);
 	
-	# do whatever it takes to load a cache object from disk or whatever... 
+	# do whatever it takes to securely load a cache object from disk or whatever... 
 	$savedCreds = "these are rehydrated from disk or whatever";
 	
 	$PVDomainCreds.AddCredential($savedCreds);

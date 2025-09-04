@@ -110,9 +110,7 @@ function New-IniFile {
 		
 		$outputFile = New-Item -ItemType file -Path $OutputPath;
 		
-		foreach ($group in $groups.Keys | Sort-Object {
-				$_
-			}) {
+		foreach ($group in $groups.Keys | Sort-Object { $_ }) {
 			$currentGroupName = $groups[$group];
 			Add-Content -Path $outputFile -Value "[$($currentGroupName)]";
 			

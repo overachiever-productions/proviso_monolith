@@ -314,9 +314,7 @@ filter PVResources-GetAdminDbPath {
 		
 		$release = Invoke-RestMethod -Method GET -Uri "https://api.github.com/repos/overachiever-productions/S4/releases/latest" -TimeoutSec 12 -ErrorAction SilentlyContinue;
 		if ($release) {
-			$file = ($release.assets | Where-Object {
-					$_.name -like "*.sql"
-				})[0].browser_download_url;
+			$file = ($release.assets | Where-Object { $_.name -like "*.sql"	})[0].browser_download_url;
 			
 			$outFile = $filePath | Join-Path -ChildPath "admindb_latest.sql";
 			Invoke-WebRequest -Method GET -Uri $file -OutFile $outFile;

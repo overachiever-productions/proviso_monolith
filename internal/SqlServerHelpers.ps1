@@ -256,6 +256,15 @@ function Get-SqlServerInstanceDetailsFromRegistry {
 				[string[]]$parts = $version -split '\.';
 				
 				switch ($parts[0]) {
+					18 {
+						return "2027"; # guessing... 
+					}
+					17 {
+						return "2025";
+					}
+					16 {
+						return "2022";
+					}
 					15 {
 						return "2019";
 					}

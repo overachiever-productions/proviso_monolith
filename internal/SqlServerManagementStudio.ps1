@@ -9,9 +9,6 @@ filter Install-SqlServerManagementStudio {
 		[switch]$IncludeAzureDataStudio = $false
 	);
 	
-	# NOTE: latest version of SSMS can be DOWNLOADED from: https://aka.ms/ssmsfullsetup
-	# Install Docs: https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver15#unattended-install
-	
 	$arguments = @();
 	
 	$arguments += "/passive"; # vs quiet... 

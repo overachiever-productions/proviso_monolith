@@ -18,6 +18,7 @@ filter Enable-AlwaysOnAccessForSqlServerInstance {
 				$SQLInstance = "DEFAULT"
 			}
 			
+			# MKC 2025-09-05 - Enable-SqlAlwaysOn is a part of SQLPS... 
 			Enable-SqlAlwaysOn -Path "SQLSERVER:\SQL\$machineName\$SQLInstance" -Force;
 		}
 		

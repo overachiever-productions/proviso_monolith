@@ -9,9 +9,6 @@ filter Install-SqlServerManagementStudio {
 		[switch]$IncludeAzureDataStudio = $false
 	);
 	
-	# NOTE: latest version of SSMS can be DOWNLOADED from: https://aka.ms/ssmsfullsetup
-	# Install Docs: https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms?view=sql-server-ver15#unattended-install
-	
 	$arguments = @();
 	
 	$arguments += "/passive"; # vs quiet... 
@@ -39,4 +36,34 @@ filter Install-SqlServerManagementStudio {
 	catch {
 		throw "Exception during installation of SSMS: $_ ";
 	}
+}
+
+filter Install-SqlServerManagementStudio21 {
+	param (
+		[string]$Binaries,
+		[string]$Version
+	);
+	
+	$arguments = @();
+	
+	# --passive --norestart --includeRecommended --installWhileDownloading
+	
+	$arguments += "--passive";
+	$arguments += "--norestart";
+	$arguments += "--includeRecommended";
+	$arguments += "--installWhileDownloading";
+	
+	$PVContext.WriteLog("Starting installation of SSMS.exe [$($Version)].", "Important");
+	
+	try {
+		$PVContext.WriteLog("SSMS [$Version] Binaries and Arguments: $Binaries $arguments", "Debug");
+		
+		$outcome = & "$Binaries" $arguments;
+		
+		$PVContext.WriteLog("SSMS Installation Complete: Outcome: $outcome", "Verbose");
+	}
+	catch {
+		throw "Exception during installation of SSMS [$Version]: $_";
+	}
+	
 }

@@ -9,7 +9,6 @@ Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 		Facet "SSMS Installed" -Key "InstallSsms" -ExpectKeyValue {
 			Test {
 				# for now, just check in the default location => https://overachieverllc.atlassian.net/browse/PRO-289
-				
 				$targetPath = $PVConfig.GetValue("SqlServerManagementStudio.InstallPath");
 				$exePath = Join-Path -Path $targetPath -ChildPath "Common7\IDE\Ssms.exe";
 				
@@ -22,10 +21,16 @@ Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 					throw "SSMS Binaries were not located for defined key: [$binaryKey] at path [$binaryPath]. Cannot continue with SSMS installation.";
 				}
 				
-				$installPath = $PVConfig.GetValue("SqlServerManagementStudio.InstallPath");
-				[bool]$installAzure = $PVConfig.GetValue("SqlServerManagementStudio.IncludeAzureStudio");
-				
-				Install-SqlServerManagementStudio -Binaries $binaryPath -InstallPath $installPath -IncludeAzureDataStudio:$installAzure;
+				$version = (Get-ItemProperty -Path $binaryPath).VersionInfo.ProductVersion;
+				if ($version -like '21*') {
+					Install-SqlServerManagementStudio21 -Binaries $binaryPath -Version $version;
+				}
+				else {
+					$installPath = $PVConfig.GetValue("SqlServerManagementStudio.InstallPath");
+					[bool]$installAzure = $PVConfig.GetValue("SqlServerManagementStudio.IncludeAzureStudio");
+					
+					Install-SqlServerManagementStudio -Binaries $binaryPath -InstallPath $installPath -IncludeAzureDataStudio:$installAzure;
+				}
 			}
 		}
 		

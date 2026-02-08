@@ -37,3 +37,33 @@ filter Install-SqlServerManagementStudio {
 		throw "Exception during installation of SSMS: $_ ";
 	}
 }
+
+filter Install-SqlServerManagementStudio21 {
+	param (
+		[string]$Binaries,
+		[string]$Version
+	);
+	
+	$arguments = @();
+	
+	# --passive --norestart --includeRecommended --installWhileDownloading
+	
+	$arguments += "--passive";
+	$arguments += "--norestart";
+	$arguments += "--includeRecommended";
+	$arguments += "--installWhileDownloading";
+	
+	$PVContext.WriteLog("Starting installation of SSMS.exe [$($Version)].", "Important");
+	
+	try {
+		$PVContext.WriteLog("SSMS [$Version] Binaries and Arguments: $Binaries $arguments", "Debug");
+		
+		$outcome = & "$Binaries" $arguments;
+		
+		$PVContext.WriteLog("SSMS Installation Complete: Outcome: $outcome", "Verbose");
+	}
+	catch {
+		throw "Exception during installation of SSMS [$Version]: $_";
+	}
+	
+}

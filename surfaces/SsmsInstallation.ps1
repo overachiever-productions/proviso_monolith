@@ -22,7 +22,7 @@ Surface SsmsInstallation -Target "SqlServerManagementStudio" {
 				}
 				
 				$version = (Get-ItemProperty -Path $binaryPath).VersionInfo.ProductVersion;
-				if ($version -like '21*') {
+				if ($version -like '22*') {
 					Install-SqlServerManagementStudio21 -Binaries $binaryPath -Version $version;
 				}
 				else {
